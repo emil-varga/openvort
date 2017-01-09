@@ -1,0 +1,6 @@
+#ifndef VORTEX_CONSTANTS_H
+#define VORTEX_CONSTANTS_H
+
+#define VORTEX_WIDTH 1e-3
+
+#endif //VORTEX_CONSTANTS_H

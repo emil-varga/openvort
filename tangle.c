@@ -116,8 +116,8 @@ void update_velocity(struct tangle_state *tangle, size_t k)
   for(m=0; m<tangle->N; ++m)
     {
       if(tangle->connections[m].forward == -1 ||
-	 m == k ||
-	 m == tangle->connections[k].forward ||
+	 m == k                               ||
+	 m == tangle->connections[k].forward  ||
 	 m == tangle->connections[k].reverse)
 	continue;
       
@@ -145,7 +145,64 @@ void update_tangents_normals(struct tangle_state *tangle)
     }
 }
 
-void update_tangle_next_free(struct tangle_state *tangle)
+int get_tangle_next_free(struct tangle_state *tangle)
 {
-  tangle->next_free++;
+  //if something is already available, just return that
+  if(tangle->next_free < tangle->N &&
+     tangle->connections[tangle->next_free].forward == -1)
+    return tangle->next_free++;
+
+  //otherwise we have to search for it
+
+  for(int k=0; k<tangle->N; ++k)
+    if(tangle->connections[k].forward == -1)
+      {
+	tangle->next_free = k+1;
+	return k;
+      }
+
+  //we haven't found anything, return error
+  return -1;
+}
+
+int num_free_points(struct tangle_state *tangle)
+{
+  int sum=0;
+  for(int k=0; k<tangle->N; ++k)
+    if(tangle->connections[k].forward < 0)
+      sum++;
+  return sum;
+}
+
+void remesh(struct tangle_state *tangle,
+	    double min_dist, double max_dist)
+{
+  for(int k=0; k<tangle->N; ++k)
+    {
+      if(tangle->connections[k].forward < 0) //empty point
+	continue;
+
+      int next = tangle->connections[k].forward;
+      int prev = tangle->connections[k].reverse;
+
+      double lf = vec3_dist(tangle->vnodes + k
+			    tangle->vnodes + next);
+      double lr = vec3_dist(tangle->vnodes + k
+			    tangle->vnodes + prev);
+
+      //can we remove point k?
+      if( (lf < min_dist || lr < min_dist) && (lf + lr) < max_dist )
+	{
+	  tangle->connections[prev].forward = next;
+	  tangle->connections[next].reverse = prev;
+	  tangle->connections[k].forward = -1;
+	  tangle->connections[k].reverse = -1;
+	}
+
+      //do we need an extra point?
+      if( lf > max_dist ) //since we are adding between k and next, check only lf
+	{
+	  int new_pt = get_tangle_next_free(tangle);
+	}
+    }
 }

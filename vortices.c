@@ -21,9 +21,11 @@ int main(int argc, char **argv)
   struct vec3d center = vec3(1, 0, 0);
   struct vec3d dir    = vec3(0, 1, 0);
   add_circle(tangle, &center, &dir, 1, 128);
+  save_tangle("step0.dat", tangle);
   update_tangents_normals(tangle);
   update_velocities(tangle);
   step_nodes(tangle, 1e-3);
+  save_tangle("step1.dat", tangle);
   free_arrays(tangle);
   free(tangle);
 }

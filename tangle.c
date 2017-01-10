@@ -10,7 +10,12 @@ void alloc_arrays(struct tangle_state *tangle, size_t n)
   tangle->tangents    = (struct vec3d*)malloc(sizeof(struct vec3d)*n);
   tangle->normals     = (struct vec3d*)malloc(sizeof(struct vec3d)*n);
 
-  tangle->connections = (struct neighbour_t*)malloc(sizeof(struct neighbour_t*)*n);
+  tangle->connections = (struct neighbour_t*)malloc(n*sizeof(struct neighbour_t*));
+  for(int k=0; k<n; ++k)
+    {
+      tangle->connections[k].forward = -1;
+      tangle->connections[k].reverse = -1;
+    }
 
   tangle->N           = n;
   tangle->next_free   = 0;
@@ -89,9 +94,9 @@ struct vec3d lia_velocity(const struct tangle_state *tangle, size_t i)
   const struct vec3d *prev = tangle->vnodes + tangle->connections[i].reverse;
 
   double l_next = vec3_dist(p, next);
-  double l_pref = vec3_dist(p, prev);
+  double l_prev = vec3_dist(p, prev);
 
-  double f = log(sqrt(l_next*l_pref)/VORTEX_WIDTH);
+  double f = log(sqrt(l_next*l_prev)/VORTEX_WIDTH);
 
   struct vec3d vv;
   vec3_cross(&vv, tangle->tangents+i, tangle->normals+i);
@@ -103,6 +108,8 @@ struct vec3d lia_velocity(const struct tangle_state *tangle, size_t i)
 void update_velocity(struct tangle_state *tangle, size_t k)
 {
   size_t m, i;
+  if(tangle->connections[k].forward == -1)
+    return;
 
   tangle->vels[k] = lia_velocity(tangle, k);
   

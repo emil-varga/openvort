@@ -18,7 +18,7 @@ void add_circle(struct tangle_state *tangle,
 
   first_point = last_point = curr_point  = tangle->next_free;
 
-  for(double phi = 0; phi < 2*M_PI; phi += 2*M_PI/Npoints)
+  for(double phi = 0; phi < 2*M_PI; phi += 2*M_PI/(Npoints+1))
     {
       vec3_mul(&p, &u, r*cos(phi));
       vec3_mul(&ptmp, &v, r*sin(phi));
@@ -40,9 +40,44 @@ void add_circle(struct tangle_state *tangle,
   tangle->connections[first_point].reverse = curr_point;
 }
 
-void save_tangle(FILE *stream, struct tangle_state *tangle)
+void save_tangle(const char *filename, struct tangle_state *tangle)
 {
   int vortex_idx = 0;
 
-  int *visited = (int *)calloc(tangle->N, sizeof(int))
+  int *visited = (int *)calloc(tangle->N, sizeof(int));
+
+  FILE *stream = fopen(filename, "w");
+
+  for(int k=0; k < tangle->N; ++k)
+    {
+      if(!visited[k])
+	{
+	  if(tangle->connections[k].forward < 0)
+	    {
+	      visited[k] = 1;
+	      continue;
+	    }
+	  
+	  int first = k;
+	  int curr  = k;
+	  while(tangle->connections[curr].forward != first)
+	    {
+	      fprintf(stream, "%d\t%g\t%g\t%g\n", vortex_idx,
+		      tangle->vnodes[curr].p[0],
+		      tangle->vnodes[curr].p[1],
+		      tangle->vnodes[curr].p[2]);
+	      visited[curr] = 1;
+	      curr = tangle->connections[curr].forward;
+	    }
+	  fprintf(stream, "%d\t%g\t%g\t%g\n", vortex_idx,
+		  tangle->vnodes[curr].p[0],
+		  tangle->vnodes[curr].p[1],
+		  tangle->vnodes[curr].p[2]);
+	  visited[curr] = 1;
+	  vortex_idx++;
+	}
+    }
+
+  free(visited);
+  fclose(stream);
 }

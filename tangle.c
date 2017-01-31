@@ -32,12 +32,17 @@ void free_arrays(struct tangle_state *tangle)
   free(tangle->connections);
 }
 
-void step_nodes(struct tangle_state *tangle, double dt)
+void step_nodes2(struct tangle_state *result,
+		 const struct tangle_state *tangle, double dt)
 {
   size_t i, k;
+  if(tangle != result)
+    {
+      //TODO: copy necessary things from tangle to result
+    }
   for(i=0; i<tangle->N; ++i)
     for(k=0; k<3; ++k)
-      tangle->vnodes[i].p[k] += dt*tangle->vels[i].p[k];
+      result->vnodes[i].p[k] += dt*tangle->vels[i].p[k];
 }
 
 void update_tangent_normal(struct tangle_state *tangle, size_t k)

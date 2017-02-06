@@ -1,4 +1,5 @@
 #include <math.h>
+#include <string.h>
 #include "tangle.h"
 #include "vortex_constants.h"
 
@@ -38,11 +39,17 @@ void step_nodes2(struct tangle_state *result,
   size_t i, k;
   if(tangle != result)
     {
-      //TODO: copy necessary things from tangle to result
+      //copy necessary things from tangle to result
+      memcpy(result->connections, tangle->connections, tangle->N);
+
+      //velocities and tangents/normals will be recalculated after stepping
     }
   for(i=0; i<tangle->N; ++i)
     for(k=0; k<3; ++k)
       result->vnodes[i].p[k] += dt*tangle->vels[i].p[k];
+
+  //calculate the normals/tangents for the new tangle
+  update_tangle(result);
 }
 
 void update_tangent_normal(struct tangle_state *tangle, size_t k)

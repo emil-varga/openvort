@@ -35,6 +35,13 @@ void step_nodes(struct tangle_state *tangle, double dt)
 void step_nodes2(struct tangle_state *result, const struct tangle_state *tangle, double dt);
 void update_tangents_normals(struct tangle_state *tangle);
 void update_velocities(struct tangle_state *tangle);
+
+void update_tangle(struct tangle_state *tangle)
+{
+  update_tangents_normals(tangle);
+  update_velocities(tangle);
+}
+
 int get_tangle_next_free(struct tangle_state *tangle);
 
 #endif //TANGLE_H

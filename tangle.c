@@ -55,27 +55,71 @@ void step_nodes2(struct tangle_state *result,
 void update_tangent_normal(struct tangle_state *tangle, size_t k)
 {
   struct vec3d *s0, *s1, *sm1;
+  struct vec3d *s2, *sm2;
   size_t i;
 
+  //vector differences
+  struct vec3d ds[4];
+
   //empty point has -1 connections
-  if(tangle->connections[k].forward == -1 || tangle->connections[k].reverse == -1)
+  if(tangle->connections[k].forward == -1 ||
+     tangle->connections[k].reverse == -1)
     return;
 
-  s0  = &tangle->vnodes[k];
-  s1  = &tangle->vnodes[tangle->connections[k].forward];
-  sm1 = &tangle->vnodes[tangle->connections[k].reverse];
+  int next = tangle->connections[k].forward;
+  int prev = tangle->connections[k].reverse;
 
-  double lf = vec3_dist(s0, s1);
-  double lr = vec3_dist(s0, sm1);
-  double d  = lf*lr*(lf + lr);
+  s0  = tangle->vnodes + k;
+  s1  = tangle->vnodes + next;
+  sm1 = tangle->vnodes + prev;
 
+  s2 = tangle->vnodes + tangle->connections[next].forward;
+  sm2 = tangle->vnodes + tangle->connections[prev].reverse;
+
+  vec3_sub(ds + 0, s2, s0);
+  vec3_sub(ds + 1, s1, s0);
+  vec3_sub(ds + 2, sm1, s0);
+  vec3_sub(ds + 3, sm2, s0);
+
+  double d1 = vec3_dist(s0, s1);
+  double d2 = d1 + vec3_dist(s1, s2);
+
+  double dm1 = vec3_dist(s0, sm1);
+  double dm2 = dm1 + vec3_dist(sm1, sm2);
+
+  //four point coefficients, denominators
+  double d_s_diff[] = {
+    d2*(d2 - d1)*(dm1 + d2)*(dm2 + d2),
+    d1*(d2 - d1)*(dm1 + d1)*(dm2 + d1),
+    dm1*(dm1 + d1)*(dm1 + d2)*(dm2 - dm1),
+    dm2*(dm2 + d1)*(dm2 + d2)*(dm2 - dm1)
+  }
+
+  //first derivative
+  //four point coefficients, nominators, O(d^4)
+  double s_1_cf[] = {
+    -d1*dm1*dm2,
+    d2*dm1*dm2,
+    -d1*d2*dm2,
+    d1*d2*dm1
+  }
+
+  //second derivative
+  //four point coefficients, nominators, O(d^3)
+  double s_2_cf[] = {
+     2*((dm1 - d1)*dm2 - d1*dm1),
+    -2*((dm1 - d2)*dm2 - d2*dm1),
+     2*((d2  + d1)*dm2 - d1*d2),
+    -2*((d2  + d1)*dm1 - d1*d2)
+  }
+  
   for(i=0; i<3; ++i)
     {
-      tangle->tangents[k].p[i] = s1->p[i]*lr*lr + s0->p[i]*(lf*lf + lr*lr) - sm1->p[i]*lf*lf;
-      tangle->tangents[k].p[i] /= d;
-
-      tangle->normals[k].p[i] = s1->p[i]*lr + sm1->p[i]*lf - s0->p[i]*(lf + lr);
-      tangle->normals[k].p[i] /= d;
+      for(int z = 0; z<4; ++z)
+	{
+	  tangle->tangents[k].p[i] = s_1_cf[z]/d_s_diff[z]*ds[z][i];
+	  tangle->normals[k].p[i]  = s_2_cf[z]/d_s_diff[z]*ds[z][i];
+	}
     }
 }
 

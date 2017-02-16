@@ -1,7 +1,9 @@
 #include <math.h>
 #include <string.h>
+#include <stdlib.h>
 #include "tangle.h"
 #include "vortex_constants.h"
+#include "util.h"
 
 void alloc_arrays(struct tangle_state *tangle, size_t n)
 {
@@ -11,7 +13,7 @@ void alloc_arrays(struct tangle_state *tangle, size_t n)
   tangle->tangents    = (struct vec3d*)malloc(sizeof(struct vec3d)*n);
   tangle->normals     = (struct vec3d*)malloc(sizeof(struct vec3d)*n);
 
-  tangle->connections = (struct neighbour_t*)malloc(n*sizeof(struct neighbour_t*));
+  tangle->connections = (struct neighbour_t*)malloc(n*sizeof(struct neighbour_t));
   for(int k=0; k<n; ++k)
     {
       tangle->connections[k].forward = -1;
@@ -21,6 +23,34 @@ void alloc_arrays(struct tangle_state *tangle, size_t n)
   tangle->N           = n;
   tangle->next_free   = 0;
   tangle->total_free  = n;
+}
+
+void expand_arrays(struct tangle_state *tangle, size_t n)
+{
+  int k;
+  int old_n = tangle->N;
+  tangle->vnodes      = (struct vec3d*)realloc(tangle->vnodes, sizeof(struct vec3d)*n);
+  tangle->vnodes_new  = (struct vec3d*)realloc(tangle->vnodes_new, sizeof(struct vec3d)*n);
+  tangle->vels        = (struct vec3d*)realloc(tangle->vels, sizeof(struct vec3d)*n);
+  tangle->tangents    = (struct vec3d*)realloc(tangle->tangents, sizeof(struct vec3d)*n);
+  tangle->normals     = (struct vec3d*)realloc(tangle->normals, sizeof(struct vec3d)*n);
+
+  tangle->connections = (struct neighbour_t*)realloc(tangle->connections, n*sizeof(struct neighbour_t));
+
+  if(old_n < n)
+    {
+      for(k=old_n; k<n; ++k)
+  	{
+  	  tangle->connections[k].forward = -1;
+  	  tangle->connections[k].reverse = -1;
+  	}
+    }
+
+  //only change the next free if the current next_free is not valid
+  if(tangle->connections[tangle->next_free].forward == -1)
+    tangle->next_free = tangle->N;
+  tangle->N           = n;
+  tangle->total_free  += n;
 }
 
 void free_arrays(struct tangle_state *tangle)
@@ -89,11 +119,10 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k)
 
   //four point coefficients, denominators
   double d_s_diff[] = {
-    d2*(d2 - d1)*(dm1 + d2)*(dm2 + d2),
-    d1*(d2 - d1)*(dm1 + d1)*(dm2 + d1),
-    dm1*(dm1 + d1)*(dm1 + d2)*(dm2 - dm1),
+  d2*(d2 - d1)*(dm1 + d2)*(dm2 + d2),
+    d1*(d2 - d1)*(dm1 + d1)*(dm2 + d1),  dm1*(dm1 + d1)*(dm1 + d2)*(dm2 - dm1),
     dm2*(dm2 + d1)*(dm2 + d2)*(dm2 - dm1)
-  }
+      };
 
   //first derivative
   //four point coefficients, nominators, O(d^4)
@@ -102,23 +131,23 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k)
     d2*dm1*dm2,
     -d1*d2*dm2,
     d1*d2*dm1
-  }
+      };
 
   //second derivative
   //four point coefficients, nominators, O(d^3)
   double s_2_cf[] = {
-     2*((dm1 - d1)*dm2 - d1*dm1),
+  2*((dm1 - d1)*dm2 - d1*dm1),
     -2*((dm1 - d2)*dm2 - d2*dm1),
-     2*((d2  + d1)*dm2 - d1*d2),
+    2*((d2  + d1)*dm2 - d1*d2),
     -2*((d2  + d1)*dm1 - d1*d2)
-  }
+       };
   
   for(i=0; i<3; ++i)
     {
       for(int z = 0; z<4; ++z)
 	{
-	  tangle->tangents[k].p[i] = s_1_cf[z]/d_s_diff[z]*ds[z][i];
-	  tangle->normals[k].p[i]  = s_2_cf[z]/d_s_diff[z]*ds[z][i];
+	  tangle->tangents[k].p[i] = s_1_cf[z]/d_s_diff[z]*ds[z].p[i];
+	  tangle->normals[k].p[i]  = s_2_cf[z]/d_s_diff[z]*ds[z].p[i];
 	}
     }
 }
@@ -201,13 +230,13 @@ void update_tangents_normals(struct tangle_state *tangle)
     }
 }
 
-int get_tangle_next_free(struct tangle_state *tangle)
+int search_next_free(struct tangle_state *tangle)
 {
   //if something is already available, just return that
   if(tangle->next_free < tangle->N &&
      tangle->connections[tangle->next_free].forward == -1)
     return tangle->next_free++;
-
+  
   //otherwise we have to search for it
 
   for(int k=0; k<tangle->N; ++k)
@@ -221,6 +250,19 @@ int get_tangle_next_free(struct tangle_state *tangle)
   return -1;
 }
 
+int get_tangle_next_free(struct tangle_state *tangle)
+{
+  int idx = search_next_free(tangle);
+
+  if(idx < 0)
+    {
+      expand_arrays(tangle, 2*tangle->N);
+      idx = search_next_free(tangle);
+    }
+
+  return idx;
+}
+
 int num_free_points(struct tangle_state *tangle)
 {
   int sum=0;
@@ -230,9 +272,12 @@ int num_free_points(struct tangle_state *tangle)
   return sum;
 }
 
-void remesh(struct tangle_state *tangle,
-	    double min_dist, double max_dist)
+
+void remove_point(struct tangle_state *tangle, int point_idx);
+void add_point(struct tangle_state *tangle, int point_idx);
+void remesh(struct tangle_state *tangle, double min_dist, double max_dist)
 {
+  struct list *tainted = new_list();
   for(int k=0; k<tangle->N; ++k)
     {
       if(tangle->connections[k].forward < 0) //empty point
@@ -240,19 +285,24 @@ void remesh(struct tangle_state *tangle,
 
       int next = tangle->connections[k].forward;
       int prev = tangle->connections[k].reverse;
+  
+      int next2 = tangle->connections[next].forward;
+      int prev2 = tangle->connections[prev].reverse;
 
-      double lf = vec3_dist(tangle->vnodes + k
+      double lf = vec3_dist(tangle->vnodes + k,
 			    tangle->vnodes + next);
-      double lr = vec3_dist(tangle->vnodes + k
+      double lr = vec3_dist(tangle->vnodes + k,
 			    tangle->vnodes + prev);
 
       //can we remove point k?
       if( (lf < min_dist || lr < min_dist) && (lf + lr) < max_dist )
 	{
-	  tangle->connections[prev].forward = next;
-	  tangle->connections[next].reverse = prev;
-	  tangle->connections[k].forward = -1;
-	  tangle->connections[k].reverse = -1;
+	  add_elem(tainted, (void*)prev2);
+	  add_elem(tainted, (void*)prev);
+	  add_elem(tainted, (void*)next);
+	  add_elem(tainted, (void*)next2);
+	  
+	  remove_point(tangle, k);
 	}
 
       //do we need an extra point?
@@ -261,4 +311,33 @@ void remesh(struct tangle_state *tangle,
 	  int new_pt = get_tangle_next_free(tangle);
 	}
     }
+  delete_list(tainted);
+}
+
+void remove_point(struct tangle_state *tangle, int point_idx)
+{
+  int prev = tangle->connections[point_idx].reverse;
+  int next = tangle->connections[point_idx].forward;
+  tangle->connections[prev].forward = next;
+  tangle->connections[next].reverse = prev;
+  tangle->connections[point_idx].reverse =
+    tangle->connections[point_idx].forward = -1;
+}
+
+
+//add a point between p and p+1 (p+1 in the sense of connections)
+void add_point(struct tangle_state *tangle, int p)
+{
+  
+}
+
+void step_nodes(struct tangle_state *tangle, double dt)
+{
+  step_nodes2(tangle, tangle, dt);
+}
+
+void update_tangle(struct tangle_state *tangle)
+{
+  update_tangents_normals(tangle);
+  update_velocities(tangle);
 }

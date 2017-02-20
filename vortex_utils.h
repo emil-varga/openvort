@@ -1,6 +1,12 @@
 #ifndef VORTEX_UTILS_H
 #define VORTEX_UTILS_H
 
+//This file contains miscellaneous utilities related to
+//the handling of the tangle. Actual calculationg belong to tangle.h.
+
+//This contains routines for creating basic vortex geometries and
+//handling file I/O
+
 #include <stdlib.h>
 #include <stdio.h>
 #include "vec3_maths.h"

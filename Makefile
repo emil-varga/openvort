@@ -1,25 +1,24 @@
 CC=clang -O0 -Wall -ggdb
-LIBS=-lm
+CFLAGS= `gsl-config --cflags`
+LIBS=-lm `gsl-config --libs`
 
+SRCS=tangle.c  util.c  vec3_maths.c  vortex_utils.c  vortices.c
 OBJS=vortices.o vec3_maths.o tangle.o vortex_utils.o util.o
 
 all: $(OBJS)
-	$(CC) $(OBJS) -o vortices $(LIBS)
+	$(CC) $(CFLAGS) $(OBJS) -o vortices $(LIBS)
 
-vorices.o: vortices.c vec3_math.h tangle.h vortex_utils.h
-	$(CC) -c vortices.c
+depend: .depend
 
-vortex_utils.o: vortex_utils.c vortex_utils.h
-	$(CC) -c vortex_utils.c
+.depend: $(SRCS)
+	echo $(SRCS)
+	rm -f ./.depend
+	$(CC) $(CFLAGS) -MM $^ > ./.depend;
 
-tangle.o: tangle.c tangle.h vortex_constants.h
-	$(CC) -c tangle.c
+include .depend
 
-vec3_maths.o: vec3_maths.c vec3_maths.h
-	$(CC) -c vec3_maths.c
-
-util.o: util.c
-	$(CC) -c util.c
+%.o: %.c
+	$(CC) $(CFLAGS) -c $<
 
 clean:
-	rm vortices vortices.o
+	rm vortices *.o

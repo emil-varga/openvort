@@ -5,6 +5,88 @@
 #include "vortex_constants.h"
 #include "util.h"
 
+#define _DEBUG_
+
+#ifdef _DEBUG_
+#include <stdio.h>
+#endif
+
+//this is for inserting new points
+//fit an interpolating spline over 4 points and get a point
+//somewhere in the middle later on
+#include <gsl/gsl_errno.h>
+#include <gsl/gsl_spline.h>
+
+//struct to hold together the spline info
+//one spline for each dimension
+typedef struct _vspline {
+  gsl_interp_accel *acc_xyz[3];
+  gsl_spline *spline_xyz[3];
+  double xi[4];
+} vspline;
+
+void free_vspline(vspline *spline)
+{
+  for(int k=0; k<3; ++k)
+    {
+      gsl_spline_free(spline->spline_xyz[k]);
+      gsl_interp_accel_free(spline->acc_xyz[k]);
+    }
+  free(spline);
+}
+
+vspline *construct_local_spline(struct tangle_state *tangle,
+				   int points[4])
+{
+  //3 coordinates for 4 points
+  double xyz[3][4];
+
+  //allocate splines
+  vspline *spline = (vspline*)malloc(sizeof(vspline));
+  for(int k=0; k<3; ++k) //loop over dimensions
+    {
+      spline->acc_xyz[k] = gsl_interp_accel_alloc();
+      spline->spline_xyz[k] = gsl_spline_alloc(gsl_interp_cspline, 4);
+    }
+ 
+  //set up the data vectors
+  for(int k=0; k<4; ++k) //loop over points
+    {
+      struct vec3d s = tangle->vnodes[points[k]];
+      xyz[0][k] = s.p[0];
+      xyz[1][k] = s.p[1];
+      xyz[2][k] = s.p[2];
+    }
+  
+  spline->xi[0] = 0;
+  for(int k=1; k<4; ++k) //loop over points
+    {
+      spline->xi[k] = spline->xi[k-1] +
+	vec3_dist(&tangle->vnodes[points[k]], &tangle->vnodes[points[k-1]]);
+    }
+
+  for(int k=0; k<3; ++k) //loop over dimensions
+    gsl_spline_init(spline->spline_xyz[k], spline->xi, xyz[k], 4);
+
+  return spline;
+}
+
+struct vec3d eval_vspline(vspline *spline, double where)
+{
+  struct vec3d out;
+
+  for(int k=0; k<3; ++k) //loop over dimensions
+    out.p[k] = gsl_spline_eval(spline->spline_xyz[k],
+			       where, spline->acc_xyz[k]);
+
+  return out;
+}
+
+//
+// Implementation of public functions begins here
+//
+//
+
 void alloc_arrays(struct tangle_state *tangle, size_t n)
 {
   tangle->vnodes      = (struct vec3d*)malloc(sizeof(struct vec3d)*n);
@@ -119,10 +201,11 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k)
 
   //four point coefficients, denominators
   double d_s_diff[] = {
-  d2*(d2 - d1)*(dm1 + d2)*(dm2 + d2),
-    d1*(d2 - d1)*(dm1 + d1)*(dm2 + d1),  dm1*(dm1 + d1)*(dm1 + d2)*(dm2 - dm1),
+    d2*(d2 - d1)*(dm1 + d2)*(dm2 + d2),
+    d1*(d2 - d1)*(dm1 + d1)*(dm2 + d1),
+    dm1*(dm1 + d1)*(dm1 + d2)*(dm2 - dm1),
     dm2*(dm2 + d1)*(dm2 + d2)*(dm2 - dm1)
-      };
+  };
 
   //first derivative
   //four point coefficients, nominators, O(d^4)
@@ -131,28 +214,30 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k)
     d2*dm1*dm2,
     -d1*d2*dm2,
     d1*d2*dm1
-      };
+  };
 
   //second derivative
   //four point coefficients, nominators, O(d^3)
   double s_2_cf[] = {
-  2*((dm1 - d1)*dm2 - d1*dm1),
+    2*((dm1 - d1)*dm2 - d1*dm1),
     -2*((dm1 - d2)*dm2 - d2*dm1),
     2*((d2  + d1)*dm2 - d1*d2),
     -2*((d2  + d1)*dm1 - d1*d2)
-       };
+  };
   
   for(i=0; i<3; ++i)
     {
+      tangle->tangents[k].p[i] = 0;
+      tangle->normals[k].p[i]  = 0;
       for(int z = 0; z<4; ++z)
 	{
-	  tangle->tangents[k].p[i] = s_1_cf[z]/d_s_diff[z]*ds[z].p[i];
-	  tangle->normals[k].p[i]  = s_2_cf[z]/d_s_diff[z]*ds[z].p[i];
+	  tangle->tangents[k].p[i] += s_1_cf[z]/d_s_diff[z]*ds[z].p[i];
+	  tangle->normals[k].p[i]  += s_2_cf[z]/d_s_diff[z]*ds[z].p[i];
 	}
     }
 }
 
-struct vec3d segment_field(const struct tangle_state *tangle, size_t i, struct vec3d r)
+static inline struct vec3d segment_field(const struct tangle_state *tangle, size_t i, struct vec3d r)
 {
   struct vec3d R;
   struct vec3d Rp1;
@@ -172,7 +257,7 @@ struct vec3d segment_field(const struct tangle_state *tangle, size_t i, struct v
   return vv;
 }
 
-struct vec3d lia_velocity(const struct tangle_state *tangle, size_t i)
+static inline struct vec3d lia_velocity(const struct tangle_state *tangle, size_t i)
 {
   const struct vec3d *p    = tangle->vnodes + i;
   const struct vec3d *next = tangle->vnodes + tangle->connections[i].forward;
@@ -230,7 +315,7 @@ void update_tangents_normals(struct tangle_state *tangle)
     }
 }
 
-int search_next_free(struct tangle_state *tangle)
+static inline int search_next_free(struct tangle_state *tangle)
 {
   //if something is already available, just return that
   if(tangle->next_free < tangle->N &&
@@ -272,7 +357,6 @@ int num_free_points(struct tangle_state *tangle)
   return sum;
 }
 
-
 void remove_point(struct tangle_state *tangle, int point_idx);
 void add_point(struct tangle_state *tangle, int point_idx);
 void remesh(struct tangle_state *tangle, double min_dist, double max_dist)
@@ -307,9 +391,7 @@ void remesh(struct tangle_state *tangle, double min_dist, double max_dist)
 
       //do we need an extra point?
       if( lf > max_dist ) //since we are adding between k and next, check only lf
-	{
-	  int new_pt = get_tangle_next_free(tangle);
-	}
+	add_point(tangle, k);
     }
   delete_list(tainted);
 }
@@ -328,16 +410,62 @@ void remove_point(struct tangle_state *tangle, int point_idx)
 //add a point between p and p+1 (p+1 in the sense of connections)
 void add_point(struct tangle_state *tangle, int p)
 {
-  
-}
+/* #ifdef _DEBUG_ */
+/*   printf("adding new point "); */
+/* #endif */
+  int next = tangle->connections[p].forward;
+  //the points are p-1, p, p+1, p+2, symmetrical around
+  //the new point to be added
+  int points[4] = {
+    tangle->connections[p].reverse,
+    p,
+    next,
+    tangle->connections[next].forward
+  };
 
-void step_nodes(struct tangle_state *tangle, double dt)
-{
-  step_nodes2(tangle, tangle, dt);
-}
+  //vspline *spline = construct_local_spline(tangle, points);
+  int new_pt = get_tangle_next_free(tangle);
 
-void update_tangle(struct tangle_state *tangle)
-{
-  update_tangents_normals(tangle);
-  update_velocities(tangle);
+  struct vec3d s0 = tangle->vnodes[p];
+  struct vec3d s1 = tangle->vnodes[next];
+
+  struct vec3d s0p = tangle->tangents[p];
+  struct vec3d s1p = tangle->tangents[next];
+
+  struct vec3d s0pp = tangle->normals[p];
+  struct vec3d s1pp = tangle->normals[next];
+
+  double l = vec3_dist(&s0, &s1);
+
+  struct vec3d a, b, c, new;
+  vec3_add(&a, &s0, &s1);
+  vec3_mul(&a, &a, 0.5);
+
+  vec3_sub(&b, &s0p, &s1p);
+  vec3_mul(&b, &b, l/4);
+
+  vec3_add(&c, &s0pp, &s1pp);
+  vec3_mul(&c, &c, l*l/16);
+
+  vec3_add(&new, &a, &b);
+  vec3_add(&new, &new, &c);
+
+  /* //halfway between points 2 and 3 -- that is, p and p+1 */
+  /* double where = 0.5*(spline->xi[1] + spline->xi[2]); */
+
+  /* struct vec3d new = eval_vspline(spline, where); */
+/* #ifdef _DEBUG_ */
+/*   printf("(%g, %g, %g)\n", new.p[0], new.p[1], new.p[2]); */
+/*   printf("xi: (%g, %g, %g, %g)\n", */
+/* 	 spline->xi[0], spline->xi[1], */
+/* 	 spline->xi[2], spline->xi[2]); */
+/* #endif */
+
+  tangle->vnodes[new_pt] = new;
+  tangle->connections[new_pt].reverse = p;
+  tangle->connections[new_pt].forward = next;
+  tangle->connections[p].forward = new_pt;
+  tangle->connections[next].reverse = new_pt;
+
+  //  free_vspline(spline);
 }

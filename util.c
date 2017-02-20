@@ -5,6 +5,8 @@ struct list *new_list()
 {
   struct list *l = (struct list*)malloc(sizeof(struct list));
   l->head = NULL;
+
+  return l;
 }
 
 void delete_list(struct list *l)

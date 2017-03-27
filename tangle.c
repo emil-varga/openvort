@@ -410,9 +410,6 @@ void remove_point(struct tangle_state *tangle, int point_idx)
 //add a point between p and p+1 (p+1 in the sense of connections)
 void add_point(struct tangle_state *tangle, int p)
 {
-/* #ifdef _DEBUG_ */
-/*   printf("adding new point "); */
-/* #endif */
   int next = tangle->connections[p].forward;
   //the points are p-1, p, p+1, p+2, symmetrical around
   //the new point to be added
@@ -423,7 +420,6 @@ void add_point(struct tangle_state *tangle, int p)
     tangle->connections[next].forward
   };
 
-  //vspline *spline = construct_local_spline(tangle, points);
   int new_pt = get_tangle_next_free(tangle);
 
   struct vec3d s0 = tangle->vnodes[p];
@@ -450,22 +446,9 @@ void add_point(struct tangle_state *tangle, int p)
   vec3_add(&new, &a, &b);
   vec3_add(&new, &new, &c);
 
-  /* //halfway between points 2 and 3 -- that is, p and p+1 */
-  /* double where = 0.5*(spline->xi[1] + spline->xi[2]); */
-
-  /* struct vec3d new = eval_vspline(spline, where); */
-/* #ifdef _DEBUG_ */
-/*   printf("(%g, %g, %g)\n", new.p[0], new.p[1], new.p[2]); */
-/*   printf("xi: (%g, %g, %g, %g)\n", */
-/* 	 spline->xi[0], spline->xi[1], */
-/* 	 spline->xi[2], spline->xi[2]); */
-/* #endif */
-
   tangle->vnodes[new_pt] = new;
   tangle->connections[new_pt].reverse = p;
   tangle->connections[new_pt].forward = next;
   tangle->connections[p].forward = new_pt;
   tangle->connections[next].reverse = new_pt;
-
-  //  free_vspline(spline);
 }

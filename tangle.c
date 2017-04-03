@@ -361,7 +361,6 @@ void remove_point(struct tangle_state *tangle, int point_idx);
 void add_point(struct tangle_state *tangle, int point_idx);
 void remesh(struct tangle_state *tangle, double min_dist, double max_dist)
 {
-  struct list *tainted = new_list();
   for(int k=0; k<tangle->N; ++k)
     {
       if(tangle->connections[k].forward < 0) //empty point
@@ -380,20 +379,12 @@ void remesh(struct tangle_state *tangle, double min_dist, double max_dist)
 
       //can we remove point k?
       if( (lf < min_dist || lr < min_dist) && (lf + lr) < max_dist )
-	{
-	  add_elem(tainted, (void*)prev2);
-	  add_elem(tainted, (void*)prev);
-	  add_elem(tainted, (void*)next);
-	  add_elem(tainted, (void*)next2);
-	  
 	  remove_point(tangle, k);
-	}
 
       //do we need an extra point?
       if( lf > max_dist ) //since we are adding between k and next, check only lf
 	add_point(tangle, k);
     }
-  delete_list(tainted);
 }
 
 void remove_point(struct tangle_state *tangle, int point_idx)

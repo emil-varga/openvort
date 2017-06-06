@@ -275,6 +275,25 @@ static inline struct vec3d lia_velocity(const struct tangle_state *tangle, size_
   return vv;
 }
 
+struct vec3d calculate_vs(struct tangle_state *tangle, vec3d r, size_t skip)
+{
+  int m, i;
+  vec3d vs = vec3(0,0,0);
+
+  for(m=0; m < tangle->N; ++m)
+    {
+      if(tangle->connections[m].forward == -1   ||
+	 skip == m                              ||
+	 skip == tangle->connections[m].forward ||
+	 skip == tangle->connections[m].reverse)
+	continue;
+      struct vec3d ivs = segment_field(tangle, m, r);
+      vec3_add(&vs, &vs, &ivs);
+    }
+
+  return vs;
+}
+
 void update_velocity(struct tangle_state *tangle, size_t k)
 {
   size_t m, i;
@@ -369,9 +388,6 @@ void remesh(struct tangle_state *tangle, double min_dist, double max_dist)
       int next = tangle->connections[k].forward;
       int prev = tangle->connections[k].reverse;
   
-      int next2 = tangle->connections[next].forward;
-      int prev2 = tangle->connections[prev].reverse;
-
       double lf = vec3_dist(tangle->vnodes + k,
 			    tangle->vnodes + next);
       double lr = vec3_dist(tangle->vnodes + k,
@@ -402,15 +418,6 @@ void remove_point(struct tangle_state *tangle, int point_idx)
 void add_point(struct tangle_state *tangle, int p)
 {
   int next = tangle->connections[p].forward;
-  //the points are p-1, p, p+1, p+2, symmetrical around
-  //the new point to be added
-  int points[4] = {
-    tangle->connections[p].reverse,
-    p,
-    next,
-    tangle->connections[next].forward
-  };
-
   int new_pt = get_tangle_next_free(tangle);
 
   struct vec3d s0 = tangle->vnodes[p];

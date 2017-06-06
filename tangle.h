@@ -57,6 +57,14 @@ void step_nodes2(struct tangle_state *result, const struct tangle_state *tangle,
 void update_tangents_normals(struct tangle_state *tangle);
 void update_velocities(struct tangle_state *tangle);
 
+/**
+  @brief calculates the superfluid velocity
+
+  Calculates and returns the superfluid velocity v_s induced by tangle at location r.
+  Optionally disables one node given by skip. Use skip=-1 to not skip anything.
+*/
+struct vec3d calculate_vs(struct tangle_state *tangle, vec3d r, size_t skip);
+
 void remesh(struct tangle_state *tangle, double min_dist, double max_dist);
 
 int get_tangle_next_free(struct tangle_state *tangle);

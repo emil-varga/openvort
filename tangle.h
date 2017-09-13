@@ -2,6 +2,7 @@
 #define TANGLE_H
 
 #include <stdlib.h>
+#include <stdint.h>
 
 #include "vec3_maths.h"
 
@@ -36,6 +37,8 @@ struct tangle_state {
   struct vec3d *vels;
   struct vec3d *tangents;
   struct vec3d *normals;
+
+  uint64_t *bsp_id; //for binary space partitioning -- id of the box
   
   struct neighbour_t *connections;
 

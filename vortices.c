@@ -20,7 +20,7 @@ int main(int argc, char **argv)
   struct tangle_state *tangle = (struct tangle_state*)malloc(sizeof(struct tangle_state));
 
   alloc_arrays(tangle, 256);
-  struct vec3d center = vec3(1, 0, 0);
+  struct vec3d center = vec3(0, 0, 0);
   struct vec3d dir    = vec3(0, 1, 0);
   add_circle(tangle, &center, &dir, 1, 128);
   update_tangle(tangle);

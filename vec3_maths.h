@@ -10,6 +10,8 @@ struct vec3d vec3(double x, double y, double z);
 void vec3_assign(struct vec3d *v, double x, double y, double z);
 
 double vec3_dot(const struct vec3d *u, const struct vec3d *v);
+//normalized dot, cosine of the angle
+double vec3_ndot(const struct vec3d *u, const struct vec3d *v);
 
 void vec3_cross(struct vec3d *res,
 		const struct vec3d *u, const struct vec3d *v);

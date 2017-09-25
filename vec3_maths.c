@@ -24,6 +24,15 @@ double vec3_dot(const struct vec3d *u, const struct vec3d *v)
   return out;
 }
 
+double vec3_ndot(const struct vec3d *u, const struct vec3d *v)
+{
+  double dot = vec3_dot(u, v);
+  double d1 = vec3_d(u);
+  double d2 = vec3_d(v);
+
+  return dot/d1/d2;
+}
+
 void vec3_cross(struct vec3d *res,
 		const struct vec3d *u, const struct vec3d *v)
 {

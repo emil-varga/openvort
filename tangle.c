@@ -275,10 +275,10 @@ static inline struct vec3d lia_velocity(const struct tangle_state *tangle, size_
   return vv;
 }
 
-struct vec3d calculate_vs(struct tangle_state *tangle, vec3d r, size_t skip)
+struct vec3d calculate_vs(struct tangle_state *tangle, struct vec3d r, size_t skip)
 {
-  int m, i;
-  vec3d vs = vec3(0,0,0);
+  int m;
+  struct vec3d vs = vec3(0,0,0);
 
   for(m=0; m < tangle->N; ++m)
     {

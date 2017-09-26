@@ -9,6 +9,7 @@
 #include "vec3_maths.h"
 #include "tangle.h"
 #include "vortex_utils.h"
+#include "vortex_dynamics.h"
 
 void vec3_print(const struct vec3d *v)
 {
@@ -19,20 +20,30 @@ int main(int argc, char **argv)
 {
   struct tangle_state *tangle = (struct tangle_state*)malloc(sizeof(struct tangle_state));
 
-  alloc_arrays(tangle, 256);
-  struct vec3d center = vec3(0, 0, 0);
-  struct vec3d dir    = vec3(0, 1, 0);
-  add_circle(tangle, &center, &dir, 1, 128);
-  update_tangle(tangle);
-  save_tangle("steapa.dat", tangle);
-  remesh(tangle, 0, 3e-2);
-  printf("saving step0...");
-  save_tangle("step0.dat", tangle);
-  printf("done\n");
-  update_tangents_normals(tangle);
-  update_velocities(tangle);
-  step_nodes(tangle, 1e-3);
-  save_tangle("step1.dat", tangle);
+  alloc_arrays(tangle, 512);
+  struct vec3d center1 = vec3(0, 0, 0);
+  struct vec3d dir1    = vec3(0, 0, 1);
+  struct vec3d center2 = vec3(0.5, 0, 0.03);
+  struct vec3d dir2    = vec3(0, 0, -1);
+  size_t k;
+  int recs = 0;
+  char filename[128];
+  
+  add_circle(tangle, &center1, &dir1, 0.5, 256);
+  save_tangle("v1.dat", tangle);
+  add_circle(tangle, &center2, &dir2, 0.5, 256);
+  save_tangle("v2.dat", tangle);
+
+  for(k=0; recs==0 && k < 510; ++k)
+    {
+      sprintf(filename, "data/step%04zu.dat", k);
+      printf("Step %04zu\n", k);
+      save_tangle(filename, tangle);
+      if(reconnect(tangle, 1e-3, 0) > 0)
+	printf("reconnected!\n");
+      update_tangle(tangle);
+      step_nodes(tangle, 5e-6);
+    }
   free_arrays(tangle);
   free(tangle);
 }

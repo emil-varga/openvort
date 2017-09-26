@@ -2,6 +2,7 @@
 #include "vec3_maths.h"
 #include <math.h> //for cos()
 #include <stdint.h>
+#include <stdio.h>
 
 void euler_step(struct tangle_state *tangle, double dt)
 {
@@ -20,7 +21,7 @@ void euler_step(struct tangle_state *tangle, double dt)
 
 //helper function to swap around the connection indices
 void do_reconnection(struct tangle_state *tangle, size_t k, size_t l);
-void reconnect(struct tangle_state *tangle, double rec_dist, double rec_angle)
+size_t reconnect(struct tangle_state *tangle, double rec_dist, double rec_angle)
 {
   /*
     Run through all the pairs of nodes and check their distence if they are not
@@ -34,13 +35,14 @@ void reconnect(struct tangle_state *tangle, double rec_dist, double rec_angle)
   struct vec3d *v1, *v2; //points under test
   struct vec3d d1, d2; //direction vectors from v1, v2
   double calpha; //cosine of alpha between d1, d2
+  size_t Nrecs = 0;
 
   for(k=0; k<tangle->N; ++k)
     {
       if(tangle->connections[k].forward == -1)
 	continue; //skip empty nodes
       
-      for(l=k+1; l<tangle->N; ++k)
+      for(l=k+1; l<tangle->N; ++l)
 	{
 	  if(tangle->connections[l].forward == -1 ||
 	     tangle->connections[k].forward == l  ||
@@ -66,16 +68,19 @@ void reconnect(struct tangle_state *tangle, double rec_dist, double rec_angle)
 	  //We want to reconnect for angles LARGER than rec_angle
 	  //(i.e., parallel lines do not reconnect) and cosine is
 	  //a decreasing function.
-	  if(calpha < cos(rec_angle))
+	  if(calpha > cos(rec_angle))
 	    continue; //angle too close
 
 	  //angle is not too close and we can finally reconnect points k and l
 	  do_reconnection(tangle, k, l);
+	  //printf("reconnecting %d %d\n", k, l);
+	  Nrecs++;
 	  
 	  break; //TODO: this is to allow for only one reconnection on point k
 	         //this kind of solution is rather arbitrary
 	}
     }
+  return Nrecs;
 }
 
 void do_reconnection(struct tangle_state *tangle, size_t k, size_t l)

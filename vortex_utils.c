@@ -1,5 +1,23 @@
 #include <math.h>
 #include "vortex_utils.h"
+#include <stdio.h>
+
+struct vec3d perpendicular(const struct vec3d *dir)
+{
+  struct vec3d a = vec3(1,0,0);
+  struct vec3d b = vec3(0,1,0);
+  struct vec3d res;
+
+  vec3_mul(&res, dir, -vec3_dot(&a, dir));
+  vec3_add(&res, &res, &a);
+
+  if(vec3_d(&res) > 0)
+    return res;
+
+  vec3_mul(&res, dir, -vec3_dot(&b, dir));
+  vec3_add(&res, &res, &b);
+  return res;
+}  
 
 void add_circle(struct tangle_state *tangle,
 		struct vec3d *center, struct vec3d *dir, double r,
@@ -10,11 +28,17 @@ void add_circle(struct tangle_state *tangle,
 
   struct vec3d u, v, p, ptmp;
   int curr_point, last_point, first_point, k;
-  vec3_cross(&u, center, dir);
+  struct vec3d zdir = perpendicular(dir);
+  
+  vec3_cross(&u, &zdir, dir);
   vec3_cross(&v, &u, dir);
 
   vec3_mul(&u, &u, 1/vec3_d(&u));
   vec3_mul(&v, &v, 1/vec3_d(&v));
+
+  printf("u:(%f, %f, %f), v:(%f, %f, %f)\n",
+	 u.p[0], u.p[1], u.p[2],
+	 v.p[0], v.p[1], v.p[2]);
 
   first_point = -1;
 
@@ -25,6 +49,7 @@ void add_circle(struct tangle_state *tangle,
       vec3_mul(&ptmp, &v, r*sin(phi));
 
       vec3_add(&p, &p, &ptmp);
+      vec3_add(&p, &p, center);
       curr_point = get_tangle_next_free(tangle);
       if(first_point < 0)
 	first_point = curr_point;

@@ -235,6 +235,9 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k)
 	  tangle->normals[k].p[i]  += s_2_cf[z]/d_s_diff[z]*ds[z].p[i];
 	}
     }
+  double x = vec3_d(&tangle->tangents[k]);
+  vec3_mul(&tangle->normals[k], &tangle->normals[k], 1/x/x);
+  vec3_normalize(&tangle->tangents[k]);
 }
 
 static inline struct vec3d segment_field(const struct tangle_state *tangle, size_t i, struct vec3d r)
@@ -300,20 +303,21 @@ void update_velocity(struct tangle_state *tangle, size_t k)
   if(tangle->connections[k].forward == -1)
     return;
 
-  tangle->vels[k] = lia_velocity(tangle, k);
+  //tangle->vels[k] = lia_velocity(tangle, k);
+  tangle->vels[k] = vec3(0,0,0);
   
-  for(m=0; m<tangle->N; ++m)
-    {
-      if(tangle->connections[m].forward == -1 ||
-	 m == k                               ||
-	 m == tangle->connections[k].forward  ||
-	 m == tangle->connections[k].reverse)
-	continue;
+  /* for(m=0; m<tangle->N; ++m) */
+  /*   { */
+  /*     if(tangle->connections[m].forward == -1 || */
+  /* 	 m == k                               || */
+  /* 	 m == tangle->connections[k].forward  || */
+  /* 	 m == tangle->connections[k].reverse) */
+  /* 	continue; */
       
-      struct vec3d segment_vel = segment_field(tangle, m, tangle->vnodes[k]);
-      for(i=0; i<3; ++i)
-	tangle->vels[k].p[i] += segment_vel.p[i];
-    }
+  /*     struct vec3d segment_vel = segment_field(tangle, m, tangle->vnodes[k]); */
+  /*     for(i=0; i<3; ++i) */
+  /* 	tangle->vels[k].p[i] += segment_vel.p[i]; */
+  /*   } */
 }
 
 void update_velocities(struct tangle_state *tangle)

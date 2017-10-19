@@ -87,17 +87,25 @@ void save_tangle(const char *filename, struct tangle_state *tangle)
 	  int curr  = k;
 	  while(tangle->connections[curr].forward != first)
 	    {
-	      fprintf(stream, "%d\t%g\t%g\t%g\n", vortex_idx,
+	      fprintf(stream, "%d\t%g\t%g\t%g", vortex_idx,
 		      tangle->vnodes[curr].p[0],
 		      tangle->vnodes[curr].p[1],
 		      tangle->vnodes[curr].p[2]);
+	      fprintf(stream, "\t%g\t%g\t%g\n",
+		      tangle->vels[curr].p[0],
+		      tangle->vels[curr].p[1],
+		      tangle->vels[curr].p[2]);
 	      visited[curr] = 1;
 	      curr = tangle->connections[curr].forward;
 	    }
-	  fprintf(stream, "%d\t%g\t%g\t%g\n", vortex_idx,
+	  fprintf(stream, "%d\t%g\t%g\t%g", vortex_idx,
 		  tangle->vnodes[curr].p[0],
 		  tangle->vnodes[curr].p[1],
 		  tangle->vnodes[curr].p[2]);
+          fprintf(stream, "\t%g\t%g\t%g\n",
+		  tangle->vels[curr].p[0],
+		  tangle->vels[curr].p[1],
+		  tangle->vels[curr].p[2]);
 	  visited[curr] = 1;
 	  vortex_idx++;
 	}

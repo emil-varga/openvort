@@ -12,6 +12,8 @@
 
 // Stepping
 struct rk4_state {
+  //the tangle states here should be reduced
+  //only calculate what we really need for the velocity
   struct tangle_state *s1, *s2, *s3, *s4;
 
   double dt;

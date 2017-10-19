@@ -29,4 +29,6 @@ double vec3_d(const struct vec3d *u);
 
 double vec3_dist(const struct vec3d *u, const struct vec3d *v);
 
+void vec3_normalize(struct vec3d *v);
+
 #endif//VEC3_MATHS_H

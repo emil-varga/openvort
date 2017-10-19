@@ -4,7 +4,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
-void euler_step(struct tangle_state *tangle, double dt)
+void euler_step2(struct tangle_state *result,
+		 const struct tangle_state *tangle, double dt)
 {
   size_t k;
 
@@ -14,9 +15,66 @@ void euler_step(struct tangle_state *tangle, double dt)
 	continue; //empty node
       struct vec3d move;
       vec3_mul(&move, &tangle->vels[k], dt);
-      vec3_add(&tangle->vnodes[k], &tangle->vnodes[k],
+      vec3_add(&result->vnodes[k], &tangle->vnodes[k],
 	       &move);
     }
+}
+
+void euler_step(struct tangle_state *tangle, double dt)
+{
+  euler_step2(tangle, tangle, dt);
+}
+
+void rk4_step2(struct tangle_state *result,
+	       const struct tangle_state *tangle, double dt)
+{
+  size_t N;
+  struct tangle_state rk_state[3]; //k2 through k4, we already have k1 in tangle
+
+  N = tangle->N;
+  for(int k=0; k < 3; ++k)
+    alloc_arrays(&rk_state[k], N);
+
+  //calculate k1
+  euler_step2(&rk_state[0], tangle, dt/2);
+  update_tangents_normals(&rk_state[0]);
+  update_velocities(&rk_state[0]);
+
+  //calculate k2
+  euler_step2(&rk_state[1], &rk_state[0], dt/2);
+  update_tangents_normals(&rk_state[1]);
+  update_velocities(&rk_state[1]);
+
+  //calculate k3
+  euler_step2(&rk_state[2], &rk_state[1], dt/2);
+  update_tangents_normals(&rk_state[2]);
+  update_velocities(&rk_state[2]);
+
+  for(int k=0; k < N; ++k)
+    {
+      if(tangle->connections[k].forward == -1)
+	continue;
+      //move contains the full step, a are partial steps
+      struct vec3d move, a;
+      vec3_mul(&move, &tangle->vels[k], dt/6); //k1
+
+      vec3_mul(&a, &rk_state[0].vels[k], dt/3); // k2
+      vec3_add(&move, &move, &a);
+
+      vec3_mul(&a, &rk_state[1].vels[k], dt/3); // k3
+      vec3_add(&move, &move, &a);
+
+      vec3_mul(&a, &rk_state[2].vels[k], dt/6); //k4
+      vec3_add(&move, &move, &a);
+
+      vec3_add(&result->vnodes[k], &result->vnodes[k],
+	       &move);
+    }
+}
+
+void rk4_step(struct tangle_state *tangle, double dt)
+{
+  rk4_step2(tangle, tangle, dt);
 }
 
 //helper function to swap around the connection indices

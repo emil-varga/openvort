@@ -78,3 +78,10 @@ double vec3_dist(const struct vec3d *u, const struct vec3d *v)
   vec3_sub(&vv, u, v);
   return vec3_d(&vv);
 }
+
+void vec3_normalize(struct vec3d *v)
+{
+  double d = vec3_d(v);
+
+  vec3_mul(v, v, 1/d);
+}

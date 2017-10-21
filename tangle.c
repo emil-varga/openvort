@@ -11,6 +11,9 @@
 #include <stdio.h>
 #endif
 
+#define _GNU_SOURCE
+#include <fenv.h>
+
 //this is for inserting new points
 //fit an interpolating spline over 4 points and get a point
 //somewhere in the middle later on
@@ -303,8 +306,8 @@ void update_velocity(struct tangle_state *tangle, size_t k)
   if(tangle->connections[k].forward == -1)
     return;
 
-  //tangle->vels[k] = lia_velocity(tangle, k);
-  tangle->vels[k] = vec3(0,0,0);
+  tangle->vels[k] = lia_velocity(tangle, k);
+  //tangle->vels[k] = vec3(0,0,0);
   
   /* for(m=0; m<tangle->N; ++m) */
   /*   { */

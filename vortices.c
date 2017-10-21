@@ -1,8 +1,11 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <printf.h>
 #include <stddef.h>
 #include <math.h>
+
+#include <fenv.h>
 
 #define _DEBUG_
 
@@ -23,26 +26,25 @@ int main(int argc, char **argv)
   alloc_arrays(tangle, 512);
   struct vec3d center1 = vec3(0, 0, 0);
   struct vec3d dir1    = vec3(0, 0, 1);
-  struct vec3d center2 = vec3(0.5, 0, 0.03);
-  struct vec3d dir2    = vec3(0, 0, -1);
   size_t k;
   int recs = 0;
   char filename[128];
   
-  add_circle(tangle, &center1, &dir1, 0.5, 256);
+  add_circle(tangle, &center1, &dir1, 1, 512);
   save_tangle("v1.dat", tangle);
   //add_circle(tangle, &center2, &dir2, 0.5, 256);
   //save_tangle("v2.dat", tangle);
 
+  //feenableexcept(FE_OVERFLOW | FE_UNDERFLOW | FE_INEXACT);
   for(k=0; recs==0 && k < 510; ++k)
     {
       sprintf(filename, "data/step%04zu.dat", k);
       printf("Step %04zu\n", k);
       update_tangle(tangle);
       save_tangle(filename, tangle);
-      if(reconnect(tangle, 1e-3, 0) > 0)
-	printf("reconnected!\n");
-      euler_step(tangle, 1e-3);
+      //      if(reconnect(tangle, 1e-3, 0) > 0)
+      //printf("reconnected!\n");
+      rk4_step(tangle, 1e-4);
     }
   free_arrays(tangle);
   free(tangle);

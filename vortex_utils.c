@@ -27,7 +27,7 @@ void add_circle(struct tangle_state *tangle,
     return;
 
   struct vec3d u, v, p, ptmp;
-  int curr_point, last_point, first_point, k;
+  int curr_point, last_point, first_point;
   struct vec3d zdir = perpendicular(dir);
   
   vec3_cross(&u, &zdir, dir);
@@ -42,11 +42,13 @@ void add_circle(struct tangle_state *tangle,
 
   first_point = -1;
 
-  for(k=0; k<Npoints; ++k)
+  for(int k=0; k<Npoints; ++k)
     {
       double phi = 2*M_PI/Npoints * k;
-      vec3_mul(&p, &u, r*cos(phi));
-      vec3_mul(&ptmp, &v, r*sin(phi));
+      double c = cos(phi);
+      double s = sin(phi);
+      vec3_mul(&p, &u, r*c);
+      vec3_mul(&ptmp, &v, r*s);
 
       vec3_add(&p, &p, &ptmp);
       vec3_add(&p, &p, center);
@@ -65,6 +67,26 @@ void add_circle(struct tangle_state *tangle,
     }
   tangle->connections[curr_point].forward  = first_point;
   tangle->connections[first_point].reverse = curr_point;
+}
+
+void write_vector(FILE *stream, struct vec3d *v)
+{
+  fprintf(stream, "%.15g\t%.15g\t%.15g",
+	  v->p[0], v->p[1], v->p[2]);
+}
+
+void save_point(FILE *stream, int vort_idx,
+		const struct tangle_state *tangle, int i)
+{
+  fprintf(stream, "%d\t", vort_idx);
+  write_vector(stream, tangle->vnodes + i);
+  fprintf(stream, "\t");
+  write_vector(stream, tangle->vels + i);
+  fprintf(stream, "\t");
+  write_vector(stream, tangle->tangents + i);
+  fprintf(stream, "\t");
+  write_vector(stream, tangle->normals + i);
+  fprintf(stream, "\n");
 }
 
 void save_tangle(const char *filename, struct tangle_state *tangle)
@@ -87,25 +109,11 @@ void save_tangle(const char *filename, struct tangle_state *tangle)
 	  int curr  = k;
 	  while(tangle->connections[curr].forward != first)
 	    {
-	      fprintf(stream, "%d\t%g\t%g\t%g", vortex_idx,
-		      tangle->vnodes[curr].p[0],
-		      tangle->vnodes[curr].p[1],
-		      tangle->vnodes[curr].p[2]);
-	      fprintf(stream, "\t%g\t%g\t%g\n",
-		      tangle->vels[curr].p[0],
-		      tangle->vels[curr].p[1],
-		      tangle->vels[curr].p[2]);
+	      save_point(stream, vortex_idx, tangle, curr);
 	      visited[curr] = 1;
 	      curr = tangle->connections[curr].forward;
 	    }
-	  fprintf(stream, "%d\t%g\t%g\t%g", vortex_idx,
-		  tangle->vnodes[curr].p[0],
-		  tangle->vnodes[curr].p[1],
-		  tangle->vnodes[curr].p[2]);
-          fprintf(stream, "\t%g\t%g\t%g\n",
-		  tangle->vels[curr].p[0],
-		  tangle->vels[curr].p[1],
-		  tangle->vels[curr].p[2]);
+	  save_point(stream, vortex_idx, tangle, curr);
 	  visited[curr] = 1;
 	  vortex_idx++;
 	}

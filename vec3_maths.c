@@ -67,7 +67,9 @@ double vec3_d(const struct vec3d *u)
   double out = 0;
 
   for(int k=0; k<3; ++k)
-    out += u->p[k]*u->p[k];
+    {
+      out += u->p[k]*u->p[k];
+    }
 
   return sqrt(out);
 }

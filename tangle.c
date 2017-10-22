@@ -254,11 +254,12 @@ static inline struct vec3d segment_field(const struct tangle_state *tangle, size
   double lR   = vec3_d(&R);
   double lRp1 = vec3_d(&Rp1);
   double denom = lR*lRp1*(lR*lRp1 + vec3_dot(&R, &Rp1));
+  double f = KAPPA/4/M_PI;
 
   struct vec3d vv;
 
   vec3_cross(&vv, &R, &Rp1);
-  vec3_mul(&vv, &vv, (lR + lRp1)/denom);
+  vec3_mul(&vv, &vv, f*(lR + lRp1)/denom);
 
   return vv;
 }
@@ -272,7 +273,7 @@ static inline struct vec3d lia_velocity(const struct tangle_state *tangle, size_
   double l_next = vec3_dist(p, next);
   double l_prev = vec3_dist(p, prev);
 
-  double f = log(sqrt(l_next*l_prev)/VORTEX_WIDTH);
+  double f = KAPPA*log(sqrt(l_next*l_prev)/VORTEX_WIDTH)/4/M_PI;
 
   struct vec3d vv;
   vec3_cross(&vv, tangle->tangents+i, tangle->normals+i);
@@ -309,18 +310,18 @@ void update_velocity(struct tangle_state *tangle, size_t k)
   tangle->vels[k] = lia_velocity(tangle, k);
   //tangle->vels[k] = vec3(0,0,0);
   
-  /* for(m=0; m<tangle->N; ++m) */
-  /*   { */
-  /*     if(tangle->connections[m].forward == -1 || */
-  /* 	 m == k                               || */
-  /* 	 m == tangle->connections[k].forward  || */
-  /* 	 m == tangle->connections[k].reverse) */
-  /* 	continue; */
+  for(m=0; m<tangle->N; ++m)
+    {
+      if(tangle->connections[m].forward == -1 ||
+  	 m == k                               ||
+  	 m == tangle->connections[k].forward  ||
+  	 m == tangle->connections[k].reverse)
+  	continue;
       
-  /*     struct vec3d segment_vel = segment_field(tangle, m, tangle->vnodes[k]); */
-  /*     for(i=0; i<3; ++i) */
-  /* 	tangle->vels[k].p[i] += segment_vel.p[i]; */
-  /*   } */
+      struct vec3d segment_vel = segment_field(tangle, m, tangle->vnodes[k]);
+      for(i=0; i<3; ++i)
+  	tangle->vels[k].p[i] += segment_vel.p[i];
+    }
 }
 
 void update_velocities(struct tangle_state *tangle)

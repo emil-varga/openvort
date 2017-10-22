@@ -1,6 +1,7 @@
 #ifndef VORTEX_CONSTANTS_H
 #define VORTEX_CONSTANTS_H
 
-#define VORTEX_WIDTH 1e-3
+#define VORTEX_WIDTH 1e-8
+#define KAPPA 9.97e-4
 
 #endif //VORTEX_CONSTANTS_H

@@ -70,6 +70,9 @@ void rk4_step2(struct tangle_state *result,
       vec3_add(&result->vnodes[k], &result->vnodes[k],
 	       &move);
     }
+
+  for(int k=0; k<3; ++k)
+    free_arrays(&rk_state[k]);
 }
 
 void rk4_step(struct tangle_state *tangle, double dt)

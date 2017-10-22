@@ -7,7 +7,7 @@ plt.close('all')
 #vi, pos, vel, s', s''
 
 points0 = np.loadtxt('../data/step0000.dat')
-points1 = np.loadtxt('../data/step0001.dat')
+points1 = np.loadtxt('../data/step0100.dat')
 points2 = np.loadtxt('../data/step0200.dat')
 
 f, ax = plt.subplots(1,1)

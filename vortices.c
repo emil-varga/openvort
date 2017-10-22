@@ -21,6 +21,7 @@ void vec3_print(const struct vec3d *v)
 
 int main(int argc, char **argv)
 {
+  feenableexcept(FE_OVERFLOW | FE_UNDERFLOW | FE_INVALID | FE_DIVBYZERO);
   struct tangle_state *tangle = (struct tangle_state*)malloc(sizeof(struct tangle_state));
 
   alloc_arrays(tangle, 512);
@@ -30,21 +31,30 @@ int main(int argc, char **argv)
   int recs = 0;
   char filename[128];
   
-  add_circle(tangle, &center1, &dir1, 1, 512);
+  add_circle(tangle, &center1, &dir1, 0.1, 64);
   save_tangle("v1.dat", tangle);
-  //add_circle(tangle, &center2, &dir2, 0.5, 256);
-  //save_tangle("v2.dat", tangle);
+  add_circle(tangle, &center1, &dir1, 0.09, 64);
+  save_tangle("v2.dat", tangle);
 
-  //feenableexcept(FE_OVERFLOW | FE_UNDERFLOW | FE_INEXACT);
-  for(k=0; recs==0 && k < 510; ++k)
+  const int Nshot = 100;
+  int shot = Nshot;
+  int frame = 0;
+
+  for(k=0; recs==0 && k < 100000; ++k)
     {
-      sprintf(filename, "data/step%04zu.dat", k);
       printf("Step %04zu\n", k);
       update_tangle(tangle);
-      save_tangle(filename, tangle);
+      if(!shot)
+	{
+	  sprintf(filename, "data/frame%04zu.dat", frame);
+	  save_tangle(filename, tangle);
+	  frame++;
+	  shot = Nshot;
+	} 
       //      if(reconnect(tangle, 1e-3, 0) > 0)
       //printf("reconnected!\n");
-      rk4_step(tangle, 1e-4);
+      rk4_step(tangle, 1e-3);
+      shot--;
     }
   free_arrays(tangle);
   free(tangle);

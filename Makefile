@@ -1,5 +1,5 @@
 CC=gcc -O0 -Wall -ggdb
-CFLAGS= `gsl-config --cflags` -fsanitize=undefined -fsanitize=float-divide-by-zero
+CFLAGS= `gsl-config --cflags` -fsanitize=undefined -fsanitize=float-divide-by-zero -fsanitize=leak
 LIBS=-lm `gsl-config --libs`
 
 SRCS=tangle.c  util.c  vec3_maths.c  vortex_utils.c  vortices.c vortex_dynamics.c

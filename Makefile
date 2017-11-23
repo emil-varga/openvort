@@ -1,4 +1,4 @@
-CC=gcc -O0 -Wall -ggdb
+CC=gcc -O0 -Wall -ggdb -D_DEBUG_
 CFLAGS= `gsl-config --cflags` -fsanitize=undefined -fsanitize=float-divide-by-zero -fsanitize=leak
 LIBS=-lm `gsl-config --libs`
 

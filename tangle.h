@@ -31,12 +31,25 @@ struct neighbour_t {
   int reverse;
 };
 
+#define X_BSP_ID 0x00000000000FFFFF
+#define Y_BSP_ID 0x000000FFFFF00000
+#define Z_BSP_ID 0x0FFFFF0000000000
+
+#define X_BSP_ID_OFFSET 0
+#define Y_BSP_ID_OFFSET 20
+#define Z_BSP_ID_OFFSET 40
+
 struct tangle_state {
   struct vec3d *vnodes;
   struct vec3d *vnodes_new;
   struct vec3d *vels;
   struct vec3d *tangents;
   struct vec3d *normals;
+
+  //flags that the properties of the points
+  //need to be recalculated
+  //currently used for not reconnecting a twice in a run
+  int *recalculate;
 
   uint64_t *bsp_id; //for binary space partitioning -- id of the box
   

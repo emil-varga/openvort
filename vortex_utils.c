@@ -1,6 +1,7 @@
 #include <math.h>
 #include "vortex_utils.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 struct vec3d perpendicular(const struct vec3d *dir)
 {
@@ -121,4 +122,55 @@ void save_tangle(const char *filename, struct tangle_state *tangle)
 
   free(visited);
   fclose(stream);
+}
+
+int check_integrity(const struct tangle_state *tangle)
+{
+  int *visited = calloc(tangle->N, sizeof(int));
+
+  for(int k=0; k < tangle->N; ++k)
+    {
+      if(!visited[k])
+	{
+	  visited[k] += 1;
+	  if(tangle->connections[k].forward == -1)
+	    continue;
+	  int j = tangle->connections[k].forward;
+	  while(j!=k)
+	    {
+	    }
+	}
+    }
+
+  return 0;
+}
+
+int check_local_connectivity(const struct tangle_state *tangle, int k)
+{
+  int errors = 0;
+  
+  //check that both connections are empty if one of them is
+  int tmp = tangle->connections[k].forward * tangle->connections[k].reverse;
+  if(tmp < 0)
+    {
+      //if tmp < 0 it means that one connectino is negative (-1) and the other is positive
+      //which is an error
+      errors--;
+
+      #ifdef _DEBUG_
+      printf("Incorrect connectivity in an empty node %d\n", k);
+      #endif
+    }
+
+  //check that forward and reverse are not the same
+  if(tangle->connections[k].forward == tangle->connections[k].reverse)
+    {
+      errors--;
+
+      #ifdef _DEBUG_
+      printf("Forward and reverse connected to the same point %d\n", k);
+      #endif
+    }
+
+  return errors;
 }

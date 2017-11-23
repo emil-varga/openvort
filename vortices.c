@@ -7,12 +7,11 @@
 
 #include <fenv.h>
 
-#define _DEBUG_
-
 #include "vec3_maths.h"
 #include "tangle.h"
 #include "vortex_utils.h"
 #include "vortex_dynamics.h"
+#include "vortex_constants.h"
 
 void vec3_print(const struct vec3d *v)
 {
@@ -26,33 +25,37 @@ int main(int argc, char **argv)
 
   alloc_arrays(tangle, 512);
   struct vec3d center1 = vec3(0, 0, 0);
+  struct vec3d center2 = vec3(0.05, 0, -0.05);
   struct vec3d dir1    = vec3(0, 0, 1);
-  size_t k;
-  int recs = 0;
+  struct vec3d dir2    = vec3(0, 0, -1);
   char filename[128];
   
   add_circle(tangle, &center1, &dir1, 0.1, 64);
   save_tangle("v1.dat", tangle);
-  add_circle(tangle, &center1, &dir1, 0.09, 64);
+  add_circle(tangle, &center2, &dir2, 0.09, 64);
   save_tangle("v2.dat", tangle);
 
-  const int Nshot = 100;
+  int Nshot = 100;
   int shot = Nshot;
   int frame = 0;
+  int recs = 0;
 
-  for(k=0; recs==0 && k < 100000; ++k)
+  for(int k=0; k < 100000; ++k)
     {
-      printf("Step %04zu\n", k);
+      printf("Step %d, recs: %d\n", k, recs);
+      recs += reconnect(tangle, 1.5e-2, 0.1);
+      if (recs > 0) {
+	Nshot = 0;
+	shot = 0;
+      }
       update_tangle(tangle);
       if(!shot)
 	{
-	  sprintf(filename, "data/frame%04zu.dat", frame);
+	  sprintf(filename, "data_rec/frame%04zu.dat", frame);
 	  save_tangle(filename, tangle);
 	  frame++;
 	  shot = Nshot;
 	} 
-      //      if(reconnect(tangle, 1e-3, 0) > 0)
-      //printf("reconnected!\n");
       rk4_step(tangle, 1e-3);
       shot--;
     }

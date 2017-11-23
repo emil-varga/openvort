@@ -1,5 +1,7 @@
 vortices
 data
+data_rec
+*.mp4
 python/__pycache__
 
 # Created by https://www.gitignore.io/api/c

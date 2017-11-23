@@ -146,9 +146,18 @@ size_t reconnect(struct tangle_state *tangle, double rec_dist, double rec_angle)
 
 void do_reconnection(struct tangle_state *tangle, size_t k, size_t l)
 {
-  size_t tmp;
+  size_t kf, lr;
 
-  tmp = tangle->connections[l].forward;
-  tangle->connections[l].forward = tangle->connections[k].forward;
-  tangle->connections[k].forward = tmp;
+#ifdef _DEBUG_
+  printf("reconnecting %zu %zu\n", k, l);
+#endif
+
+  kf = tangle->connections[k].forward;
+  lr = tangle->connections[l].reverse;
+
+  tangle->connections[k].forward = l;
+  tangle->connections[l].reverse = k;
+
+  tangle->connections[lr].forward = kf;
+  tangle->connections[kf].reverse = lr;
 }

@@ -8,13 +8,14 @@ Created on Sun Oct 22 13:50:04 2017
 
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 import os.path as path
 from glob import glob
 
 from draw_vortices import draw_vortices
 
-data_dir = '../data'
+data_dir = '../data_rec'
 
 files = glob(path.join(data_dir, 'frame*.dat'))
 files.sort()
@@ -22,9 +23,12 @@ files.sort()
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
 
+i=0
 for fn in files:
+    i = i+1 
     if path.isfile(fn.replace('.dat', '.png')):
         continue
+    print("{}/{}".format(i, len(files)))
     
     ax.clear()
     draw_vortices(fn, ax)
@@ -34,4 +38,4 @@ for fn in files:
     ax.set_aspect('equal')
     fig.savefig(fn.replace('.dat', '.png'))
 
-plt.close(fig)
+plt.close(fig)  

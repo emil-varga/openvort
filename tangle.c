@@ -433,7 +433,7 @@ void eliminate_small_loops(struct tangle_state *tangle, int loop_length)
 	}
       if(loop < loop_length)
 	{ //the loop is short, delete it
-	  #if _DEBUG_
+	  #ifdef _DEBUG_
 	  printf("Eliminating loop starting at %d\n", k);
 	  #endif
 	  z = k;

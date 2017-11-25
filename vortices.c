@@ -27,7 +27,7 @@ int main(int argc, char **argv)
 
   alloc_arrays(tangle, 512);
   struct vec3d center1 = vec3(0, 0, 0);
-  struct vec3d center2 = vec3(0.05, 0, -0.02);
+  struct vec3d center2 = vec3(0.05, 0, -0.01);
   struct vec3d dir1    = vec3(0, 0, 1);
   struct vec3d dir2    = vec3(0, 0, -1);
   char filename[128];
@@ -46,8 +46,10 @@ int main(int argc, char **argv)
   for(int k=0; k < 100000; ++k)
     {
       printf("Step %d, recs: %d\n", k, recs);
-      nrec = reconnect(tangle, 5e-3, DEG2RAD(5));
+      nrec = reconnect(tangle, 2.5e-3, DEG2RAD(5));
+      check_integrity(tangle);
       eliminate_small_loops(tangle, 5);
+      check_integrity(tangle);
       recs += nrec;
       if (nrec > 0) {
 	Nshot = 0;
@@ -55,6 +57,7 @@ int main(int argc, char **argv)
       }
       update_tangle(tangle);
       remesh(tangle, 2.5e-3, 10e-3);
+      check_integrity(tangle);
       if(!shot)
 	{
 	  sprintf(filename, "data_rec/frame%04d.dat", frame);
@@ -64,6 +67,7 @@ int main(int argc, char **argv)
 	  shot = Nshot;
 	} 
       rk4_step(tangle, 1e-3);
+      check_integrity(tangle);
       shot--;
     }
   free_arrays(tangle);

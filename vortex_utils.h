@@ -19,5 +19,6 @@ void add_circle(struct tangle_state *tangle,
 void save_tangle(const char *filename, struct tangle_state *tangle);
 
 int check_integrity(const struct tangle_state *tangle);
+int is_empty(const struct tangle_state *tangle, int k);
 
 #endif

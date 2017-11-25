@@ -124,53 +124,101 @@ void save_tangle(const char *filename, struct tangle_state *tangle)
   fclose(stream);
 }
 
+int check_loop(const struct tangle_state *tangle, int *visited, int k);
 int check_integrity(const struct tangle_state *tangle)
 {
   int *visited = calloc(tangle->N, sizeof(int));
+  int errors = 0;
 
   for(int k=0; k < tangle->N; ++k)
     {
       if(!visited[k])
 	{
-	  visited[k] += 1;
-	  if(tangle->connections[k].forward == -1)
-	    continue;
-	  int j = tangle->connections[k].forward;
-	  while(j!=k)
-	    {
-	    }
+	  visited[k] += 1;	  	  
+	  errors += check_loop(tangle, visited, k);
 	}
     }
 
-  return 0;
+  return errors;
 }
 
-int check_local_connectivity(const struct tangle_state *tangle, int k)
+int check_loop(const struct tangle_state *tangle, int *visited, int k)
 {
   int errors = 0;
-  
-  //check that both connections are empty if one of them is
-  int tmp = tangle->connections[k].forward * tangle->connections[k].reverse;
-  if(tmp < 0)
-    {
-      //if tmp < 0 it means that one connectino is negative (-1) and the other is positive
-      //which is an error
-      errors--;
+  int rval;
 
-      #ifdef _DEBUG_
-      printf("Incorrect connectivity in an empty node %d\n", k);
-      #endif
+  if((rval = is_empty(tangle, k)) > 0)
+    return 0;
+  if(rval < 0)
+    return rval;
+  
+  int j = tangle->connections[k].forward;
+  int total = 0;
+  while(j != k && total < tangle->N)
+    {
+      if(visited[j])
+	{
+#ifdef _DEBUG_
+	  printf("Ran into point %d again.\n", j);
+#endif
+	  errors--;
+	}
+      visited[j]++;
+      if((rval = is_empty(tangle, j)) > 0)
+	{
+#ifdef _DEBUG_
+	  printf("Connected to an empty point, %d %d.\n",
+		 k, j);
+#endif
+	  errors--;
+	  return errors;
+	}
+      if(tangle->connections[j].forward < 0)
+	{
+#ifdef _DEBUG_
+	  printf("Linked point with -1 forward, %d.\n",
+		 j);
+#endif
+	  errors--;
+	  return errors;
+	}
+
+      j = tangle->connections[j].forward;
+
+      total++;
     }
 
-  //check that forward and reverse are not the same
-  if(tangle->connections[k].forward == tangle->connections[k].reverse)
-    {
-      errors--;
 
-      #ifdef _DEBUG_
-      printf("Forward and reverse connected to the same point %d\n", k);
-      #endif
+  if(j != k && total == tangle->N)
+    {
+#ifdef _DEBUG_
+      printf("Ran through the entire tangle from %d.\n", k);
+#endif
+      errors--;
     }
 
   return errors;
+}
+
+int is_empty(const struct tangle_state *tangle, int k)
+{
+  struct neighbour_t nb = tangle->connections[k];
+
+  if(nb.forward == -1 &&
+     nb.reverse == -1)
+    return 1; //point is empty
+
+  if(nb.forward >= 0 &&
+     nb.reverse >= 0)
+    return 0; //both links are valid, point is not empty
+
+  //one of the links is >= 0, the other is ==-1
+  //point is corrupted
+  #ifdef _DEBUG_
+  printf("Corrupted links in point %d (%d, %d)\n",
+	 k,
+	 tangle->connections[k].forward,
+	 tangle->connections[k].reverse);
+  #endif
+  return -1;
 }

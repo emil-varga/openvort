@@ -48,7 +48,7 @@ struct tangle_state {
 
   //flags that the properties of the points
   //need to be recalculated
-  //currently used for not reconnecting a twice in a run
+  //currently used for not reconnecting a twice in a single pass
   int *recalculate;
 
   uint64_t *bsp_id; //for binary space partitioning -- id of the box
@@ -72,6 +72,7 @@ int num_free_points(struct tangle_state *tangle);
 void step_nodes2(struct tangle_state *result, const struct tangle_state *tangle, double dt);
 void update_tangents_normals(struct tangle_state *tangle);
 void update_velocities(struct tangle_state *tangle);
+void update_velocity(struct tangle_state *tangle, size_t k);
 
 /**
   @brief calculates the superfluid velocity
@@ -82,6 +83,7 @@ void update_velocities(struct tangle_state *tangle);
 struct vec3d calculate_vs(struct tangle_state *tangle, struct vec3d r, size_t skip);
 
 void remesh(struct tangle_state *tangle, double min_dist, double max_dist);
+void eliminate_small_loops(struct tangle_state *tangle, int loop_length);
 
 int get_tangle_next_free(struct tangle_state *tangle);
 

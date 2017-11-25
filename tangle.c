@@ -5,8 +5,6 @@
 #include "vortex_constants.h"
 #include "util.h"
 
-#define _DEBUG_
-
 #ifdef _DEBUG_
 #include <stdio.h>
 #endif
@@ -97,6 +95,7 @@ void alloc_arrays(struct tangle_state *tangle, size_t n)
   tangle->vels        = (struct vec3d*)malloc(sizeof(struct vec3d)*n);
   tangle->tangents    = (struct vec3d*)malloc(sizeof(struct vec3d)*n);
   tangle->normals     = (struct vec3d*)malloc(sizeof(struct vec3d)*n);
+  tangle->recalculate = (int*)malloc(sizeof(int)*n);
 
   tangle->connections = (struct neighbour_t*)malloc(n*sizeof(struct neighbour_t));
   for(int k=0; k<n; ++k)
@@ -408,6 +407,44 @@ void remesh(struct tangle_state *tangle, double min_dist, double max_dist)
       //do we need an extra point?
       if( lf > max_dist ) //since we are adding between k and next, check only lf
 	add_point(tangle, k);
+    }
+}
+
+void eliminate_small_loops(struct tangle_state *tangle, int loop_length)
+{
+  for(int k=0; k < tangle->N; ++k)
+    tangle->recalculate[k] = 0;
+
+  for(int k=0; k < tangle->N; ++k)
+    {
+      if(tangle->connections[k].forward < 0 ||
+	 tangle->recalculate[k])
+	continue; //empty or visited point
+
+      tangle->recalculate[k]++;
+
+      int loop = 0;
+      int z = tangle->connections[k].forward;
+      while(z != k)
+	{
+	  tangle->recalculate[z]++;
+	  z = tangle->connections[z].forward;
+	  loop++;
+	}
+      if(loop < loop_length)
+	{ //the loop is short, delete it
+	  #if _DEBUG_
+	  printf("Eliminating loop starting at %d\n", k);
+	  #endif
+	  z = k;
+	  while(tangle->connections[z].forward > 0)
+	    {
+	      int tmp = z;
+	      z = tangle->connections[z].forward;
+	      tangle->connections[tmp].forward = -1;
+	      tangle->connections[tmp].reverse = -1;
+	    }
+	}
     }
 }
 

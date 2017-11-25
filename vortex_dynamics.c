@@ -99,16 +99,21 @@ size_t reconnect(struct tangle_state *tangle, double rec_dist, double rec_angle)
   size_t Nrecs = 0;
 
   for(k=0; k<tangle->N; ++k)
+    tangle->recalculate[k] = 0;
+
+  for(k=0; k<tangle->N; ++k)
     {
-      if(tangle->connections[k].forward == -1)
-	continue; //skip empty nodes
+      if(tangle->connections[k].forward == -1 || tangle->recalculate[k])
+	continue; //skip empty nodes and nodes that reconnected in this pass
       
       for(l=k+1; l<tangle->N; ++l)
 	{
 	  if(tangle->connections[l].forward == -1 ||
 	     tangle->connections[k].forward == l  ||
-	     tangle->connections[k].reverse == l)
+	     tangle->connections[k].reverse == l  ||
+	     tangle->recalculate[l])
 	    continue; //skip empty nodes and neighbours of k
+	              //and nodes that went through a reconnection 
 
 	  v1 = &tangle->vnodes[k];
 	  v2 = &tangle->vnodes[l];
@@ -119,10 +124,11 @@ size_t reconnect(struct tangle_state *tangle, double rec_dist, double rec_angle)
 	  //now check the angle
 
 	  //calculate the direction vectors d1, d2
+	  //centered differences
 	  vec3_sub(&d1, &tangle->vnodes[tangle->connections[k].forward],
-		   v1);
+		   &tangle->vnodes[tangle->connections[k].reverse]);
 	  vec3_sub(&d2, &tangle->vnodes[tangle->connections[l].forward],
-		   v2);
+		   &tangle->vnodes[tangle->connections[l].reverse]);
 	  //normalized dot -- just the cosine of the angle between vectors
 	  calpha = vec3_ndot(&d1, &d2);
 
@@ -130,15 +136,36 @@ size_t reconnect(struct tangle_state *tangle, double rec_dist, double rec_angle)
 	  //(i.e., parallel lines do not reconnect) and cosine is
 	  //a decreasing function.
 	  if(calpha > cos(rec_angle))
-	    continue; //angle too close
+	    continue; //angle too small
+
+	  //Do not reconnect if the nodes are getting further apart from each other
+	  struct vec3d dx, dv;
+	  //we only update velocities if we really need them
+	  update_velocity(tangle, k);
+	  update_velocity(tangle, l);
+	  vec3_sub(&dx, v1, v2);
+	  vec3_sub(&dv, &tangle->vels[k],
+		   &tangle->vels[l]);
+
+	  if(vec3_dot(&dx, &dv) > 0)
+	    continue; //the points are getting further from each other
 
 	  //angle is not too close and we can finally reconnect points k and l
 	  do_reconnection(tangle, k, l);
-	  //printf("reconnecting %d %d\n", k, l);
+
+	  //flag the neighbourhood as tainted so that it doesn't flash
+	  //back and forth in a single pass
+	  tangle->recalculate[k]++;
+	  tangle->recalculate[tangle->connections[k].forward]++;
+	  tangle->recalculate[tangle->connections[k].reverse]++;
+
+	  tangle->recalculate[l]++;
+	  tangle->recalculate[tangle->connections[l].forward]++;
+	  tangle->recalculate[tangle->connections[l].reverse]++;
+
 	  Nrecs++;
 	  
-	  break; //TODO: this is to allow for only one reconnection on point k
-	         //this kind of solution is rather arbitrary
+	  break; 
 	}
     }
   return Nrecs;

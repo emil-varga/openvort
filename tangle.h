@@ -69,7 +69,6 @@ void expand_arrays(struct tangle_state *tangle, size_t n);
 void free_arrays(struct tangle_state *tangle);
 int num_free_points(struct tangle_state *tangle);
 
-void step_nodes2(struct tangle_state *result, const struct tangle_state *tangle, double dt);
 void update_tangents_normals(struct tangle_state *tangle);
 void update_velocities(struct tangle_state *tangle);
 void update_velocity(struct tangle_state *tangle, size_t k);
@@ -86,11 +85,6 @@ void remesh(struct tangle_state *tangle, double min_dist, double max_dist);
 void eliminate_small_loops(struct tangle_state *tangle, int loop_length);
 
 int get_tangle_next_free(struct tangle_state *tangle);
-
-static inline void step_nodes(struct tangle_state *tangle, double dt)
-{
-  step_nodes2(tangle, tangle, dt);
-}
 
 static inline void update_tangle(struct tangle_state *tangle)
 {

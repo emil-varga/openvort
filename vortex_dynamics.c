@@ -81,7 +81,7 @@ void rk4_step(struct tangle_state *tangle, double dt)
 }
 
 //helper function to swap around the connection indices
-void do_reconnection(struct tangle_state *tangle, size_t k, size_t l);
+int do_reconnection(struct tangle_state *tangle, size_t k, size_t l);
 size_t reconnect(struct tangle_state *tangle, double rec_dist, double rec_angle)
 {
   /*
@@ -151,7 +151,8 @@ size_t reconnect(struct tangle_state *tangle, double rec_dist, double rec_angle)
 	    continue; //the points are getting further from each other
 
 	  //angle is not too close and we can finally reconnect points k and l
-	  do_reconnection(tangle, k, l);
+	  if(!do_reconnection(tangle, k, l))
+	    continue; //do_reconnect additionally chceks if the total length doesn't increase
 
 	  //flag the neighbourhood as tainted so that it doesn't flash
 	  //back and forth in a single pass
@@ -171,20 +172,51 @@ size_t reconnect(struct tangle_state *tangle, double rec_dist, double rec_angle)
   return Nrecs;
 }
 
-void do_reconnection(struct tangle_state *tangle, size_t k, size_t l)
+int do_reconnection(struct tangle_state *tangle, size_t k, size_t l)
 {
-  size_t kf, lr;
+  size_t kf, kr, lf, lr;
+
+  double cf1, cf2;
 
 #ifdef _DEBUG_
   printf("reconnecting %zu %zu\n", k, l);
 #endif
 
   kf = tangle->connections[k].forward;
+  kr = tangle->connections[k].reverse;
+
+  lf = tangle->connections[k].forward;
   lr = tangle->connections[l].reverse;
 
-  tangle->connections[k].forward = l;
-  tangle->connections[l].reverse = k;
+  cf1 = vec3_dist(&tangle->vnodes[k], &tangle->vnodes[l]) +
+    vec3_dist(&tangle->vnodes[kf], &tangle->vnodes[lr]) -
+    vec3_dist(&tangle->vnodes[k], &tangle->vnodes[kf]) -
+    vec3_dist(&tangle->vnodes[l], &tangle->vnodes[lr]);
 
-  tangle->connections[lr].forward = kf;
-  tangle->connections[kf].reverse = lr;
+  cf2 = vec3_dist(&tangle->vnodes[k], &tangle->vnodes[l]) +
+    vec3_dist(&tangle->vnodes[kr], &tangle->vnodes[lf]) -
+    vec3_dist(&tangle->vnodes[k], &tangle->vnodes[kr]) -
+    vec3_dist(&tangle->vnodes[l], &tangle->vnodes[lf]);
+
+  if(cf1 > 0 && cf2 > 0)
+    return 1; //the reconnection increases the size, don't do it;
+
+  if(cf1 < cf2)
+    {
+      tangle->connections[k].forward = l;
+      tangle->connections[l].reverse = k;
+
+      tangle->connections[kf].reverse = lr;
+      tangle->connections[lr].forward = kf;
+    }
+  else
+    {
+      tangle->connections[l].forward = k;
+      tangle->connections[k].reverse = l;
+
+      tangle->connections[lf].reverse = kr;
+      tangle->connections[kr].forward = lf;
+    }
+
+  return 0;
 }

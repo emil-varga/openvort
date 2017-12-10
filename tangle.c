@@ -147,25 +147,6 @@ void free_arrays(struct tangle_state *tangle)
   free(tangle->connections);
 }
 
-void step_nodes2(struct tangle_state *result,
-		 const struct tangle_state *tangle, double dt)
-{
-  size_t i, k;
-  if(tangle != result)
-    {
-      //copy necessary things from tangle to result
-      memcpy(result->connections, tangle->connections, tangle->N);
-
-      //velocities and tangents/normals will be recalculated after stepping
-    }
-  for(i=0; i<tangle->N; ++i)
-    for(k=0; k<3; ++k)
-      result->vnodes[i].p[k] += dt*tangle->vels[i].p[k];
-
-  //calculate the normals/tangents for the new tangle
-  update_tangle(result);
-}
-
 void update_tangent_normal(struct tangle_state *tangle, size_t k)
 {
   struct vec3d *s0, *s1, *sm1;

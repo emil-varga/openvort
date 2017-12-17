@@ -1,24 +1,28 @@
-CC=gcc -O0 -Wall -ggdb -D_DEBUG_
-CFLAGS= `gsl-config --cflags` -fsanitize=undefined -fsanitize=float-divide-by-zero -fsanitize=leak
+CC=gcc
+CFLAGS=  -O0 `gsl-config --cflags` -fsanitize=undefined -fsanitize=float-divide-by-zero -fsanitize=leak
+DEBUG = -Wall -ggdb -D_DEBUG_
+INCLUDE = include
+
+COMPILE = $(CC) $(CFLAGS) $(DEBUG) -I$(INCLUDE)
 LIBS=-lm `gsl-config --libs`
 
-SRCS=tangle.c  util.c  vec3_maths.c  vortex_utils.c  vortices.c vortex_dynamics.c
-OBJS=vortices.o vec3_maths.o tangle.o vortex_utils.o util.o vortex_dynamics.o
+src = $(wildcard src/*.c)
+obj = $(src:.c=.o)
+dep = $(obj:.o=.d)
 
-all: $(OBJS)
-	$(CC) $(CFLAGS) $(OBJS) -o vortices $(LIBS)
+all: vortices
 
-depend: .depend
+vortices: $(obj)
+	$(COMPILE) $^ -o $@ $(LIBS)
 
-.depend: $(SRCS)
-	echo $(SRCS)
-	rm -f ./.depend
-	$(CC) $(CFLAGS) -MM $^ > ./.depend;
+include $(dep)
 
-include .depend
+%.d: %.c
+	$(CPP) $(CFLAGS) $< -I$(INCLUDE) -MM -MT $(@:.d=.o) >$@
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c $<
+	$(COMPILE) -c $< -o $@
 
+.PHONY: clean
 clean:
-	rm vortices *.o
+	rm vortices $(obj) $(dep)

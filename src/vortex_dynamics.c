@@ -4,8 +4,15 @@
 #include <stdint.h>
 #include <stdio.h>
 
+/*
+ * Euler-steps the tangle in 'tangle' with time step dt and saves the result to 'result'.
+ *
+ * Optionally can use externally supplied velocities use_vel. Pass NULL to use standard vortex
+ * velocity.
+ */
 void euler_step2(struct tangle_state *result,
-		 const struct tangle_state *tangle, double dt)
+		 const struct tangle_state *tangle, double dt,
+		 const struct vec3d *use_vel)
 {
   size_t k;
 
@@ -14,15 +21,22 @@ void euler_step2(struct tangle_state *result,
       if(tangle->connections[k].forward==-1)
 	continue; //empty node
       struct vec3d move;
-      vec3_mul(&move, &tangle->vels[k], dt);
-      vec3_add(&result->vnodes[k], &tangle->vnodes[k],
-	       &move);
+      if(!use_vel)
+      {
+		  vec3_mul(&move, &tangle->vels[k], dt);
+		  vec3_add(&result->vnodes[k], &tangle->vnodes[k],
+			   &move);
+      } else {
+    	  vec3_mul(&move, &use_vel[k], dt);
+    	  vec3_add(&result->vnodes[k], &tangle->vnodes[k],
+    	  			   &move);
+      }
     }
 }
 
 void euler_step(struct tangle_state *tangle, double dt)
 {
-  euler_step2(tangle, tangle, dt);
+  euler_step2(tangle, tangle, dt, NULL);
 }
 
 void rk4_step2(struct tangle_state *result,
@@ -36,17 +50,17 @@ void rk4_step2(struct tangle_state *result,
     alloc_arrays(&rk_state[k], N);
 
   //calculate k1
-  euler_step2(&rk_state[0], tangle, dt/2);
+  euler_step2(&rk_state[0], tangle, dt/2, NULL);
   update_tangents_normals(&rk_state[0]);
   update_velocities(&rk_state[0]);
 
   //calculate k2
-  euler_step2(&rk_state[1], &rk_state[0], dt/2);
+  euler_step2(&rk_state[1], tangle, dt/2, rk_state[0].vels);
   update_tangents_normals(&rk_state[1]);
   update_velocities(&rk_state[1]);
 
   //calculate k3
-  euler_step2(&rk_state[2], &rk_state[1], dt/2);
+  euler_step2(&rk_state[2], tangle, dt/2, rk_state[1].vels);
   update_tangents_normals(&rk_state[2]);
   update_velocities(&rk_state[2]);
 
@@ -82,16 +96,17 @@ void rk4_step(struct tangle_state *tangle, double dt)
 
 //helper function to swap around the connection indices
 int do_reconnection(struct tangle_state *tangle, size_t k, size_t l);
+
+/*
+  Run through all the pairs of nodes and check their distence if they are not
+  immediate neighbours. Reconnect them if they are close enough.
+
+  This could, and should, in the future include some smarter estimation of possibility
+  of a reconnections -- i.e., where in the BSP tree the two nodes are and only check them
+  if can, in principle, be close enough.
+ */
 size_t reconnect(struct tangle_state *tangle, double rec_dist, double rec_angle)
 {
-  /*
-    Run through all the pairs of nodes and check their distence if they are not
-    immediate neighbours. Reconnect them if they are close enough.
-
-    This could, and should, in the future include some smarter estimation of possibility
-    of a reconnections -- i.e., where in the BSP tree the two nodes are and only check them
-    if can, in principle, be close enough.
-   */
   size_t k, l;
   struct vec3d *v1, *v2; //points under test
   struct vec3d d1, d2; //direction vectors from v1, v2

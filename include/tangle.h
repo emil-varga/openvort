@@ -42,7 +42,8 @@ struct neighbour_t {
 struct tangle_state {
   struct vec3d *vnodes;
   struct vec3d *vnodes_new;
-  struct vec3d *vels;
+  struct vec3d *vels; //node velocities
+  struct vec3d *vs; //superfluid velocity at the node
   struct vec3d *tangents;
   struct vec3d *normals;
 
@@ -91,6 +92,4 @@ static inline void update_tangle(struct tangle_state *tangle)
   update_tangents_normals(tangle);
   update_velocities(tangle);
 }
-
-
 #endif //TANGLE_H

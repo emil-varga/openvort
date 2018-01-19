@@ -9,4 +9,6 @@ extern double KAPPA;
 extern double alpha;
 extern double alpha_p;
 
+extern int use_mutual_friction;
+
 #endif //VORTEX_CONSTANTS_H

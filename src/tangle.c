@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "tangle.h"
 #include "vortex_constants.h"
+#include "normal_fluid.h"
 #include "util.h"
 
 #ifdef _DEBUG_
@@ -93,6 +94,7 @@ void alloc_arrays(struct tangle_state *tangle, size_t n)
   tangle->vnodes      = (struct vec3d*)malloc(sizeof(struct vec3d)*n);
   tangle->vnodes_new  = (struct vec3d*)malloc(sizeof(struct vec3d)*n);
   tangle->vels        = (struct vec3d*)malloc(sizeof(struct vec3d)*n);
+  tangle->vs          = (struct vec3d*)malloc(sizeof(struct vec3d)*n);
   tangle->tangents    = (struct vec3d*)malloc(sizeof(struct vec3d)*n);
   tangle->normals     = (struct vec3d*)malloc(sizeof(struct vec3d)*n);
   tangle->recalculate = (int*)malloc(sizeof(int)*n);
@@ -116,6 +118,7 @@ void expand_arrays(struct tangle_state *tangle, size_t n)
   tangle->vnodes      = (struct vec3d*)realloc(tangle->vnodes, sizeof(struct vec3d)*n);
   tangle->vnodes_new  = (struct vec3d*)realloc(tangle->vnodes_new, sizeof(struct vec3d)*n);
   tangle->vels        = (struct vec3d*)realloc(tangle->vels, sizeof(struct vec3d)*n);
+  tangle->vs          = (struct vec3d*)realloc(tangle->vs, sizeof(struct vec3d)*n);
   tangle->tangents    = (struct vec3d*)realloc(tangle->tangents, sizeof(struct vec3d)*n);
   tangle->normals     = (struct vec3d*)realloc(tangle->normals, sizeof(struct vec3d)*n);
 
@@ -287,8 +290,7 @@ void update_velocity(struct tangle_state *tangle, size_t k)
   if(tangle->connections[k].forward == -1)
     return;
 
-  tangle->vels[k] = lia_velocity(tangle, k);
-  //tangle->vels[k] = vec3(0,0,0);
+  tangle->vs[k] = lia_velocity(tangle, k);
   
   for(m=0; m<tangle->N; ++m)
     {
@@ -300,7 +302,29 @@ void update_velocity(struct tangle_state *tangle, size_t k)
       
       struct vec3d segment_vel = segment_field(tangle, m, tangle->vnodes[k]);
       for(i=0; i<3; ++i)
-  	tangle->vels[k].p[i] += segment_vel.p[i];
+  	tangle->vs[k].p[i] += segment_vel.p[i];
+    }
+
+  tangle->vels[k] = tangle->vs[k];
+
+  if(use_mutual_friction)
+    {
+      struct vec3d tmp, dv;
+
+      //the velocity difference
+      get_vn(&tangle->vnodes[k], &dv);
+      vec3_sub(&dv, &dv, &tangle->vs[k]);
+
+      //the dissipative term
+      vec3_cross(&tmp, &tangle->tangents[k], &dv);
+      vec3_mul(&tmp, &tmp, alpha);
+      vec3_add(&tangle->vels[k], &tangle->vels[k], &tmp);
+
+      //the non-dissipative term
+      vec3_cross(&tmp, &tangle->tangents[k], &dv);
+      vec3_cross(&tmp, &tangle->tangents[k], &tmp);
+      vec3_mul(&tmp, &tmp, -alpha_p);
+      vec3_add(&tangle->vels[k], &tangle->vels[k], &tmp);
     }
 }
 

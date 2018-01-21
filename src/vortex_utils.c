@@ -139,6 +139,7 @@ int check_integrity(const struct tangle_state *tangle)
 	}
     }
 
+  free(visited);
   return errors;
 }
 

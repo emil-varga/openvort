@@ -1,6 +1,7 @@
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
+#include <omp.h>
 #include "tangle.h"
 #include "vortex_constants.h"
 #include "normal_fluid.h"
@@ -121,6 +122,7 @@ void expand_arrays(struct tangle_state *tangle, size_t n)
   tangle->vs          = (struct vec3d*)realloc(tangle->vs, sizeof(struct vec3d)*n);
   tangle->tangents    = (struct vec3d*)realloc(tangle->tangents, sizeof(struct vec3d)*n);
   tangle->normals     = (struct vec3d*)realloc(tangle->normals, sizeof(struct vec3d)*n);
+  tangle->recalculate = (int*)realloc(tangle->recalculate, sizeof(int)*n);
 
   tangle->connections = (struct neighbour_t*)realloc(tangle->connections, n*sizeof(struct neighbour_t));
 
@@ -145,9 +147,11 @@ void free_arrays(struct tangle_state *tangle)
   free(tangle->vnodes);
   free(tangle->vnodes_new);
   free(tangle->vels);
+  free(tangle->vs);
   free(tangle->tangents);
   free(tangle->normals);
   free(tangle->connections);
+  free(tangle->recalculate);
 }
 
 void update_tangent_normal(struct tangle_state *tangle, size_t k)
@@ -331,9 +335,13 @@ void update_velocity(struct tangle_state *tangle, size_t k)
 void update_velocities(struct tangle_state *tangle)
 {
   size_t i;
-  for(i=0; i<tangle->N; ++i)
+  #pragma omp parallel private(i) num_threads(4)
     {
-      update_velocity(tangle, i);
+      #pragma omp for
+      for(i=0; i<tangle->N; ++i)
+	{
+	  update_velocity(tangle, i);
+	}
     }
 }
 

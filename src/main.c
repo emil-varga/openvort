@@ -4,7 +4,9 @@
 #include <printf.h>
 #include <stddef.h>
 #include <math.h>
+#include <time.h> //for clock_gettime
 
+#include <omp.h>
 #include <fenv.h>
 
 #include "vec3_maths.h"
@@ -18,6 +20,14 @@
 void vec3_print(const struct vec3d *v)
 {
   printf("(%g, %g, %g)", v->p[0], v->p[1], v->p[2]);
+}
+
+double time_diff(struct timespec *t0, struct timespec *t1)
+{
+  double ns0 = t0->tv_sec*1e9 + t0->tv_nsec;
+  double ns1 = t1->tv_sec*1e9 + t1->tv_nsec;
+
+  return (ns1 - ns0)/1e9;
 }
 
 int main(int argc, char **argv)
@@ -43,7 +53,11 @@ int main(int argc, char **argv)
   int recs = 0;
   int nrec = 0;
 
-  for(int k=0; k < 100000; ++k)
+  struct timespec t0, ti;
+  clockid_t clock = CLOCK_MONOTONIC;
+
+  clock_gettime(clock, &t0);
+  for(int k=0; k < 100; ++k)
     {
       printf("Step %d, recs: %d\n", k, recs);
       nrec = reconnect(tangle, 2.5e-3, DEG2RAD(5));
@@ -70,6 +84,8 @@ int main(int argc, char **argv)
       check_integrity(tangle);
       shot--;
     }
+  clock_gettime(clock, &ti);
+  printf("Elapsed seconds: %f\n", time_diff(&t0, &ti));
   free_arrays(tangle);
   free(tangle);
 

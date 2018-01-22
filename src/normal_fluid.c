@@ -25,7 +25,7 @@ int get_vn(struct vec3d *where, struct vec3d *res)
   return 0;
 }
 
-struct vec3d external_vn = {0, 0, 0};
+struct vec3d external_vn = {{0, 0, 0}};
 
 void set_external_vn(double vx, double vy, double vz)
 {

@@ -14,7 +14,7 @@
 
 void add_circle(struct tangle_state *tangle,
 		struct vec3d *center, struct vec3d *dir, double r,
-		size_t Npoints);
+		int Npoints);
 
 void save_tangle(const char *filename, struct tangle_state *tangle);
 

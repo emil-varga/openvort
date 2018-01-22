@@ -101,11 +101,15 @@ void alloc_arrays(struct tangle_state *tangle, size_t n)
   tangle->recalculate = (int*)malloc(sizeof(int)*n);
 
   tangle->connections = (struct neighbour_t*)malloc(n*sizeof(struct neighbour_t));
-  for(int k=0; k<n; ++k)
+  for(size_t k=0; k<n; ++k)
     {
       tangle->connections[k].forward = -1;
       tangle->connections[k].reverse = -1;
     }
+
+  //default initialisation is to open bounadry conditions
+  for(int k=0; k<6; ++k)
+    tangle->bc[k] = OPEN;
 
   tangle->N           = n;
   tangle->next_free   = 0;
@@ -114,8 +118,8 @@ void alloc_arrays(struct tangle_state *tangle, size_t n)
 
 void expand_arrays(struct tangle_state *tangle, size_t n)
 {
-  int k;
-  int old_n = tangle->N;
+  size_t k;
+  size_t old_n = tangle->N;
   tangle->vnodes      = (struct vec3d*)realloc(tangle->vnodes, sizeof(struct vec3d)*n);
   tangle->vnodes_new  = (struct vec3d*)realloc(tangle->vnodes_new, sizeof(struct vec3d)*n);
   tangle->vels        = (struct vec3d*)realloc(tangle->vels, sizeof(struct vec3d)*n);
@@ -230,13 +234,20 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k)
   vec3_normalize(&tangle->tangents[k]);
 }
 
-static inline struct vec3d segment_field(const struct tangle_state *tangle, size_t i, struct vec3d r)
+struct segment {
+  struct vec3d r1, r2;
+};
+
+/*
+ * Calculates the velocity field of a straight vortex segment given by seg at position r
+ */
+static inline struct vec3d segment_field1(struct segment *seg, struct vec3d r)
 {
   struct vec3d R;
   struct vec3d Rp1;
 
-  vec3_sub(&R, tangle->vnodes+i, &r);
-  vec3_sub(&Rp1, &tangle->vnodes[tangle->connections[i].forward], &r);
+  vec3_sub(&R, &seg->r1, &r);
+  vec3_sub(&Rp1, &seg->r2, &r);
 
   double lR   = vec3_d(&R);
   double lRp1 = vec3_d(&Rp1);
@@ -249,6 +260,19 @@ static inline struct vec3d segment_field(const struct tangle_state *tangle, size
   vec3_mul(&vv, &vv, f*(lR + lRp1)/denom);
 
   return vv;
+}
+
+/*
+ * Calculates the velocity field of a segment in a given tangle
+ */
+static inline struct vec3d segment_field(const struct tangle_state *tangle, size_t i, struct vec3d r)
+{
+  struct segment seg = {
+      .r1 = tangle->vnodes[i],
+      .r2 = tangle->vnodes[tangle->connections[i].forward]
+  };
+
+  return segment_field1(&seg, r);
 }
 
 static inline struct vec3d lia_velocity(const struct tangle_state *tangle, size_t i)
@@ -269,10 +293,70 @@ static inline struct vec3d lia_velocity(const struct tangle_state *tangle, size_
   return vv;
 }
 
-struct vec3d calculate_vs(struct tangle_state *tangle, struct vec3d r, size_t skip)
+/*
+ * Calculates the image segments corresponding to the real segment box boundary conditions.
+ * NOT IMPLEMENTED:
+ * Depth gives how many recursive images should be created (i.e., images of images, etc.)
+ *
+ * This can handle only simple boundary conditions, no curved surfaces etc.
+ *
+ * TODO: implement depth
+ */
+int image_segments(struct tangle_state *tangle, struct segment *real_seg, int depth,
+		   struct segment **img_segments, int *nimgseg)
+{
+  int total = 0;
+  for(int k=0; k<6; ++k)
+    {
+      if(tangle->bc[k] != OPEN)
+	total++;
+    }
+
+  if(*nimgseg < total)
+    {
+      *nimgseg = total;
+      *img_segments = (struct segment*)malloc(total*sizeof(struct segment));
+    }
+
+  int loc = 0;
+  int coords[] = {0, 0, 1, 1, 2, 2};
+  double Ls[] = {
+      computation_box[X_H] - computation_box[X_L],
+      computation_box[Y_H] - computation_box[Y_L],
+      computation_box[Z_H] - computation_box[Z_L]
+  };
+  for(boundary_faces k = X_L; k<Z_H; ++k)
+    {
+      struct segment nseg = *real_seg;
+      switch(tangle->bc[k])
+      {
+	case PERIODIC: //shift by the length of the box
+	  nseg.r1.p[coords[k]]+=Ls[coords[k]];
+	  nseg.r2.p[coords[k]]+=Ls[coords[k]];
+	  *img_segments[loc++] = nseg;
+	  break;
+	case PIN_WALL:
+	case SLIP_WALL: //mirror around the given wall
+	  nseg.r1.p[coords[k]]=2*computation_box[k] - nseg.r1.p[coords[k]];
+	  nseg.r2.p[coords[k]]=2*computation_box[k] - nseg.r2.p[coords[k]];
+	  *img_segments[loc++] = nseg;
+	  break;
+	default:
+	  break;
+      }
+
+    }
+
+  return 0;
+}
+
+struct vec3d calculate_vs(struct tangle_state *tangle, struct vec3d r, int skip)
 {
   int m;
   struct vec3d vs = vec3(0,0,0);
+
+  struct segment *img_seg;
+  int nimgseg = 0;
 
   for(m=0; m < tangle->N; ++m)
     {
@@ -281,16 +365,30 @@ struct vec3d calculate_vs(struct tangle_state *tangle, struct vec3d r, size_t sk
 	 skip == tangle->connections[m].forward ||
 	 skip == tangle->connections[m].reverse)
 	continue;
+
       struct vec3d ivs = segment_field(tangle, m, r);
       vec3_add(&vs, &vs, &ivs);
+
+      //now handle box boundary conditions
+      struct segment seg = {
+      	  .r1 = tangle->vnodes[m],
+      	  .r2 = tangle->vnodes[tangle->connections[m].forward]
+      };
+
+      image_segments(tangle, &seg, 1, &img_seg, &nimgseg);
+      for(int k=0; k<nimgseg; ++k)
+	{
+	  ivs = segment_field1(&img_seg[k], r);
+	  vec3_add(&vs, &vs, &ivs);
+	}
     }
 
   return vs;
 }
 
-void update_velocity(struct tangle_state *tangle, size_t k)
+void update_velocity(struct tangle_state *tangle, int k)
 {
-  size_t m, i;
+  int m, i;
   if(tangle->connections[k].forward == -1)
     return;
 
@@ -334,7 +432,7 @@ void update_velocity(struct tangle_state *tangle, size_t k)
 
 void update_velocities(struct tangle_state *tangle)
 {
-  size_t i;
+  int i;
   #pragma omp parallel private(i) num_threads(6)
     {
       #pragma omp for
@@ -347,7 +445,7 @@ void update_velocities(struct tangle_state *tangle)
 
 void update_tangents_normals(struct tangle_state *tangle)
 {
-  size_t i;
+  int i;
   for(i=0; i<tangle->N; ++i)
     {
       update_tangent_normal(tangle, i);

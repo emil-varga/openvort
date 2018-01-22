@@ -22,7 +22,7 @@ struct vec3d perpendicular(const struct vec3d *dir)
 
 void add_circle(struct tangle_state *tangle,
 		struct vec3d *center, struct vec3d *dir, double r,
-		size_t Npoints)
+		int Npoints)
 {
   if(num_free_points(tangle) < Npoints)
     return;

@@ -13,6 +13,12 @@ typedef enum _bc {
   PERIODIC
 } boundary_conditions;
 
+/*
+ * Faces of the computational box. x low, x high etc.
+ *
+ * Functions dealing with boundaries in tangle.c depend on
+ * the ordering of this enum.
+ */
 typedef enum _fc {
   X_L, X_H,
   Y_L, Y_H,
@@ -60,7 +66,7 @@ struct tangle_state {
   //the boundary conditions in the 6 cardinal directions
   boundary_conditions bc[6];
   
-  size_t N;
+  int N;
   int next_free;
   int total_free;
 };
@@ -72,7 +78,7 @@ int num_free_points(struct tangle_state *tangle);
 
 void update_tangents_normals(struct tangle_state *tangle);
 void update_velocities(struct tangle_state *tangle);
-void update_velocity(struct tangle_state *tangle, size_t k);
+void update_velocity(struct tangle_state *tangle, int k);
 
 /**
   @brief calculates the superfluid velocity
@@ -80,7 +86,7 @@ void update_velocity(struct tangle_state *tangle, size_t k);
   Calculates and returns the superfluid velocity v_s induced by tangle at location r.
   Optionally disables one node given by skip. Use skip=-1 to not skip anything.
 */
-struct vec3d calculate_vs(struct tangle_state *tangle, struct vec3d r, size_t skip);
+struct vec3d calculate_vs(struct tangle_state *tangle, struct vec3d r, int skip);
 
 void remesh(struct tangle_state *tangle, double min_dist, double max_dist);
 void eliminate_small_loops(struct tangle_state *tangle, int loop_length);

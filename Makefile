@@ -1,6 +1,6 @@
 CC=gcc -fopenmp
 CFLAGS=  -O0 `gsl-config --cflags` -fsanitize=undefined -fsanitize=float-divide-by-zero -fsanitize=leak
-DEBUG = -Wall -ggdb -D_DEBUG_
+DEBUG = -Wall -Wextra -pedantic -ggdb -D_DEBUG_
 INCLUDE = include
 
 COMPILE = $(CC) $(CFLAGS) $(DEBUG) -I$(INCLUDE)

@@ -14,7 +14,7 @@ void euler_step2(struct tangle_state *result,
 		 const struct tangle_state *tangle, double dt,
 		 const struct vec3d *use_vel)
 {
-  size_t k;
+  int k;
 
   for(k=0; k<tangle->N; ++k)
     {
@@ -42,7 +42,7 @@ void euler_step(struct tangle_state *tangle, double dt)
 void rk4_step2(struct tangle_state *result,
 	       const struct tangle_state *tangle, double dt)
 {
-  size_t N;
+  int N;
   struct tangle_state rk_state[3]; //k2 through k4, we already have k1 in tangle
 
   N = tangle->N;
@@ -105,13 +105,13 @@ int do_reconnection(struct tangle_state *tangle, size_t k, size_t l);
   of a reconnections -- i.e., where in the BSP tree the two nodes are and only check them
   if can, in principle, be close enough.
  */
-size_t reconnect(struct tangle_state *tangle, double rec_dist, double rec_angle)
+int reconnect(struct tangle_state *tangle, double rec_dist, double rec_angle)
 {
-  size_t k, l;
+  int k, l;
   struct vec3d *v1, *v2; //points under test
   struct vec3d d1, d2; //direction vectors from v1, v2
   double calpha; //cosine of alpha between d1, d2
-  size_t Nrecs = 0;
+  int Nrecs = 0;
 
   for(k=0; k<tangle->N; ++k)
     tangle->recalculate[k] = 0;

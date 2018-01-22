@@ -35,6 +35,6 @@ void ab4_step(struct tangle_state *tangle, struct ab4_state *state);
 
 //reconnections
 
-size_t reconnect(struct tangle_state *tangle, double rec_dist, double rec_angle);
+int reconnect(struct tangle_state *tangle, double rec_dist, double rec_angle);
 
 #endif //VORTEX_DYNAMICS

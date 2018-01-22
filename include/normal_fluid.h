@@ -12,4 +12,6 @@
 
 int get_vn(struct vec3d *where, struct vec3d *res);
 
+extern struct vec3d external_vn;
+
 #endif /* INCLUDE_NORMAL_FLUID_H_ */

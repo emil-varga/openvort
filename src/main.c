@@ -57,7 +57,7 @@ int main(int argc, char **argv)
   clockid_t clock = CLOCK_MONOTONIC;
 
   clock_gettime(clock, &t0);
-  for(int k=0; k < 100; ++k)
+  for(int k=0; k < 100000; ++k)
     {
       printf("Step %d, recs: %d\n", k, recs);
       nrec = reconnect(tangle, 2.5e-3, DEG2RAD(5));

@@ -335,7 +335,7 @@ void update_velocity(struct tangle_state *tangle, size_t k)
 void update_velocities(struct tangle_state *tangle)
 {
   size_t i;
-  #pragma omp parallel private(i) num_threads(4)
+  #pragma omp parallel private(i) num_threads(6)
     {
       #pragma omp for
       for(i=0; i<tangle->N; ++i)

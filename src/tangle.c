@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <omp.h>
+#include <assert.h>
 #include "tangle.h"
 #include "vortex_constants.h"
 #include "normal_fluid.h"
@@ -20,69 +21,63 @@
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_spline.h>
 
-//struct to hold together the spline info
-//one spline for each dimension
-typedef struct _vspline {
-  gsl_interp_accel *acc_xyz[3];
-  gsl_spline *spline_xyz[3];
-  double xi[4];
-} vspline;
-
-void free_vspline(vspline *spline)
+/*
+ * Calculates the image segments corresponding to the real segment box boundary conditions.
+ * NOT IMPLEMENTED:
+ * Depth gives how many recursive images should be created (i.e., images of images, etc.)
+ *
+ * This can handle only simple boundary conditions, no curved surfaces etc.
+ *
+ * TODO: implement depth
+ */
+int image_segments(struct tangle_state *tangle, struct segment *real_seg, int depth,
+		   struct segment **img_segments, int *nimgseg)
 {
-  for(int k=0; k<3; ++k)
-    {
-      gsl_spline_free(spline->spline_xyz[k]);
-      gsl_interp_accel_free(spline->acc_xyz[k]);
-    }
-  free(spline);
-}
+  int total = 0;
+  assert_msg(depth==1, "Only depth==1 is currently supported.");
 
-vspline *construct_local_spline(struct tangle_state *tangle,
-				   int points[4])
-{
-  //3 coordinates for 4 points
-  double xyz[3][4];
-
-  //allocate splines
-  vspline *spline = (vspline*)malloc(sizeof(vspline));
-  for(int k=0; k<3; ++k) //loop over dimensions
+  for(int k=0; k<6; ++k)
     {
-      spline->acc_xyz[k] = gsl_interp_accel_alloc();
-      spline->spline_xyz[k] = gsl_spline_alloc(gsl_interp_cspline, 4);
-    }
- 
-  //set up the data vectors
-  for(int k=0; k<4; ++k) //loop over points
-    {
-      struct vec3d s = tangle->vnodes[points[k]];
-      xyz[0][k] = s.p[0];
-      xyz[1][k] = s.p[1];
-      xyz[2][k] = s.p[2];
-    }
-  
-  spline->xi[0] = 0;
-  for(int k=1; k<4; ++k) //loop over points
-    {
-      spline->xi[k] = spline->xi[k-1] +
-	vec3_dist(&tangle->vnodes[points[k]], &tangle->vnodes[points[k-1]]);
+      if(tangle->bc[k] != OPEN)
+	total++;
     }
 
-  for(int k=0; k<3; ++k) //loop over dimensions
-    gsl_spline_init(spline->spline_xyz[k], spline->xi, xyz[k], 4);
+  if(*nimgseg < total)
+    {
+      *nimgseg = total;
+      *img_segments = (struct segment*)malloc(total*sizeof(struct segment));
+    }
 
-  return spline;
-}
+  int loc = 0;
+  int coords[] = {0, 0, 1, 1, 2, 2};
+  double Ls[] = {
+      computation_box[X_H] - computation_box[X_L],
+      computation_box[Y_H] - computation_box[Y_L],
+      computation_box[Z_H] - computation_box[Z_L]
+  };
+  for(boundary_faces k = X_L; k<Z_H; ++k)
+    {
+      struct segment nseg = *real_seg;
+      switch(tangle->bc[k])
+      {
+	case PERIODIC: //shift by the length of the box
+	  nseg.r1.p[coords[k]]+=Ls[coords[k]];
+	  nseg.r2.p[coords[k]]+=Ls[coords[k]];
+	  *img_segments[loc++] = nseg;
+	  break;
+	case PIN_WALL:
+	case SLIP_WALL: //mirror around the given wall
+	  nseg.r1.p[coords[k]]=2*computation_box[k] - nseg.r1.p[coords[k]];
+	  nseg.r2.p[coords[k]]=2*computation_box[k] - nseg.r2.p[coords[k]];
+	  *img_segments[loc++] = nseg;
+	  break;
+	default:
+	  break;
+      }
 
-struct vec3d eval_vspline(vspline *spline, double where)
-{
-  struct vec3d out;
+    }
 
-  for(int k=0; k<3; ++k) //loop over dimensions
-    out.p[k] = gsl_spline_eval(spline->spline_xyz[k],
-			       where, spline->acc_xyz[k]);
-
-  return out;
+  return 0;
 }
 
 //
@@ -90,7 +85,20 @@ struct vec3d eval_vspline(vspline *spline, double where)
 //
 //
 
-void alloc_arrays(struct tangle_state *tangle, size_t n)
+/*
+ * Inward-facing normals of the box boundary face walls
+ */
+const struct vec3d boundary_normals[] = {
+    {{1, 0, 0}},
+    {{-1, 0, 0}},
+    {{0, 1, 0}},
+    {{0, -1, 0}},
+    {{0, 0, 1}},
+    {{0, 0, -1}}
+};
+
+
+void create_tangle(struct tangle_state *tangle, size_t n)
 {
   tangle->vnodes      = (struct vec3d*)malloc(sizeof(struct vec3d)*n);
   tangle->vnodes_new  = (struct vec3d*)malloc(sizeof(struct vec3d)*n);
@@ -99,10 +107,12 @@ void alloc_arrays(struct tangle_state *tangle, size_t n)
   tangle->tangents    = (struct vec3d*)malloc(sizeof(struct vec3d)*n);
   tangle->normals     = (struct vec3d*)malloc(sizeof(struct vec3d)*n);
   tangle->recalculate = (int*)malloc(sizeof(int)*n);
+  tangle->status      = (node_status*)malloc(sizeof(node_status)*n);
 
   tangle->connections = (struct neighbour_t*)malloc(n*sizeof(struct neighbour_t));
   for(size_t k=0; k<n; ++k)
     {
+      tangle->status[k].status = EMPTY;
       tangle->connections[k].forward = -1;
       tangle->connections[k].reverse = -1;
     }
@@ -116,7 +126,7 @@ void alloc_arrays(struct tangle_state *tangle, size_t n)
   tangle->total_free  = n;
 }
 
-void expand_arrays(struct tangle_state *tangle, size_t n)
+void expand_tangle(struct tangle_state *tangle, size_t n)
 {
   size_t k;
   size_t old_n = tangle->N;
@@ -127,6 +137,7 @@ void expand_arrays(struct tangle_state *tangle, size_t n)
   tangle->tangents    = (struct vec3d*)realloc(tangle->tangents, sizeof(struct vec3d)*n);
   tangle->normals     = (struct vec3d*)realloc(tangle->normals, sizeof(struct vec3d)*n);
   tangle->recalculate = (int*)realloc(tangle->recalculate, sizeof(int)*n);
+  tangle->status      = (node_status*)malloc(sizeof(node_status)*n);
 
   tangle->connections = (struct neighbour_t*)realloc(tangle->connections, n*sizeof(struct neighbour_t));
 
@@ -134,6 +145,7 @@ void expand_arrays(struct tangle_state *tangle, size_t n)
     {
       for(k=old_n; k<n; ++k)
   	{
+	  tangle->status[k].status = EMPTY;
   	  tangle->connections[k].forward = -1;
   	  tangle->connections[k].reverse = -1;
   	}
@@ -146,7 +158,7 @@ void expand_arrays(struct tangle_state *tangle, size_t n)
   tangle->total_free  += n;
 }
 
-void free_arrays(struct tangle_state *tangle)
+void free_tangle(struct tangle_state *tangle)
 {
   free(tangle->vnodes);
   free(tangle->vnodes_new);
@@ -156,6 +168,7 @@ void free_arrays(struct tangle_state *tangle)
   free(tangle->normals);
   free(tangle->connections);
   free(tangle->recalculate);
+  free(tangle->status);
 }
 
 void update_tangent_normal(struct tangle_state *tangle, size_t k)
@@ -168,19 +181,37 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k)
   struct vec3d ds[4];
 
   //empty point has -1 connections
-  if(tangle->connections[k].forward == -1 ||
-     tangle->connections[k].reverse == -1)
+  if(tangle->status[k].status == EMPTY)
     return;
 
   int next = tangle->connections[k].forward;
   int prev = tangle->connections[k].reverse;
+  int next2, prev2;
+
+  if(tangle->status[k].status == PINNED ||
+     tangle->status[k].status == PINNED_SLIP)
+    {
+      /*
+       * Node is pinned on the wall, it doesn't have next or prev defined.
+       * We need to mirror the few points in question around the wall.
+       */
+      if(next == -1)
+	next = prev;
+      else if(prev == -1)
+	prev = next;
+    }
+  else
+    {
+      next2 = tangle->connections[next].forward;
+      prev2 = tangle->connections[prev].reverse;
+    }
 
   s0  = tangle->vnodes + k;
   s1  = tangle->vnodes + next;
   sm1 = tangle->vnodes + prev;
 
-  s2 = tangle->vnodes + tangle->connections[next].forward;
-  sm2 = tangle->vnodes + tangle->connections[prev].reverse;
+  s2 = tangle->vnodes + next2;
+  sm2 = tangle->vnodes + prev2;
 
   vec3_sub(ds + 0, s2, s0);
   vec3_sub(ds + 1, s1, s0);
@@ -233,10 +264,6 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k)
   vec3_mul(&tangle->normals[k], &tangle->normals[k], 1/x/x);
   vec3_normalize(&tangle->tangents[k]);
 }
-
-struct segment {
-  struct vec3d r1, r2;
-};
 
 /*
  * Calculates the velocity field of a straight vortex segment given by seg at position r
@@ -293,62 +320,7 @@ static inline struct vec3d lia_velocity(const struct tangle_state *tangle, size_
   return vv;
 }
 
-/*
- * Calculates the image segments corresponding to the real segment box boundary conditions.
- * NOT IMPLEMENTED:
- * Depth gives how many recursive images should be created (i.e., images of images, etc.)
- *
- * This can handle only simple boundary conditions, no curved surfaces etc.
- *
- * TODO: implement depth
- */
-int image_segments(struct tangle_state *tangle, struct segment *real_seg, int depth,
-		   struct segment **img_segments, int *nimgseg)
-{
-  int total = 0;
-  for(int k=0; k<6; ++k)
-    {
-      if(tangle->bc[k] != OPEN)
-	total++;
-    }
 
-  if(*nimgseg < total)
-    {
-      *nimgseg = total;
-      *img_segments = (struct segment*)malloc(total*sizeof(struct segment));
-    }
-
-  int loc = 0;
-  int coords[] = {0, 0, 1, 1, 2, 2};
-  double Ls[] = {
-      computation_box[X_H] - computation_box[X_L],
-      computation_box[Y_H] - computation_box[Y_L],
-      computation_box[Z_H] - computation_box[Z_L]
-  };
-  for(boundary_faces k = X_L; k<Z_H; ++k)
-    {
-      struct segment nseg = *real_seg;
-      switch(tangle->bc[k])
-      {
-	case PERIODIC: //shift by the length of the box
-	  nseg.r1.p[coords[k]]+=Ls[coords[k]];
-	  nseg.r2.p[coords[k]]+=Ls[coords[k]];
-	  *img_segments[loc++] = nseg;
-	  break;
-	case PIN_WALL:
-	case SLIP_WALL: //mirror around the given wall
-	  nseg.r1.p[coords[k]]=2*computation_box[k] - nseg.r1.p[coords[k]];
-	  nseg.r2.p[coords[k]]=2*computation_box[k] - nseg.r2.p[coords[k]];
-	  *img_segments[loc++] = nseg;
-	  break;
-	default:
-	  break;
-      }
-
-    }
-
-  return 0;
-}
 
 struct vec3d calculate_vs(struct tangle_state *tangle, struct vec3d r, int skip)
 {
@@ -392,6 +364,12 @@ void update_velocity(struct tangle_state *tangle, int k)
   if(tangle->connections[k].forward == -1)
     return;
 
+  if(tangle->status[k].status == PINNED)
+    {
+      tangle->vs[k] = vec3(0,0,0);
+      return;
+    }
+
   tangle->vs[k] = lia_velocity(tangle, k);
   
   for(m=0; m<tangle->N; ++m)
@@ -427,6 +405,11 @@ void update_velocity(struct tangle_state *tangle, int k)
       vec3_cross(&tmp, &tangle->tangents[k], &tmp);
       vec3_mul(&tmp, &tmp, -alpha_p);
       vec3_add(&tangle->vels[k], &tangle->vels[k], &tmp);
+    }
+
+  if(tangle->status[k].status == PINNED_SLIP)
+    {
+      //remove the component of velocity normal to the wall
     }
 }
 
@@ -478,7 +461,7 @@ int get_tangle_next_free(struct tangle_state *tangle)
 
   if(idx < 0)
     {
-      expand_arrays(tangle, 2*tangle->N);
+      expand_tangle(tangle, 2*tangle->N);
       idx = search_next_free(tangle);
     }
 
@@ -492,6 +475,51 @@ int num_free_points(struct tangle_state *tangle)
     if(tangle->connections[k].forward < 0)
       sum++;
   return sum;
+}
+
+static inline int out_of_box(const struct vec3d *where)
+{
+  double x = where->p[0];
+  double y = where->p[1];
+  double z = where->p[2];
+  if(x < computation_box[X_L])
+    return X_L;
+  if(x > computation_box[X_H])
+    return X_H;
+  if(y < computation_box[Y_L])
+    return Y_L;
+  if(y > computation_box[Y_H])
+    return Y_H;
+  if(z < computation_box[Z_L])
+    return Z_L;
+  if(z > computation_box[Z_H])
+    return Z_H;
+
+  return 0;
+}
+void enforce_boundaries(struct tangle_state *tangle)
+{
+  int face;
+  for(int k=0; k < tangle->N; ++k)
+    {
+      if(tangle->status[k].status == EMPTY)
+	continue;
+      face = out_of_box(&tangle->vnodes[k]);
+      if(face)
+	  {
+	    assert_msg(tangle->status[k].status != PINNED ||
+		       tangle->status[k].status != PINNED_SLIP,
+		       "pinned node outside of the box\n"
+		       "this should have been caut with reconnections")
+	    switch(face)
+	    {
+	      case X_L:
+		break;
+	      default:
+		assert_msg(0, "This is not a valid face.");
+	    }
+	  }
+    }
 }
 
 void remove_point(struct tangle_state *tangle, int point_idx);
@@ -554,6 +582,7 @@ void eliminate_small_loops(struct tangle_state *tangle, int loop_length)
 	      z = tangle->connections[z].forward;
 	      tangle->connections[tmp].forward = -1;
 	      tangle->connections[tmp].reverse = -1;
+	      tangle->status[tmp].status = EMPTY;
 	    }
 	}
     }
@@ -567,6 +596,8 @@ void remove_point(struct tangle_state *tangle, int point_idx)
   tangle->connections[next].reverse = prev;
   tangle->connections[point_idx].reverse =
     tangle->connections[point_idx].forward = -1;
+
+  tangle->status[point_idx].status = EMPTY;
 }
 
 
@@ -575,6 +606,7 @@ void add_point(struct tangle_state *tangle, int p)
 {
   int next = tangle->connections[p].forward;
   int new_pt = get_tangle_next_free(tangle);
+  tangle->status[new_pt].status = FREE;
 
   struct vec3d s0 = tangle->vnodes[p];
   struct vec3d s1 = tangle->vnodes[next];

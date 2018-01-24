@@ -10,7 +10,7 @@
 
 #include "vec3_maths.h"
 
-int get_vn(struct vec3d *where, struct vec3d *res);
+int get_vn(const struct vec3d *where, struct vec3d *res);
 
 extern struct vec3d external_vn;
 

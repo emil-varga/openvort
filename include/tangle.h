@@ -14,22 +14,24 @@ typedef enum _bc {
 } boundary_conditions;
 
 /*
- * Faces of the computational box. x low, x high etc.
+ * Inward-facing normals of the box boundary face walls.
+ * Can (and should) be indexed with boundary_faces enum.
  *
- * Functions dealing with boundaries in tangle.c depend on
- * the ordering of this enum.
+ * Defined in tangle.c
  */
-typedef enum _fc {
-  X_L, X_H,
-  Y_L, Y_H,
-  Z_L, Z_H
-} boundary_faces;
+extern const struct vec3d boundary_normals[6];
 
-typedef enum _ns {
+typedef enum _ns_e {
   EMPTY = -1, //no point here
   FREE, //ordinary vortex point
   PINNED, //pinned on the wall
   PINNED_SLIP //pinned, but can slip
+} node_status_enum;
+
+//status of the node and on which wall it is pinned
+typedef struct _ns {
+  node_status_enum status;
+  boundary_faces pin_wall;
 } node_status;
 
 struct neighbour_t {
@@ -71,11 +73,12 @@ struct tangle_state {
   int total_free;
 };
 
-void alloc_arrays(struct tangle_state *tangle, size_t n);
-void expand_arrays(struct tangle_state *tangle, size_t n);
-void free_arrays(struct tangle_state *tangle);
+void create_tangle(struct tangle_state *tangle, size_t n);
+void expand_tangle(struct tangle_state *tangle, size_t n);
+void free_tangle(struct tangle_state *tangle);
 int num_free_points(struct tangle_state *tangle);
 
+void enforce_boundaries(struct tangle_state *tangle);
 void update_tangents_normals(struct tangle_state *tangle);
 void update_velocities(struct tangle_state *tangle);
 void update_velocity(struct tangle_state *tangle, int k);

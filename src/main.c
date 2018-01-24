@@ -35,7 +35,7 @@ int main(int argc, char **argv)
   feenableexcept(FE_OVERFLOW | FE_UNDERFLOW | FE_INVALID | FE_DIVBYZERO);
   struct tangle_state *tangle = (struct tangle_state*)malloc(sizeof(struct tangle_state));
 
-  alloc_arrays(tangle, 512);
+  create_tangle(tangle, 512);
   struct vec3d center1 = vec3(0, 0, 0);
   struct vec3d center2 = vec3(0.05, 0, -0.01);
   struct vec3d dir1    = vec3(0, 0, 1);
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
   clockid_t clock = CLOCK_MONOTONIC;
 
   clock_gettime(clock, &t0);
-  for(int k=0; k < 100000; ++k)
+  for(int k=0; k < 10000; ++k)
     {
       printf("Step %d, recs: %d\n", k, recs);
       nrec = reconnect(tangle, 2.5e-3, DEG2RAD(5));
@@ -86,7 +86,7 @@ int main(int argc, char **argv)
     }
   clock_gettime(clock, &ti);
   printf("Elapsed seconds: %f\n", time_diff(&t0, &ti));
-  free_arrays(tangle);
+  free_tangle(tangle);
   free(tangle);
 
   return 0;

@@ -5,9 +5,41 @@ struct vec3d {
   double p[3];
 };
 
-struct vec3d vec3(double x, double y, double z);
+struct segment {
+  struct vec3d r1, r2;
+};
 
+typedef enum _wt {WALL_OPEN, WALL_PERIODIC, WALL_MIRROR} wall_type;
+
+/*
+ * Faces of the computational box. x low, x high etc.
+ *
+ * Functions dealing with boundaries in tangle.c depend on
+ * the ordering of this enum.
+ */
+typedef enum _fc {
+  X_L, X_H,
+  Y_L, Y_H,
+  Z_L, Z_H
+} boundary_faces;
+
+struct domain_box {
+  struct vec3d bottom_left_front;
+  struct vec3d top_right_back;
+  wall_type wall[6];
+};
+
+struct vec3d vec3(double x, double y, double z);
 void vec3_assign(struct vec3d *v, double x, double y, double z);
+
+struct segment seg(struct vec3d *r1, struct vec3d *r2);
+struct domain_box make_box(struct vec3d bottom_left_front,
+			   struct vec3d top_right_back,
+			   wall_type wall[6]);
+
+/*
+ * open-space geometry
+ */
 
 double vec3_dot(const struct vec3d *u, const struct vec3d *v);
 //normalized dot, cosine of the angle
@@ -30,5 +62,11 @@ double vec3_d(const struct vec3d *u);
 double vec3_dist(const struct vec3d *u, const struct vec3d *v);
 
 void vec3_normalize(struct vec3d *v);
+
+/*
+ * periodic box geometry
+ */
+
+struct segment create_seg_periodic(const struct domain_box *box, struct vec3d *fixed, struct vec3d *other);
 
 #endif//VEC3_MATHS_H

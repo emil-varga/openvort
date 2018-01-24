@@ -18,7 +18,7 @@
  * TODO: now it just returns a constant, this should be generalized to more
  * 		 complicated flow
  */
-int get_vn(struct vec3d *where, struct vec3d *res)
+int get_vn(const struct vec3d *where, struct vec3d *res)
 {
   *res = vec3(0, 0, 0); //no flow
 
@@ -32,7 +32,7 @@ void set_external_vn(double vx, double vy, double vz)
   external_vn = vec3(vx, vy, vz);
 }
 
-int get_vn_simple_cf(struct vec3d *where, struct vec3d *res)
+int get_vn_simple_cf(const struct vec3d *where, struct vec3d *res)
 {
   *res = external_vn;
 
@@ -44,7 +44,7 @@ int get_vn_simple_cf(struct vec3d *where, struct vec3d *res)
  * The singularity is at origin and the magnitude is strength/(4 pi r^2) where r is the distance
  * from the origin to he point of interest (*where).
  */
-int get_vn_spherical(struct vec3d *where, struct vec3d *res, double strength, double cutoff)
+int get_vn_spherical(const struct vec3d *where, struct vec3d *res, double strength, double cutoff)
 {
   double r = vec3_d(where);
   if(r < cutoff)

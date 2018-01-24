@@ -54,6 +54,8 @@ void add_circle(struct tangle_state *tangle,
       vec3_add(&p, &p, &ptmp);
       vec3_add(&p, &p, center);
       curr_point = get_tangle_next_free(tangle);
+
+      tangle->status[curr_point].status = FREE;
       if(first_point < 0)
 	first_point = curr_point;
 

@@ -47,7 +47,7 @@ void rk4_step2(struct tangle_state *result,
 
   N = tangle->N;
   for(int k=0; k < 3; ++k)
-    alloc_arrays(&rk_state[k], N);
+    create_tangle(&rk_state[k], N);
 
   //calculate k1
   euler_step2(&rk_state[0], tangle, dt/2, NULL);
@@ -86,7 +86,7 @@ void rk4_step2(struct tangle_state *result,
     }
 
   for(int k=0; k<3; ++k)
-    free_arrays(&rk_state[k]);
+    free_tangle(&rk_state[k]);
 }
 
 void rk4_step(struct tangle_state *tangle, double dt)

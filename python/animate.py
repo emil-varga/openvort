@@ -23,7 +23,7 @@ files.sort()
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
 
-i=0
+i=-1
 for fn in files:
     i = i+1 
     if path.isfile(fn.replace('.dat', '.png')):

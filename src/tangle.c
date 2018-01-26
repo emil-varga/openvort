@@ -137,7 +137,7 @@ void expand_tangle(struct tangle_state *tangle, size_t n)
   tangle->tangents    = (struct vec3d*)realloc(tangle->tangents, sizeof(struct vec3d)*n);
   tangle->normals     = (struct vec3d*)realloc(tangle->normals, sizeof(struct vec3d)*n);
   tangle->recalculate = (int*)realloc(tangle->recalculate, sizeof(int)*n);
-  tangle->status      = (node_status*)malloc(sizeof(node_status)*n);
+  tangle->status      = (node_status*)realloc(tangle->status, sizeof(node_status)*n);
 
   tangle->connections = (struct neighbour_t*)realloc(tangle->connections, n*sizeof(struct neighbour_t));
 

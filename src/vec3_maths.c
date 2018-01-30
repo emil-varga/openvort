@@ -62,6 +62,14 @@ void vec3_add(struct vec3d *res,
     res->p[k] = u->p[k] + v->p[k];
 }
 
+struct vec3d vec3_add2(const struct vec3d *u, const struct vec3d *v)
+{
+  struct vec3d out;
+  vec3_add(&out, u, v);
+
+  return out;
+}
+
 double vec3_d(const struct vec3d *u)
 {
   double out = 0;

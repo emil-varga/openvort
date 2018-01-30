@@ -124,28 +124,17 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k)
   int prev = tangle->connections[k].reverse;
   int next2, prev2;
 
-  if(tangle->status[k].status == PINNED ||
-     tangle->status[k].status == PINNED_SLIP)
-    {
-      /*
-       * Node is pinned on the wall, it doesn't have next or prev defined.
-       * We need to mirror the few points in question around the wall.
-       */
-      if(next == -1)
-	next = prev;
-      else if(prev == -1)
-	prev = next;
-    }
-  else
-    {
-      next2 = tangle->connections[next].forward;
-      prev2 = tangle->connections[prev].reverse;
-    }
 
+  next2 = tangle->connections[next].forward;
+  prev2 = tangle->connections[prev].reverse;
+
+  /*
+   * TODO: sm2..s2 should be constructed iteratively based on pinning and
+   * periodic conditions using shift and mirror functions from vec3_maths
+   */
   s0  = tangle->vnodes + k;
   s1  = tangle->vnodes + next;
   sm1 = tangle->vnodes + prev;
-
   s2 = tangle->vnodes + next2;
   sm2 = tangle->vnodes + prev2;
 
@@ -234,12 +223,14 @@ static inline struct vec3d segment_field(const struct tangle_state *tangle, size
       .r1 = tangle->vnodes[i],
       .r2 = tangle->vnodes[tangle->connections[i].forward]
   };
+  //TODO: this should create the segment in accordance with boundary conditions
 
   return segment_field1(&seg, r);
 }
 
 static inline struct vec3d lia_velocity(const struct tangle_state *tangle, size_t i)
 {
+  //TODO: this needs to be aware of box boundary conditions
   const struct vec3d *p    = tangle->vnodes + i;
   const struct vec3d *next = tangle->vnodes + tangle->connections[i].forward;
   const struct vec3d *prev = tangle->vnodes + tangle->connections[i].reverse;
@@ -256,8 +247,8 @@ static inline struct vec3d lia_velocity(const struct tangle_state *tangle, size_
   return vv;
 }
 
-struct vec3d calculate_vs_shifts(struct tangle_state *tangle, struct vec3d r, int skip,
-				 const struct vec3d *shift)
+struct vec3d calculate_vs_shift(struct tangle_state *tangle, struct vec3d r, int skip,
+				const struct vec3d *shift)
 {
   int m;
   struct vec3d vs = vec3(0,0,0);
@@ -283,7 +274,7 @@ struct vec3d calculate_vs_shifts(struct tangle_state *tangle, struct vec3d r, in
 
 struct vec3d calculate_vs(struct tangle_state *tangle, struct vec3d r, int skip)
 {
-  return calculate_vs_shifts(tangle, r, skip, NULL);
+  return calculate_vs_shift(tangle, r, skip, NULL);
 }
 
 void update_velocity(struct tangle_state *tangle, int k)
@@ -312,6 +303,11 @@ void update_velocity(struct tangle_state *tangle, int k)
       for(i=0; i<3; ++i)
   	tangle->vs[k].p[i] += segment_vel.p[i];
     }
+
+  /*
+   * TODO: here, calculate_vs_shifts should be called with appropriate shifts
+   * for the boundary conditions and also the appropriate sign changes for mirrors
+   */
 
   tangle->vels[k] = tangle->vs[k];
 

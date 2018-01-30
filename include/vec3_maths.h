@@ -57,6 +57,8 @@ void vec3_sub(struct vec3d *res,
 void vec3_add(struct vec3d *res,
 	      const struct vec3d *u, const struct vec3d *v);
 
+struct vec3d vec3_add2(const struct vec3d *u, const struct vec3d *v);
+
 double vec3_d(const struct vec3d *u);
 
 double vec3_dist(const struct vec3d *u, const struct vec3d *v);
@@ -64,9 +66,14 @@ double vec3_dist(const struct vec3d *u, const struct vec3d *v);
 void vec3_normalize(struct vec3d *v);
 
 /*
- * periodic box geometry
+ * TODO: implement these
  */
+struct segment seg_pwrap(const struct vec3d *r1, const struct vec3d *r2,
+			 const struct domain_box *box);
 
-struct segment create_seg_periodic(const struct domain_box *box, struct vec3d *fixed, struct vec3d *other);
+struct vec3d periodic_shift(const struct vec3d *v, const struct domain_box *box,
+			    int shiftx, int shifty, int shiftz);
 
+struct vec3d mirror_shift(const struct vec3d *v, const struct domain_box *box,
+			  int shiftx, int shifty, int shiftz);
 #endif//VEC3_MATHS_H

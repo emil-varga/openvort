@@ -34,6 +34,10 @@ typedef struct _ns {
   boundary_faces pin_wall;
 } node_status;
 
+#define PERIODIC_X 1
+#define PERIODIC_Y 1<<1
+#define PERIDOIC_Z 1<<2
+
 struct neighbour_t {
   int forward;
   int reverse;

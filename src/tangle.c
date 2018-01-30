@@ -15,70 +15,6 @@
 #define _GNU_SOURCE
 #include <fenv.h>
 
-//this is for inserting new points
-//fit an interpolating spline over 4 points and get a point
-//somewhere in the middle later on
-#include <gsl/gsl_errno.h>
-#include <gsl/gsl_spline.h>
-
-/*
- * Calculates the image segments corresponding to the real segment box boundary conditions.
- * NOT IMPLEMENTED:
- * Depth gives how many recursive images should be created (i.e., images of images, etc.)
- *
- * This can handle only simple boundary conditions, no curved surfaces etc.
- *
- * TODO: implement depth
- */
-int image_segments(struct tangle_state *tangle, struct segment *real_seg, int depth,
-		   struct segment **img_segments, int *nimgseg)
-{
-  int total = 0;
-  assert_msg(depth==1, "Only depth==1 is currently supported.");
-
-  for(int k=0; k<6; ++k)
-    {
-      if(tangle->bc[k] != OPEN)
-	total++;
-    }
-
-  if(*nimgseg < total)
-    {
-      *nimgseg = total;
-      *img_segments = (struct segment*)malloc(total*sizeof(struct segment));
-    }
-
-  int loc = 0;
-  int coords[] = {0, 0, 1, 1, 2, 2};
-  double Ls[] = {
-      computation_box[X_H] - computation_box[X_L],
-      computation_box[Y_H] - computation_box[Y_L],
-      computation_box[Z_H] - computation_box[Z_L]
-  };
-  for(boundary_faces k = X_L; k<Z_H; ++k)
-    {
-      struct segment nseg = *real_seg;
-      switch(tangle->bc[k])
-      {
-	case PERIODIC: //shift by the length of the box
-	  nseg.r1.p[coords[k]]+=Ls[coords[k]];
-	  nseg.r2.p[coords[k]]+=Ls[coords[k]];
-	  *img_segments[loc++] = nseg;
-	  break;
-	case PIN_WALL:
-	case SLIP_WALL: //mirror around the given wall
-	  nseg.r1.p[coords[k]]=2*computation_box[k] - nseg.r1.p[coords[k]];
-	  nseg.r2.p[coords[k]]=2*computation_box[k] - nseg.r2.p[coords[k]];
-	  *img_segments[loc++] = nseg;
-	  break;
-	default:
-	  break;
-      }
-
-    }
-
-  return 0;
-}
 
 //
 // Implementation of public functions begins here
@@ -320,15 +256,15 @@ static inline struct vec3d lia_velocity(const struct tangle_state *tangle, size_
   return vv;
 }
 
-
-
-struct vec3d calculate_vs(struct tangle_state *tangle, struct vec3d r, int skip)
+struct vec3d calculate_vs_shifts(struct tangle_state *tangle, struct vec3d r, int skip,
+				 const struct vec3d *shift)
 {
   int m;
   struct vec3d vs = vec3(0,0,0);
 
-  struct segment *img_seg;
-  int nimgseg = 0;
+  if(shift)
+    vec3_add(&r, &r, shift);
+
 
   for(m=0; m < tangle->N; ++m)
     {
@@ -340,22 +276,14 @@ struct vec3d calculate_vs(struct tangle_state *tangle, struct vec3d r, int skip)
 
       struct vec3d ivs = segment_field(tangle, m, r);
       vec3_add(&vs, &vs, &ivs);
-
-      //now handle box boundary conditions
-      struct segment seg = {
-      	  .r1 = tangle->vnodes[m],
-      	  .r2 = tangle->vnodes[tangle->connections[m].forward]
-      };
-
-      image_segments(tangle, &seg, 1, &img_seg, &nimgseg);
-      for(int k=0; k<nimgseg; ++k)
-	{
-	  ivs = segment_field1(&img_seg[k], r);
-	  vec3_add(&vs, &vs, &ivs);
-	}
     }
 
   return vs;
+}
+
+struct vec3d calculate_vs(struct tangle_state *tangle, struct vec3d r, int skip)
+{
+  return calculate_vs_shifts(tangle, r, skip, NULL);
 }
 
 void update_velocity(struct tangle_state *tangle, int k)

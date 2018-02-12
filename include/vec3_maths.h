@@ -32,7 +32,6 @@ struct domain_box {
 struct vec3d vec3(double x, double y, double z);
 void vec3_assign(struct vec3d *v, double x, double y, double z);
 
-struct segment seg(struct vec3d *r1, struct vec3d *r2);
 struct domain_box make_box(struct vec3d bottom_left_front,
 			   struct vec3d top_right_back,
 			   wall_type wall[6]);
@@ -66,14 +65,20 @@ double vec3_dist(const struct vec3d *u, const struct vec3d *v);
 void vec3_normalize(struct vec3d *v);
 
 /*
- * TODO: implement these
+ * Periodic and mirror geometries
  */
+
 struct segment seg_pwrap(const struct vec3d *r1, const struct vec3d *r2,
 			 const struct domain_box *box);
 
-struct vec3d periodic_shift(const struct vec3d *v, const struct domain_box *box,
-			    int shiftx, int shifty, int shiftz);
-
 struct vec3d mirror_shift(const struct vec3d *v, const struct domain_box *box,
-			  int shiftx, int shifty, int shiftz);
+			  boundary_faces wall);
+
+/*
+ * TODO: implement these
+ */
+
+struct vec3d periodic_shift(const struct vec3d *v, const struct domain_box *box,
+			    boundary_faces wall);
+
 #endif//VEC3_MATHS_H

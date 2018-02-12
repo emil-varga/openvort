@@ -107,10 +107,53 @@ void free_tangle(struct tangle_state *tangle)
   free(tangle->status);
 }
 
+struct vec3d step_node(struct tangle_state *tangle, int i, int where)
+{
+  assert(tangle->status[i].status != EMPTY);
+
+  if(where == 0)
+    return tangle->vnodes[i];
+
+  if(tangle->status[i].status == FREE)
+    {
+      if(where > 0)
+	return step_node(tangle, tangle->connections[i].forward, where-1);
+      else if (where < 0)
+	return step_node(tangle, tangle->connections[i].reverse, where+1);
+    }
+  else if(tangle->status[i].status == PINNED ||
+          tangle->status[i].status == PINNED_SLIP)
+    {
+      struct vec3d out;
+      if(where > 0)
+	{
+	  if(tangle->connections[i].forward < 0)
+	    out = step_node(tangle, i, -where);
+	  else
+	    return step_node(tangle, tangle->connections[i].forward, where-1);
+	}
+      else if(where < 0)
+	{
+	  if(tangle->connections[i].reverse < 0)
+	    out = step_node(tangle, i, -where);
+	  else
+	    return step_node(tangle, tangle->connections[i].reverse, where+1);
+	}
+
+      //if we are here it means we have ran into a wall and we need to flip the node
+      return mirror_shift(&out, tangle->box, tangle->status[i].pin_wall);
+    }
+  else
+    {
+      error("Walking across empty node.");//we should never get here
+      return vec3(0,0,0);
+    }
+}
+
 void update_tangent_normal(struct tangle_state *tangle, size_t k)
 {
-  struct vec3d *s0, *s1, *sm1;
-  struct vec3d *s2, *sm2;
+  struct vec3d s0, s1, sm1;
+  struct vec3d s2, sm2;
   size_t i;
 
   //vector differences
@@ -132,22 +175,22 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k)
    * TODO: sm2..s2 should be constructed iteratively based on pinning and
    * periodic conditions using shift and mirror functions from vec3_maths
    */
-  s0  = tangle->vnodes + k;
-  s1  = tangle->vnodes + next;
-  sm1 = tangle->vnodes + prev;
-  s2 = tangle->vnodes + next2;
-  sm2 = tangle->vnodes + prev2;
+  s0  = tangle->vnodes[k];
+  s1  = tangle->vnodes[next];
+  sm1 = tangle->vnodes[prev];
+  s2 = tangle->vnodes[next2];
+  sm2 = tangle->vnodes[prev2];
 
-  vec3_sub(ds + 0, s2, s0);
-  vec3_sub(ds + 1, s1, s0);
-  vec3_sub(ds + 2, sm1, s0);
-  vec3_sub(ds + 3, sm2, s0);
+  vec3_sub(ds + 0, &s2, &s0);
+  vec3_sub(ds + 1, &s1, &s0);
+  vec3_sub(ds + 2, &sm1, &s0);
+  vec3_sub(ds + 3, &sm2, &s0);
 
-  double d1 = vec3_dist(s0, s1);
-  double d2 = d1 + vec3_dist(s1, s2);
+  double d1 = vec3_dist(&s0, &s1);
+  double d2 = d1 + vec3_dist(&s1, &s2);
 
-  double dm1 = vec3_dist(s0, sm1);
-  double dm2 = dm1 + vec3_dist(sm1, sm2);
+  double dm1 = vec3_dist(&s0, &sm1);
+  double dm2 = dm1 + vec3_dist(&sm1, &sm2);
 
   //four point coefficients, denominators
   double d_s_diff[] = {

@@ -16,6 +16,8 @@
 #define assert_msg(expr,msg) {}
 #endif //ifndef NDEBUG
 
+void error(const char *msg, ...);
+
 struct list_elem
 {
   void *data;

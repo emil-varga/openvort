@@ -71,6 +71,7 @@ struct tangle_state {
   node_status *status; //pinned, free, empy, etc.
   //the boundary conditions in the 6 cardinal directions
   boundary_conditions bc[6];
+  struct domain_box *box;
   
   int N;
   int next_free;

@@ -1,6 +1,92 @@
 #include "vec3_maths.h"
 #include <math.h>
 #include <stdio.h>
+#include "util.h"
+
+struct segment seg_pwrap(const struct vec3d *r1, const struct vec3d *r2,
+			 const struct domain_box *box)
+{
+  struct segment seg = {
+      .r1 = *r1,
+      .r2 = *r2
+  };
+
+  //TODO: clean this up
+
+  double Lx = box->top_right_back.p[0] - box->bottom_left_front.p[0];
+  double Ly = box->top_right_back.p[1] - box->bottom_left_front.p[1];
+  double Lz = box->top_right_back.p[2] - box->bottom_left_front.p[2];
+
+  double dx = seg.r2.p[0] - seg.r1.p[0];
+  double dy = seg.r2.p[1] - seg.r1.p[1];
+  double dz = seg.r2.p[2] - seg.r1.p[2];
+
+  if(box->wall[X_L] == WALL_PERIODIC)
+    {
+      if(dx > Lx/2)
+	seg.r2.p[0] -= Lx;
+      else if(dx < -Lx/2)
+	seg.r2.p[0] += Lx;
+    }
+  if(box->wall[Y_L] == WALL_PERIODIC)
+    {
+      if(dy > Ly/2)
+	seg.r2.p[1] -= Ly;
+      else if(dy < -Ly/2)
+	seg.r2.p[1] += Ly;
+    }
+  if(box->wall[Z_L] == WALL_PERIODIC)
+    {
+      if(dz > Lz/2)
+	seg.r2.p[2] -= Lz;
+      else if(dz < -Lz/2)
+	seg.r2.p[2] += Lz;
+    }
+
+  return seg;
+}
+
+struct vec3d mirror_shift(const struct vec3d *v, const struct domain_box *box,
+			  boundary_faces wall)
+{
+  struct vec3d mv = *v;
+
+  double Lx = box->top_right_back.p[0] - box->bottom_left_front.p[0];
+  double Ly = box->top_right_back.p[1] - box->bottom_left_front.p[1];
+  double Lz = box->top_right_back.p[2] - box->bottom_left_front.p[2];
+
+  int coord;
+  double wall_pos;
+
+  switch(wall)
+  {
+    case X_L: case X_H: coord=0; break;
+    case Y_L: case Y_H: coord=1; break;
+    case Z_L: case Z_H: coord=2; break;
+    default:
+      error("Bad wall %d", wall);
+      coord=-1;
+      break;
+  }
+
+  switch(wall)
+  {
+    case X_L: wall_pos = box->bottom_left_front.p[0]; break;
+    case X_H: wall_pos = box->top_right_back.p[0]; break;
+    case Y_L: wall_pos = box->bottom_left_front.p[1]; break;
+    case Y_H: wall_pos = box->top_right_back.p[1]; break;
+    case Z_L: wall_pos = box->bottom_left_front.p[2]; break;
+    case Z_H: wall_pos = box->top_right_back.p[2]; break;
+    default:
+      error("Bad wall %d", wall);
+      wall_pos = -1;
+      break;
+  }
+
+  mv.p[coord] = wall_pos - mv.p[coord];
+
+  return mv;
+}
 
 struct vec3d vec3(double x, double y, double z)
 {

@@ -7,6 +7,7 @@
 #include "vortex_constants.h"
 #include "normal_fluid.h"
 #include "util.h"
+#include "vec3_maths.h"
 
 #ifdef _DEBUG_
 #include <stdio.h>
@@ -54,8 +55,13 @@ void create_tangle(struct tangle_state *tangle, size_t n)
     }
 
   //default initialisation is to open bounadry conditions
-  for(int k=0; k<6; ++k)
-    tangle->bc[k] = OPEN;
+  struct domain_box box = {
+      .bottom_left_front = {{0,0,0}},
+      .top_right_back = {{1,1,1}},
+      .wall = {WALL_OPEN, WALL_OPEN, WALL_OPEN, WALL_OPEN, WALL_OPEN, WALL_OPEN}
+  };
+
+  tangle->box = box;
 
   tangle->N           = n;
   tangle->next_free   = 0;
@@ -141,7 +147,7 @@ struct vec3d step_node(struct tangle_state *tangle, int i, int where)
 	}
 
       //if we are here it means we have ran into a wall and we need to flip the node
-      return mirror_shift(&out, tangle->box, tangle->status[i].pin_wall);
+      return mirror_shift(&out, &tangle->box, tangle->status[i].pin_wall);
     }
   else
     {
@@ -158,6 +164,9 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k)
 
   //vector differences
   struct vec3d ds[4];
+  struct segment dseg[4];
+  struct segment dseg_12;
+  struct segment dseg_m12;
 
   //empty point has -1 connections
   if(tangle->status[k].status == EMPTY)
@@ -176,21 +185,31 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k)
    * periodic conditions using shift and mirror functions from vec3_maths
    */
   s0  = tangle->vnodes[k];
-  s1  = tangle->vnodes[next];
-  sm1 = tangle->vnodes[prev];
-  s2 = tangle->vnodes[next2];
-  sm2 = tangle->vnodes[prev2];
+  s1 = step_node(tangle, k, 1);
+  s2 = step_node(tangle, k, 2);
+  sm1 = step_node(tangle, k, -1);
+  sm2 = step_node(tangle, k, -2);
 
-  vec3_sub(ds + 0, &s2, &s0);
-  vec3_sub(ds + 1, &s1, &s0);
-  vec3_sub(ds + 2, &sm1, &s0);
-  vec3_sub(ds + 3, &sm2, &s0);
+  dseg[0] = seg_pwrap(&s0, &s2, &tangle->box);
+  dseg[1] = seg_pwrap(&s0, &s1, &tangle->box);
+  dseg[2] = seg_pwrap(&s0, &sm1, &tangle->box);
+  dseg[3] = seg_pwrap(&s0, &sm2, &tangle->box);
+  dseg_12 = seg_pwrap(&s1, &s2, &tangle->box);
+  dseg_m12 = seg_pwrap(&sm1, &sm2, &tangle->box);
 
-  double d1 = vec3_dist(&s0, &s1);
-  double d2 = d1 + vec3_dist(&s1, &s2);
+  for(int j = 0; j<4; ++j)
+    ds[j] = segment_to_vec(&dseg[j]);
 
-  double dm1 = vec3_dist(&s0, &sm1);
-  double dm2 = dm1 + vec3_dist(&sm1, &sm2);
+  double d1 = segment_len(&dseg[1]);
+  double d2 = d1 + segment_len(&dseg_12);
+  double dm1 = segment_len(&dseg[2]);
+  double dm2 = dm1 + segment_len(&dseg_m12);
+
+//  double d1 = vec3_dist(&s0, &s1);
+//  double d2 = d1 + vec3_dist(&s1, &s2);
+//
+//  double dm1 = vec3_dist(&s0, &sm1);
+//  double dm2 = dm1 + vec3_dist(&sm1, &sm2);
 
   //four point coefficients, denominators
   double d_s_diff[] = {

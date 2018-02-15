@@ -64,6 +64,12 @@ double vec3_dist(const struct vec3d *u, const struct vec3d *v);
 
 void vec3_normalize(struct vec3d *v);
 
+struct vec3d segment_to_vec(const struct segment *seg);
+static inline double segment_len(const struct segment *seg)
+{
+  return vec3_dist(&seg->r1, &seg->r2);
+}
+
 /*
  * Periodic and mirror geometries
  */

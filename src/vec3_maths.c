@@ -51,10 +51,6 @@ struct vec3d mirror_shift(const struct vec3d *v, const struct domain_box *box,
 {
   struct vec3d mv = *v;
 
-  double Lx = box->top_right_back.p[0] - box->bottom_left_front.p[0];
-  double Ly = box->top_right_back.p[1] - box->bottom_left_front.p[1];
-  double Lz = box->top_right_back.p[2] - box->bottom_left_front.p[2];
-
   int coord;
   double wall_pos;
 
@@ -180,4 +176,12 @@ void vec3_normalize(struct vec3d *v)
   double d = vec3_d(v);
 
   vec3_mul(v, v, 1/d);
+}
+
+struct vec3d segment_to_vec(const struct segment *seg)
+{
+  struct vec3d v;
+  vec3_sub(&v, &seg->r2, &seg->r1);
+
+  return v;
 }

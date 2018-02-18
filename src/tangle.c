@@ -56,8 +56,8 @@ void create_tangle(struct tangle_state *tangle, size_t n)
 
   //default initialisation is to open bounadry conditions
   struct domain_box box = {
-      .bottom_left_front = {{0,0,0}},
-      .top_right_back = {{1,1,1}},
+      .bottom_left_back = {{0,0,0}},
+      .top_right_front = {{0.1,0.1,0.1}},
       .wall = {WALL_OPEN, WALL_OPEN, WALL_OPEN, WALL_OPEN, WALL_OPEN, WALL_OPEN}
   };
 
@@ -370,6 +370,37 @@ void update_velocity(struct tangle_state *tangle, int k)
    * TODO: here, calculate_vs_shifts should be called with appropriate shifts
    * for the boundary conditions and also the appropriate sign changes for mirrors
    */
+  struct vec3d shift_r, v_shift;
+  struct vec3d v_shift_total = {{0,0,0}};
+
+  boundary_faces test_faces[] = {X_L, Y_L, Z_L};
+  for(int j = 0; j < sizeof(test_faces)/sizeof(test_faces[0]); ++j)
+    {
+      switch(tangle->box.wall[test_faces[j]])
+      {
+	case WALL_PERIODIC:
+	  //if x_L is periodic, x_H must be also
+	  shift_r = periodic_shift(&tangle->vnodes[k], &tangle->box, test_faces[j]);
+	  v_shift = calculate_vs(tangle, shift_r, -1);
+	  vec3_add(&v_shift_total, &v_shift_total, &v_shift);
+	  //the x_H is x_L + 1
+	  shift_r = periodic_shift(&tangle->vnodes[k], &tangle->box, test_faces[j]+1);
+	  v_shift = calculate_vs(tangle, shift_r, -1);
+	  vec3_add(&v_shift_total, &v_shift_total, &v_shift);
+	  break;
+	case WALL_MIRROR:
+	  //if x_L is mirror, x_H can be either mirror or open
+	  break;
+	case WALL_OPEN:
+	  //similar to above, but vice-versa
+	  break;
+	default:
+	  error("Unknown wall type %d", tangle->box.wall[test_faces[j]]);
+	  break;
+      }
+    }
+  //add everything to the result
+  vec3_add(&tangle->vs[k], &tangle->vs[k], &v_shift_total);
 
   tangle->vels[k] = tangle->vs[k];
 

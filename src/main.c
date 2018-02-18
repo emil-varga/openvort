@@ -35,6 +35,10 @@ int main(int argc, char **argv)
   feenableexcept(FE_OVERFLOW | FE_UNDERFLOW | FE_INVALID | FE_DIVBYZERO);
   struct tangle_state *tangle = (struct tangle_state*)malloc(sizeof(struct tangle_state));
 
+
+  for(int k=0; k<6; ++k)
+    tangle->box.wall[k] = WALL_PERIODIC;
+
   create_tangle(tangle, 512);
   struct vec3d center1 = vec3(0, 0, 0);
   struct vec3d center2 = vec3(0.05, 0, -0.01);

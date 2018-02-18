@@ -3,6 +3,11 @@
 #include <stdio.h>
 #include "util.h"
 
+const struct vec3d DIR_X = {{1, 0, 0}};
+const struct vec3d DIR_Y = {{0, 1, 0}};
+const struct vec3d DIR_Z = {{0, 0, 1}};
+const struct vec3d DIRS[3] = {{{1, 0, 0}}, {{0, 1, 0}}, {{0, 0, 1}}};
+
 struct segment seg_pwrap(const struct vec3d *r1, const struct vec3d *r2,
 			 const struct domain_box *box)
 {
@@ -13,9 +18,9 @@ struct segment seg_pwrap(const struct vec3d *r1, const struct vec3d *r2,
 
   //TODO: clean this up
 
-  double Lx = box->top_right_back.p[0] - box->bottom_left_front.p[0];
-  double Ly = box->top_right_back.p[1] - box->bottom_left_front.p[1];
-  double Lz = box->top_right_back.p[2] - box->bottom_left_front.p[2];
+  double Lx = box->top_right_front.p[0] - box->bottom_left_back.p[0];
+  double Ly = box->top_right_front.p[1] - box->bottom_left_back.p[1];
+  double Lz = box->top_right_front.p[2] - box->bottom_left_back.p[2];
 
   double dx = seg.r2.p[0] - seg.r1.p[0];
   double dy = seg.r2.p[1] - seg.r1.p[1];
@@ -54,6 +59,38 @@ struct vec3d mirror_shift(const struct vec3d *v, const struct domain_box *box,
   int coord;
   double wall_pos;
 
+  double Lx = box->top_right_front.p[0] - box->bottom_left_back.p[0];
+  double Ly = box->top_right_front.p[1] - box->bottom_left_back.p[1];
+  double Lz = box->top_right_front.p[2] - box->bottom_left_back.p[2];
+
+  switch(wall)
+  {
+    case X_L:
+    case Y_L:
+    case Z_L:
+      mv.p[coord] -= mv.p[coord];
+      break;
+    case X_H:
+    case Y_H:
+    case Z_H:
+      mv.p[coord] += mv.p[coord];
+      break;
+    default:
+      error("Bad wall %d", wall);
+      break;
+  }
+
+  return mv;
+}
+
+struct vec3d periodic_shift(const struct vec3d *v, const struct domain_box *box,
+			    boundary_faces wall)
+{
+  struct vec3d mv = *v;
+
+  int coord;
+  double wall_pos;
+
   switch(wall)
   {
     case X_L: case X_H: coord=0; break;
@@ -67,12 +104,12 @@ struct vec3d mirror_shift(const struct vec3d *v, const struct domain_box *box,
 
   switch(wall)
   {
-    case X_L: wall_pos = box->bottom_left_front.p[0]; break;
-    case X_H: wall_pos = box->top_right_back.p[0]; break;
-    case Y_L: wall_pos = box->bottom_left_front.p[1]; break;
-    case Y_H: wall_pos = box->top_right_back.p[1]; break;
-    case Z_L: wall_pos = box->bottom_left_front.p[2]; break;
-    case Z_H: wall_pos = box->top_right_back.p[2]; break;
+    case X_L: wall_pos = box->bottom_left_back.p[0]; break;
+    case X_H: wall_pos = box->top_right_front.p[0]; break;
+    case Y_L: wall_pos = box->bottom_left_back.p[1]; break;
+    case Y_H: wall_pos = box->top_right_front.p[1]; break;
+    case Z_L: wall_pos = box->bottom_left_back.p[2]; break;
+    case Z_H: wall_pos = box->top_right_front.p[2]; break;
     default:
       error("Bad wall %d", wall);
       wall_pos = -1;

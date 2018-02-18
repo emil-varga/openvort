@@ -24,10 +24,13 @@ typedef enum _fc {
 } boundary_faces;
 
 struct domain_box {
-  struct vec3d bottom_left_front;
-  struct vec3d top_right_back;
+  struct vec3d bottom_left_back;
+  struct vec3d top_right_front;
   wall_type wall[6];
 };
+
+extern const struct vec3d DIR_X, DIR_Y, DIR_Z;
+extern const struct vec3d DIRS[3];
 
 struct vec3d vec3(double x, double y, double z);
 void vec3_assign(struct vec3d *v, double x, double y, double z);
@@ -79,10 +82,6 @@ struct segment seg_pwrap(const struct vec3d *r1, const struct vec3d *r2,
 
 struct vec3d mirror_shift(const struct vec3d *v, const struct domain_box *box,
 			  boundary_faces wall);
-
-/*
- * TODO: implement these
- */
 
 struct vec3d periodic_shift(const struct vec3d *v, const struct domain_box *box,
 			    boundary_faces wall);

@@ -16,15 +16,10 @@
 #define _GNU_SOURCE
 #include <fenv.h>
 
-
-//
-// Implementation of public functions begins here
-//
-//
-
 /*
  * Inward-facing normals of the box boundary face walls
  */
+
 const struct vec3d boundary_normals[] = {
     {{1, 0, 0}},
     {{-1, 0, 0}},
@@ -154,6 +149,9 @@ struct vec3d step_node(struct tangle_state *tangle, int i, int where)
       error("Walking across empty node.");//we should never get here
       return vec3(0,0,0);
     }
+
+  //to suppress warning
+  return vec3(0,0,0);
 }
 
 void update_tangent_normal(struct tangle_state *tangle, size_t k)
@@ -168,22 +166,9 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k)
   struct segment dseg_12;
   struct segment dseg_m12;
 
-  //empty point has -1 connections
   if(tangle->status[k].status == EMPTY)
     return;
 
-  int next = tangle->connections[k].forward;
-  int prev = tangle->connections[k].reverse;
-  int next2, prev2;
-
-
-  next2 = tangle->connections[next].forward;
-  prev2 = tangle->connections[prev].reverse;
-
-  /*
-   * TODO: sm2..s2 should be constructed iteratively based on pinning and
-   * periodic conditions using shift and mirror functions from vec3_maths
-   */
   s0  = tangle->vnodes[k];
   s1 = step_node(tangle, k, 1);
   s2 = step_node(tangle, k, 2);
@@ -204,12 +189,6 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k)
   double d2 = d1 + segment_len(&dseg_12);
   double dm1 = segment_len(&dseg[2]);
   double dm2 = dm1 + segment_len(&dseg_m12);
-
-//  double d1 = vec3_dist(&s0, &s1);
-//  double d2 = d1 + vec3_dist(&s1, &s2);
-//
-//  double dm1 = vec3_dist(&s0, &sm1);
-//  double dm2 = dm1 + vec3_dist(&sm1, &sm2);
 
   //four point coefficients, denominators
   double d_s_diff[] = {
@@ -268,6 +247,11 @@ static inline struct vec3d segment_field1(struct segment *seg, struct vec3d r)
   double denom = lR*lRp1*(lR*lRp1 + vec3_dot(&R, &Rp1));
   double f = KAPPA/4/M_PI;
 
+  //this can happen in periodic boundary conditions
+  //TODO: the logic should be moved higher
+  if(denom < 1e-8)
+    return vec3(0, 0, 0);
+
   struct vec3d vv;
 
   vec3_cross(&vv, &R, &Rp1);
@@ -281,11 +265,8 @@ static inline struct vec3d segment_field1(struct segment *seg, struct vec3d r)
  */
 static inline struct vec3d segment_field(const struct tangle_state *tangle, size_t i, struct vec3d r)
 {
-  struct segment seg = {
-      .r1 = tangle->vnodes[i],
-      .r2 = tangle->vnodes[tangle->connections[i].forward]
-  };
-  //TODO: this should create the segment in accordance with boundary conditions
+  int next = tangle->connections[i].forward;
+  struct segment seg = seg_pwrap(tangle->vnodes + i, tangle->vnodes + next, &tangle->box);
 
   return segment_field1(&seg, r);
 }
@@ -297,8 +278,11 @@ static inline struct vec3d lia_velocity(const struct tangle_state *tangle, size_
   const struct vec3d *next = tangle->vnodes + tangle->connections[i].forward;
   const struct vec3d *prev = tangle->vnodes + tangle->connections[i].reverse;
 
-  double l_next = vec3_dist(p, next);
-  double l_prev = vec3_dist(p, prev);
+  struct segment sf = seg_pwrap(p, next, &tangle->box);
+  struct segment sr = seg_pwrap(prev, p, &tangle->box);
+
+  double l_next = segment_len(&sf);
+  double l_prev = segment_len(&sr);
 
   double f = KAPPA*log(sqrt(l_next*l_prev)/VORTEX_WIDTH)/4/M_PI;
 
@@ -366,15 +350,11 @@ void update_velocity(struct tangle_state *tangle, int k)
   	tangle->vs[k].p[i] += segment_vel.p[i];
     }
 
-  /*
-   * TODO: here, calculate_vs_shifts should be called with appropriate shifts
-   * for the boundary conditions and also the appropriate sign changes for mirrors
-   */
   struct vec3d shift_r, v_shift;
-  struct vec3d v_shift_total = {{0,0,0}};
+  struct vec3d v_shift_total = vec3(0, 0, 0);
 
-  boundary_faces test_faces[] = {X_L, Y_L, Z_L};
-  for(int j = 0; j < sizeof(test_faces)/sizeof(test_faces[0]); ++j)
+  const boundary_faces test_faces[] = {X_L, Y_L, Z_L};
+  for(unsigned int j = 0; j < sizeof(test_faces)/sizeof(test_faces[0]); ++j)
     {
       switch(tangle->box.wall[test_faces[j]])
       {
@@ -390,9 +370,11 @@ void update_velocity(struct tangle_state *tangle, int k)
 	  break;
 	case WALL_MIRROR:
 	  //if x_L is mirror, x_H can be either mirror or open
+	  //TODO
 	  break;
 	case WALL_OPEN:
 	  //similar to above, but vice-versa
+	  //TODO
 	  break;
 	default:
 	  error("Unknown wall type %d", tangle->box.wall[test_faces[j]]);
@@ -426,7 +408,7 @@ void update_velocity(struct tangle_state *tangle, int k)
 
   if(tangle->status[k].status == PINNED_SLIP)
     {
-      //remove the component of velocity normal to the wall
+      //TODO:remove the component of velocity normal to the wall
     }
 }
 
@@ -553,6 +535,7 @@ void remove_point(struct tangle_state *tangle, int point_idx);
 void add_point(struct tangle_state *tangle, int point_idx);
 void remesh(struct tangle_state *tangle, double min_dist, double max_dist)
 {
+  int added = 0;
   for(int k=0; k<tangle->N; ++k)
     {
       if(tangle->connections[k].forward < 0) //empty point
@@ -560,11 +543,12 @@ void remesh(struct tangle_state *tangle, double min_dist, double max_dist)
 
       int next = tangle->connections[k].forward;
       int prev = tangle->connections[k].reverse;
+
+      struct segment sf = seg_pwrap(&tangle->vnodes[k], &tangle->vnodes[next], &tangle->box);
+      struct segment sr = seg_pwrap(&tangle->vnodes[k], &tangle->vnodes[prev], &tangle->box);
   
-      double lf = vec3_dist(tangle->vnodes + k,
-			    tangle->vnodes + next);
-      double lr = vec3_dist(tangle->vnodes + k,
-			    tangle->vnodes + prev);
+      double lf = segment_len(&sf);
+      double lr = segment_len(&sr);
 
       //can we remove point k?
       if( (lf < min_dist || lr < min_dist) && (lf + lr) < max_dist )
@@ -572,8 +556,14 @@ void remesh(struct tangle_state *tangle, double min_dist, double max_dist)
 
       //do we need an extra point?
       if( lf > max_dist ) //since we are adding between k and next, check only lf
-	add_point(tangle, k);
+	{
+	  added++;
+	  add_point(tangle, k);
+	}
     }
+  //we could have added points outside of the domain
+  if(added)
+    enforce_boundaries(tangle);
 }
 
 void eliminate_small_loops(struct tangle_state *tangle, int loop_length)
@@ -637,6 +627,8 @@ void add_point(struct tangle_state *tangle, int p)
 
   struct vec3d s0 = tangle->vnodes[p];
   struct vec3d s1 = tangle->vnodes[next];
+  struct segment seg = seg_pwrap(&s0, &s1, &tangle->box);
+  s1 = seg.r2;
 
   struct vec3d s0p = tangle->tangents[p];
   struct vec3d s1p = tangle->tangents[next];

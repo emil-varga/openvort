@@ -127,23 +127,19 @@ int reconnect(struct tangle_state *tangle, double rec_dist, double rec_angle)
 	     tangle->connections[k].forward == l  ||
 	     tangle->connections[k].reverse == l  ||
 	     tangle->recalculate[l])
-	    continue; //skip empty nodes and neighbours of k
+	    continue; //skip empty nodes and neighbors of k
 	              //and nodes that went through a reconnection 
-
-	  v1 = &tangle->vnodes[k];
-	  v2 = &tangle->vnodes[l];
+	  struct segment seg = seg_pwrap(tangle->vnodes + k, tangle->vnodes + l, &tangle->box);
+	  v1 = &seg.r1;
+	  v2 = &seg.r2;
 
 	  if(vec3_dist(v1, v2) > rec_dist)
 	    continue;
-	  //the nodes are close and they are not neighbouds
+	  //the nodes are close and they are not neighbors
 	  //now check the angle
 
-	  //calculate the direction vectors d1, d2
-	  //centered differences
-	  vec3_sub(&d1, &tangle->vnodes[tangle->connections[k].forward],
-		   &tangle->vnodes[tangle->connections[k].reverse]);
-	  vec3_sub(&d2, &tangle->vnodes[tangle->connections[l].forward],
-		   &tangle->vnodes[tangle->connections[l].reverse]);
+	  d1 = tangle->tangents[k];
+	  d2 = tangle->tangents[l];
 	  //normalized dot -- just the cosine of the angle between vectors
 	  calpha = vec3_ndot(&d1, &d2);
 
@@ -159,15 +155,15 @@ int reconnect(struct tangle_state *tangle, double rec_dist, double rec_angle)
 	  update_velocity(tangle, k);
 	  update_velocity(tangle, l);
 	  vec3_sub(&dx, v1, v2);
-	  vec3_sub(&dv, &tangle->vels[k],
-		   &tangle->vels[l]);
+	  vec3_sub(&dv, &tangle->vels[k], &tangle->vels[l]);
 
 	  if(vec3_dot(&dx, &dv) > 0)
 	    continue; //the points are getting further from each other
 
 	  //angle is not too close and we can finally reconnect points k and l
 	  if(!do_reconnection(tangle, k, l))
-	    continue; //do_reconnect additionally chceks if the total length doesn't increase
+	    continue; //do_reconnect additionally checks if the total length doesn't increase
+	  printf("rec ok\n");
 
 	  //flag the neighbourhood as tainted so that it doesn't flash
 	  //back and forth in a single pass
@@ -193,28 +189,46 @@ int do_reconnection(struct tangle_state *tangle, size_t k, size_t l)
 
   double cf1, cf2;
 
-#ifdef _DEBUG_
-  printf("reconnecting %zu %zu\n", k, l);
-#endif
-
   kf = tangle->connections[k].forward;
   kr = tangle->connections[k].reverse;
 
   lf = tangle->connections[k].forward;
   lr = tangle->connections[l].reverse;
 
-  cf1 = vec3_dist(&tangle->vnodes[k], &tangle->vnodes[l]) +
-    vec3_dist(&tangle->vnodes[kf], &tangle->vnodes[lr]) -
-    vec3_dist(&tangle->vnodes[k], &tangle->vnodes[kf]) -
-    vec3_dist(&tangle->vnodes[l], &tangle->vnodes[lr]);
+  #define PSEG(x,y) seg_pwrap(tangle->vnodes+x, tangle->vnodes+y, &tangle->box)
+  struct segment seg_kl   = PSEG(k, l);
+  struct segment seg_kflr = PSEG(kf, lr);
+  struct segment seg_kkf  = PSEG(k, kf);
+  struct segment seg_llr  = PSEG(l, lr);
 
-  cf2 = vec3_dist(&tangle->vnodes[k], &tangle->vnodes[l]) +
-    vec3_dist(&tangle->vnodes[kr], &tangle->vnodes[lf]) -
-    vec3_dist(&tangle->vnodes[k], &tangle->vnodes[kr]) -
-    vec3_dist(&tangle->vnodes[l], &tangle->vnodes[lf]);
+  struct segment seg_krlf = PSEG(kr, lf);
+  struct segment seg_kkr  = PSEG(k, kr);
+  struct segment seg_llf  = PSEG(l, lf);
+  #undef PSEG
 
+  cf1 = segment_len(&seg_kl) +
+      segment_len(&seg_kflr) -
+      segment_len(&seg_kkf)  -
+      segment_len(&seg_llr);
+
+  cf2 = segment_len(&seg_kl) +
+      segment_len(&seg_krlf) -
+      segment_len(&seg_kkr)  -
+      segment_len(&seg_llf);
+
+//  cf1 = vec3_dist(&tangle->vnodes[k], &tangle->vnodes[l]) +
+//    vec3_dist(&tangle->vnodes[kf], &tangle->vnodes[lr]) -
+//    vec3_dist(&tangle->vnodes[k], &tangle->vnodes[kf]) -
+//    vec3_dist(&tangle->vnodes[l], &tangle->vnodes[lr]);
+//
+//  cf2 = vec3_dist(&tangle->vnodes[k], &tangle->vnodes[l]) +
+//    vec3_dist(&tangle->vnodes[kr], &tangle->vnodes[lf]) -
+//    vec3_dist(&tangle->vnodes[k], &tangle->vnodes[kr]) -
+//    vec3_dist(&tangle->vnodes[l], &tangle->vnodes[lf]);
+
+  printf("checking rec %zu %zu\n", k, l);
   if(cf1 > 0 && cf2 > 0)
-    return 1; //the reconnection increases the size, don't do it;
+    return 0; //the reconnection increases the size, don't do it;
 
   if(cf1 < cf2)
     {
@@ -233,5 +247,7 @@ int do_reconnection(struct tangle_state *tangle, size_t k, size_t l)
       tangle->connections[kr].forward = lf;
     }
 
-  return 0;
+  printf("reconnecting %zu %zu\n", k, l);
+
+  return 1;
 }

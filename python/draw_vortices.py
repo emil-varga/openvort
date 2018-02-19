@@ -20,5 +20,5 @@ def draw_vortices(fn, plot_axes):
     while np.any(vix == vortex_idx):
         ix = vix == vortex_idx
 
-        plot_axes.plot(x[ix], y[ix], z[ix], '-')
+        plot_axes.plot(x[ix], y[ix], z[ix], '-o', ms=3)
         vortex_idx += 1

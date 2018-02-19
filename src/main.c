@@ -35,21 +35,22 @@ int main(int argc, char **argv)
   feenableexcept(FE_OVERFLOW | FE_UNDERFLOW | FE_INVALID | FE_DIVBYZERO);
   struct tangle_state *tangle = (struct tangle_state*)malloc(sizeof(struct tangle_state));
 
-
-  for(int k=0; k<6; ++k)
-    tangle->box.wall[k] = WALL_PERIODIC;
-
   create_tangle(tangle, 512);
-  struct vec3d center1 = vec3(0.5, 0.5, 0.01);
+  for(int k=0; k<6; ++k)
+      tangle->box.wall[k] = WALL_PERIODIC;
+
+  struct vec3d center1 = vec3(0, 0, 0);
   struct vec3d center2 = vec3(0.05, 0, -0.01);
   struct vec3d dir1    = vec3(0, 0, 1);
   struct vec3d dir2    = vec3(0, 0, -1);
   char filename[128];
-  
+
   add_circle(tangle, &center1, &dir1, 0.05, 128);
   save_tangle("v1.dat", tangle);
-  //add_circle(tangle, &center2, &dir2, 0.09, 128);
-  //save_tangle("v2.dat", tangle);
+  enforce_boundaries(tangle);
+
+  add_circle(tangle, &center2, &dir2, 0.09, 128);
+  save_tangle("v2.dat", tangle);
 
   const int Nshot = 100;
   int shot = Nshot - 1;
@@ -66,16 +67,14 @@ int main(int argc, char **argv)
       printf("Step %d, recs: %d\n", k, recs);
       nrec = reconnect(tangle, 2.5e-3, DEG2RAD(5));
       check_integrity(tangle);
+      printf("deleting loops\n");
       eliminate_small_loops(tangle, 5);
       check_integrity(tangle);
       recs += nrec;
-      if (nrec > 0) {
-	shot = 0;
-      }
+
+      printf("updating tangle\n");
       update_tangle(tangle);
-      //remesh(tangle, 2.5e-3, 10e-3);
       check_integrity(tangle);
-      enforce_boundaries(tangle);
       if(!shot)
 	{
 	  sprintf(filename, "data_rec/frame%04d.dat", frame);
@@ -83,7 +82,12 @@ int main(int argc, char **argv)
 	  frame++;
 	  shot = Nshot;
 	} 
+      printf("moving tangle\n");
       rk4_step(tangle, 1e-3);
+      printf("remeshing\n");
+      remesh(tangle, 2.5e-3, 10e-3);
+      printf("enforcing boundaries\n");
+      enforce_boundaries(tangle);
 
       check_integrity(tangle);
       shot--;

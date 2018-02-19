@@ -16,8 +16,6 @@ struct segment seg_pwrap(const struct vec3d *r1, const struct vec3d *r2,
       .r2 = *r2
   };
 
-  //TODO: clean this up
-
   double Lx = box->top_right_front.p[0] - box->bottom_left_back.p[0];
   double Ly = box->top_right_front.p[1] - box->bottom_left_back.p[1];
   double Lz = box->top_right_front.p[2] - box->bottom_left_back.p[2];

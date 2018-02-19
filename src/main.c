@@ -40,19 +40,19 @@ int main(int argc, char **argv)
     tangle->box.wall[k] = WALL_PERIODIC;
 
   create_tangle(tangle, 512);
-  struct vec3d center1 = vec3(0, 0, 0);
+  struct vec3d center1 = vec3(0.5, 0.5, 0.01);
   struct vec3d center2 = vec3(0.05, 0, -0.01);
   struct vec3d dir1    = vec3(0, 0, 1);
   struct vec3d dir2    = vec3(0, 0, -1);
   char filename[128];
   
-  add_circle(tangle, &center1, &dir1, 0.1, 128);
+  add_circle(tangle, &center1, &dir1, 0.05, 128);
   save_tangle("v1.dat", tangle);
-  add_circle(tangle, &center2, &dir2, 0.09, 128);
-  save_tangle("v2.dat", tangle);
+  //add_circle(tangle, &center2, &dir2, 0.09, 128);
+  //save_tangle("v2.dat", tangle);
 
-  int Nshot = 100;
-  int shot = Nshot;
+  const int Nshot = 100;
+  int shot = Nshot - 1;
   int frame = 0;
   int recs = 0;
   int nrec = 0;
@@ -70,21 +70,21 @@ int main(int argc, char **argv)
       check_integrity(tangle);
       recs += nrec;
       if (nrec > 0) {
-	Nshot = 0;
 	shot = 0;
       }
       update_tangle(tangle);
-      remesh(tangle, 2.5e-3, 10e-3);
+      //remesh(tangle, 2.5e-3, 10e-3);
       check_integrity(tangle);
+      enforce_boundaries(tangle);
       if(!shot)
 	{
 	  sprintf(filename, "data_rec/frame%04d.dat", frame);
 	  save_tangle(filename, tangle);
 	  frame++;
-	  Nshot = 100;
 	  shot = Nshot;
 	} 
       rk4_step(tangle, 1e-3);
+
       check_integrity(tangle);
       shot--;
     }

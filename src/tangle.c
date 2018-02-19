@@ -57,7 +57,7 @@ void create_tangle(struct tangle_state *tangle, size_t n)
   //default initialisation is to open bounadry conditions
   struct domain_box box = {
       .bottom_left_back = {{0,0,0}},
-      .top_right_front = {{0.1,0.1,0.1}},
+      .top_right_front = {{1,1,1}},
       .wall = {WALL_OPEN, WALL_OPEN, WALL_OPEN, WALL_OPEN, WALL_OPEN, WALL_OPEN}
   };
 
@@ -494,25 +494,35 @@ int num_free_points(struct tangle_state *tangle)
   return sum;
 }
 
-static inline int out_of_box(const struct vec3d *where)
+static inline int out_of_box(const struct tangle_state *tangle, const struct vec3d *where)
 {
   double x = where->p[0];
   double y = where->p[1];
   double z = where->p[2];
-  if(x < computation_box[X_L])
+  double bounds[] =
+      {
+	  tangle->box.bottom_left_back.p[0],
+	  tangle->box.top_right_front.p[0],
+	  tangle->box.bottom_left_back.p[1],
+	  tangle->box.top_right_front.p[1],
+	  tangle->box.bottom_left_back.p[2],
+	  tangle->box.top_right_front.p[2]
+      };
+
+  if(x < bounds[X_L])
     return X_L;
-  if(x > computation_box[X_H])
+  if(x > bounds[X_H])
     return X_H;
-  if(y < computation_box[Y_L])
+  if(y < bounds[Y_L])
     return Y_L;
-  if(y > computation_box[Y_H])
+  if(y > bounds[Y_H])
     return Y_H;
-  if(z < computation_box[Z_L])
+  if(z < bounds[Z_L])
     return Z_L;
-  if(z > computation_box[Z_H])
+  if(z > bounds[Z_H])
     return Z_H;
 
-  return 0;
+  return -1;
 }
 void enforce_boundaries(struct tangle_state *tangle)
 {
@@ -521,20 +531,20 @@ void enforce_boundaries(struct tangle_state *tangle)
     {
       if(tangle->status[k].status == EMPTY)
 	continue;
-      face = out_of_box(&tangle->vnodes[k]);
-      if(face)
+      face = out_of_box(tangle, &tangle->vnodes[k]);
+      if(face >= 0)
 	  {
+	    printf("%d %g %g %g\n", face,
+		   tangle->vnodes[k].p[0],
+		   tangle->vnodes[k].p[1],
+		   tangle->vnodes[k].p[2]);
+	    //this should be only possible with periodic faces
 	    assert_msg(tangle->status[k].status != PINNED ||
 		       tangle->status[k].status != PINNED_SLIP,
 		       "pinned node outside of the box\n"
 		       "this should have been caut with reconnections")
-	    switch(face)
-	    {
-	      case X_L:
-		break;
-	      default:
-		assert_msg(0, "This is not a valid face.");
-	    }
+	    while((face=out_of_box(tangle, &tangle->vnodes[k])) >= 0)
+	      tangle->vnodes[k] = periodic_shift(&tangle->vnodes[k], &tangle->box, face);
 	  }
     }
 }

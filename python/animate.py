@@ -25,17 +25,17 @@ ax = fig.add_subplot(111, projection='3d')
 
 i=-1
 for fn in files:
-    i = i+1 
+    i = i+1
     if path.isfile(fn.replace('.dat', '.png')):
         continue
     print("{}/{}".format(i, len(files)))
-    
+
     ax.clear()
     draw_vortices(fn, ax)
-    ax.set_xlim(-0.1, 0.1)
-    ax.set_ylim(-0.1, 0.1)
-    ax.set_zlim(-0.5, 0.1)
+    ax.set_xlim(-0, 1)
+    ax.set_ylim(-0, 1)
+    ax.set_zlim(-0, 1)
     ax.set_aspect('equal')
     fig.savefig(fn.replace('.dat', '.png'))
 
-plt.close(fig)  
+#plt.close(fig)

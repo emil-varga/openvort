@@ -51,29 +51,40 @@ struct segment seg_pwrap(const struct vec3d *r1, const struct vec3d *r2,
   return seg;
 }
 
-struct vec3d mirror_shift(const struct vec3d *v, const struct domain_box *box,
+struct vec3d periodic_shift(const struct vec3d *v, const struct domain_box *box,
 			  boundary_faces wall)
 {
   struct vec3d mv = *v;
 
   int coord;
-  double wall_pos;
 
   double Lx = box->top_right_front.p[0] - box->bottom_left_back.p[0];
   double Ly = box->top_right_front.p[1] - box->bottom_left_back.p[1];
   double Lz = box->top_right_front.p[2] - box->bottom_left_back.p[2];
+  double Ls[] = {Lx, Ly, Lz};
+
+  switch(wall)
+  {
+    case X_L: case X_H: coord=0; break;
+    case Y_L: case Y_H: coord=1; break;
+    case Z_L: case Z_H: coord=2; break;
+    default:
+      error("Bad wall %d", wall);
+      coord=-1;
+      break;
+  }
 
   switch(wall)
   {
     case X_L:
     case Y_L:
     case Z_L:
-      mv.p[coord] -= mv.p[coord];
+      mv.p[coord] += Ls[coord];
       break;
     case X_H:
     case Y_H:
     case Z_H:
-      mv.p[coord] += mv.p[coord];
+      mv.p[coord] -= Ls[coord];
       break;
     default:
       error("Bad wall %d", wall);
@@ -83,7 +94,7 @@ struct vec3d mirror_shift(const struct vec3d *v, const struct domain_box *box,
   return mv;
 }
 
-struct vec3d periodic_shift(const struct vec3d *v, const struct domain_box *box,
+struct vec3d mirror_shift(const struct vec3d *v, const struct domain_box *box,
 			    boundary_faces wall)
 {
   struct vec3d mv = *v;

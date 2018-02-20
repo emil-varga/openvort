@@ -18,22 +18,6 @@
 
 void error(const char *msg, ...);
 
-struct list_elem
-{
-  void *data;
-  struct list_elem *forward;
-  struct list_elem *backward;
-};
-
-struct list
-{
-  struct list_elem *head;
-};
-
-struct list *new_list();
-struct list *add_elem(struct list *l, void *head_data);
-void *rem_elem(struct list *l);
-
-void delete_list(struct list *l);
+void print_usage(const char *prog_name);
 
 #endif

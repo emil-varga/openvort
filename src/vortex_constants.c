@@ -21,6 +21,3 @@ double rho_s = 0.45; //superfluid
 
 //switch mutual friction on/off
 int use_mutual_friction = 1;
-
-//box dimensions
-double computation_box[6] = {0, 1, 0, 1, 0, 1};

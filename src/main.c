@@ -6,6 +6,8 @@
 #include <math.h>
 #include <time.h> //for clock_gettime
 
+#include <libconfig.h>
+
 #include <omp.h>
 #include <fenv.h>
 
@@ -14,6 +16,7 @@
 #include "vortex_utils.h"
 #include "vortex_dynamics.h"
 #include "vortex_constants.h"
+#include "util.h"
 
 #define DEG2RAD(X) ((X)*M_PI/180.0)
 
@@ -32,6 +35,22 @@ double time_diff(struct timespec *t0, struct timespec *t1)
 
 int main(int argc, char **argv)
 {
+  if(argc != 2)
+    {
+      print_usage(argv[0]);
+      return EXIT_FAILURE;
+    }
+
+  config_t cfg;
+  config_setting_t *setting;
+
+  config_init(&cfg);
+  if(!config_read_file(&cfg, argv[1]))
+    {
+      fprintf(stderr, "Can't read config file %s", argv[1]);
+      return EXIT_FAILURE;
+    }
+
   feenableexcept(FE_OVERFLOW | FE_UNDERFLOW | FE_INVALID | FE_DIVBYZERO);
   struct tangle_state *tangle = (struct tangle_state*)malloc(sizeof(struct tangle_state));
 
@@ -91,6 +110,7 @@ int main(int argc, char **argv)
   printf("Elapsed seconds: %f\n", time_diff(&t0, &ti));
   free_tangle(tangle);
   free(tangle);
+  config_destroy(&cfg);
 
-  return 0;
+  return EXIT_SUCCESS;
 }

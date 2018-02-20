@@ -134,6 +134,20 @@ int check_integrity(const struct tangle_state *tangle)
 
   for(int k=0; k < tangle->N; ++k)
     {
+      int next = tangle->connections[k].forward;
+      int prev = tangle->connections[k].reverse;
+      if(next >= 0)
+	{
+	  if(k != tangle->connections[next].reverse)
+	    error("Forward connection broken %d %d %d\n", k, next,
+		  tangle->connections[next].reverse);
+	}
+      if(prev >= 0)
+	{
+	  if( k!= tangle->connections[prev].forward)
+	    error("Reverse connection broken %d %d %d\n", k, prev,
+		  tangle->connections[prev].forward);
+	}
       if(!visited[k])
 	{
 	  visited[k] += 1;	  	  
@@ -165,6 +179,7 @@ int check_loop(const struct tangle_state *tangle, int *visited, int k)
 	  printf("Ran into point %d again.\n", j);
 #endif
 	  errors--;
+	  break;
 	}
       visited[j]++;
       if((rval = is_empty(tangle, j)) > 0)

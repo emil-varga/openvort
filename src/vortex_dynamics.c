@@ -192,7 +192,7 @@ int do_reconnection(struct tangle_state *tangle, size_t k, size_t l)
   kf = tangle->connections[k].forward;
   kr = tangle->connections[k].reverse;
 
-  lf = tangle->connections[k].forward;
+  lf = tangle->connections[l].forward;
   lr = tangle->connections[l].reverse;
 
   #define PSEG(x,y) seg_pwrap(tangle->vnodes+x, tangle->vnodes+y, &tangle->box)
@@ -216,17 +216,7 @@ int do_reconnection(struct tangle_state *tangle, size_t k, size_t l)
       segment_len(&seg_kkr)  -
       segment_len(&seg_llf);
 
-//  cf1 = vec3_dist(&tangle->vnodes[k], &tangle->vnodes[l]) +
-//    vec3_dist(&tangle->vnodes[kf], &tangle->vnodes[lr]) -
-//    vec3_dist(&tangle->vnodes[k], &tangle->vnodes[kf]) -
-//    vec3_dist(&tangle->vnodes[l], &tangle->vnodes[lr]);
-//
-//  cf2 = vec3_dist(&tangle->vnodes[k], &tangle->vnodes[l]) +
-//    vec3_dist(&tangle->vnodes[kr], &tangle->vnodes[lf]) -
-//    vec3_dist(&tangle->vnodes[k], &tangle->vnodes[kr]) -
-//    vec3_dist(&tangle->vnodes[l], &tangle->vnodes[lf]);
-
-  printf("checking rec %zu %zu\n", k, l);
+  printf("checking rec %zu %zu %zu %zu %zu %zu\n", k, l, kf, kr, lf, lr);
   if(cf1 > 0 && cf2 > 0)
     return 0; //the reconnection increases the size, don't do it;
 

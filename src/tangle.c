@@ -589,13 +589,11 @@ void eliminate_small_loops(struct tangle_state *tangle, int loop_length)
 	}
       if(loop < loop_length)
 	{ //the loop is short, delete it
-	  #ifdef _DEBUG_
-	  printf("Eliminating loop starting at %d\n", k);
-	  #endif
 	  z = k;
 	  while(tangle->connections[z].forward > 0)
 	    {
 	      int tmp = z;
+	      printf("Removing loop - %d", tmp);
 	      z = tangle->connections[z].forward;
 	      tangle->connections[tmp].forward = -1;
 	      tangle->connections[tmp].reverse = -1;
@@ -609,6 +607,9 @@ void remove_point(struct tangle_state *tangle, int point_idx)
 {
   int prev = tangle->connections[point_idx].reverse;
   int next = tangle->connections[point_idx].forward;
+
+  printf("removing %d\n", point_idx);
+
   tangle->connections[prev].forward = next;
   tangle->connections[next].reverse = prev;
   tangle->connections[point_idx].reverse =
@@ -624,6 +625,7 @@ void add_point(struct tangle_state *tangle, int p)
   int next = tangle->connections[p].forward;
   int new_pt = get_tangle_next_free(tangle);
   tangle->status[new_pt].status = FREE;
+  printf("adding %d\n", new_pt);
 
   struct vec3d s0 = tangle->vnodes[p];
   struct vec3d s1 = tangle->vnodes[next];

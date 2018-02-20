@@ -1,7 +1,9 @@
 #include <math.h>
-#include "vortex_utils.h"
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "vortex_utils.h"
+#include "util.h"
 
 struct vec3d perpendicular(const struct vec3d *dir)
 {

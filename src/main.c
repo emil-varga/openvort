@@ -67,12 +67,10 @@ int main(int argc, char **argv)
       printf("Step %d, recs: %d\n", k, recs);
       nrec = reconnect(tangle, 2.5e-3, DEG2RAD(5));
       check_integrity(tangle);
-      printf("deleting loops\n");
       eliminate_small_loops(tangle, 5);
       check_integrity(tangle);
       recs += nrec;
 
-      printf("updating tangle\n");
       update_tangle(tangle);
       check_integrity(tangle);
       if(!shot)
@@ -82,11 +80,8 @@ int main(int argc, char **argv)
 	  frame++;
 	  shot = Nshot;
 	} 
-      printf("moving tangle\n");
       rk4_step(tangle, 1e-3);
-      printf("remeshing\n");
       remesh(tangle, 2.5e-3, 10e-3);
-      printf("enforcing boundaries\n");
       enforce_boundaries(tangle);
 
       check_integrity(tangle);

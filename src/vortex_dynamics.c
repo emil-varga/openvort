@@ -163,7 +163,6 @@ int reconnect(struct tangle_state *tangle, double rec_dist, double rec_angle)
 	  //angle is not too close and we can finally reconnect points k and l
 	  if(!do_reconnection(tangle, k, l))
 	    continue; //do_reconnect additionally checks if the total length doesn't increase
-	  printf("rec ok\n");
 
 	  //flag the neighbourhood as tainted so that it doesn't flash
 	  //back and forth in a single pass
@@ -216,7 +215,6 @@ int do_reconnection(struct tangle_state *tangle, size_t k, size_t l)
       segment_len(&seg_kkr)  -
       segment_len(&seg_llf);
 
-  printf("checking rec %zu %zu %zu %zu %zu %zu\n", k, l, kf, kr, lf, lr);
   if(cf1 > 0 && cf2 > 0)
     return 0; //the reconnection increases the size, don't do it;
 
@@ -236,8 +234,6 @@ int do_reconnection(struct tangle_state *tangle, size_t k, size_t l)
       tangle->connections[lf].reverse = kr;
       tangle->connections[kr].forward = lf;
     }
-
-  printf("reconnecting %zu %zu\n", k, l);
 
   return 1;
 }

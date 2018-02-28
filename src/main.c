@@ -58,8 +58,11 @@ int main(int argc, char **argv)
   for(int k=0; k<6; ++k)
       tangle->box.wall[k] = WALL_PERIODIC;
 
+  tangle->box.bottom_left_back = vec3(-0.15, -0.15, -0.025);
+  tangle->box.top_right_front = vec3(0.15, 0.15, 0.025);
+
   struct vec3d center1 = vec3(0, 0, 0);
-  struct vec3d center2 = vec3(0.05, 0, -0.01);
+  struct vec3d center2 = vec3(0, 0, 0);
   struct vec3d dir1    = vec3(0, 0, 1);
   struct vec3d dir2    = vec3(0, 0, -1);
   char filename[128];
@@ -68,7 +71,7 @@ int main(int argc, char **argv)
   save_tangle("v1.dat", tangle);
   enforce_boundaries(tangle);
 
-  add_circle(tangle, &center2, &dir2, 0.09, 128);
+  add_circle(tangle, &center2, &dir2, 0.1, 128);
   save_tangle("v2.dat", tangle);
 
   const int Nshot = 100;

@@ -14,7 +14,7 @@ struct vec3d perpendicular(const struct vec3d *dir)
   vec3_mul(&res, dir, -vec3_dot(&a, dir));
   vec3_add(&res, &res, &a);
 
-  if(vec3_d(&res) > 0)
+  if(vec3_d(&res) > 1e-8)
     return res;
 
   vec3_mul(&res, dir, -vec3_dot(&b, dir));
@@ -34,7 +34,7 @@ void add_circle(struct tangle_state *tangle,
   struct vec3d zdir = perpendicular(dir);
   
   vec3_cross(&u, &zdir, dir);
-  vec3_cross(&v, &u, dir);
+  vec3_cross(&v, dir, &u);
 
   vec3_mul(&u, &u, 1/vec3_d(&u));
   vec3_mul(&v, &v, 1/vec3_d(&v));

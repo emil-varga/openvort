@@ -32,9 +32,9 @@ for fn in files:
 
     ax.clear()
     draw_vortices(fn, ax)
-    ax.set_xlim(-0, 1)
-    ax.set_ylim(-0, 1)
-    ax.set_zlim(-0, 1)
+    ax.set_xlim(-0.25, 0.25)
+    ax.set_ylim(-0.25, 0.25)
+    ax.set_zlim(-0.25, 0.25)
     ax.set_aspect('equal')
     fig.savefig(fn.replace('.dat', '.png'))
 

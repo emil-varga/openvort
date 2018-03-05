@@ -29,6 +29,46 @@ const struct vec3d boundary_normals[] = {
     {{0, 0, -1}}
 };
 
+struct vec3d shifted(const struct image_tangle *shift, const struct tangle_state *tangle,
+		     const struct vec3d *r)
+{
+  struct vec3d rs = *r;
+  double Ls[3];
+  for(int k = 0; k<3; ++k)
+    Ls[k] = tangle->box.top_right_front.p[k] - tangle->box.bottom_left_back.p[k];
+
+  for(int k=0; k<3; ++k)
+    {
+      rs.p[k] -= Ls[k];
+    }
+
+  switch(shift->reflect)
+  {
+    case X_L:
+      rs.p[0] = 2*tangle->box.bottom_left_back.p[0] - r->p[0];
+      break;
+    case X_H:
+      rs.p[0] = 2*tangle->box.top_right_front.p[0] + r->p[0];
+      break;
+    case Y_L:
+      rs.p[1] = 2*tangle->box.bottom_left_back.p[1] - r->p[1];
+      break;
+    case Y_H:
+      rs.p[1] = 2*tangle->box.top_right_front.p[1] + r->p[1];
+      break;
+    case Z_L:
+      rs.p[2] = 2*tangle->box.bottom_left_back.p[2] - r->p[2];
+      break;
+    case Z_H:
+      rs.p[2] = 2*tangle->box.top_right_front.p[2] + r->p[2];
+      break;
+    default: //no reflection
+      break;
+  }
+
+  return rs;
+}
+
 
 void create_tangle(struct tangle_state *tangle, size_t n)
 {

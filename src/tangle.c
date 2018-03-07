@@ -39,7 +39,7 @@ struct vec3d shifted(const struct image_tangle *shift, const struct tangle_state
 
   for(int k=0; k<3; ++k)
     {
-      rs.p[k] -= Ls[k];
+      rs.p[k] -= Ls[k]*shift->shift[k];
     }
 
   switch(shift->reflect)
@@ -148,7 +148,7 @@ void free_tangle(struct tangle_state *tangle)
   free(tangle->status);
 }
 
-struct vec3d step_node(struct tangle_state *tangle, int i, int where)
+struct vec3d step_node(const struct tangle_state *tangle, int i, int where)
 {
   assert(tangle->status[i].status != EMPTY);
 
@@ -313,13 +313,12 @@ static inline struct vec3d segment_field(const struct tangle_state *tangle, size
 
 static inline struct vec3d lia_velocity(const struct tangle_state *tangle, size_t i)
 {
-  //TODO: this needs to be aware of box boundary conditions
   const struct vec3d *p    = tangle->vnodes + i;
-  const struct vec3d *next = tangle->vnodes + tangle->connections[i].forward;
-  const struct vec3d *prev = tangle->vnodes + tangle->connections[i].reverse;
+  struct vec3d next = step_node(tangle, i, +1);
+  struct vec3d prev = step_node(tangle, i, -1);
 
-  struct segment sf = seg_pwrap(p, next, &tangle->box);
-  struct segment sr = seg_pwrap(prev, p, &tangle->box);
+  struct segment sf = seg_pwrap(p, &next, &tangle->box);
+  struct segment sr = seg_pwrap(&prev, p, &tangle->box);
 
   double l_next = segment_len(&sf);
   double l_prev = segment_len(&sr);
@@ -393,33 +392,11 @@ void update_velocity(struct tangle_state *tangle, int k)
   struct vec3d shift_r, v_shift;
   struct vec3d v_shift_total = vec3(0, 0, 0);
 
-  const boundary_faces test_faces[] = {X_L, Y_L, Z_L};
-  for(unsigned int j = 0; j < sizeof(test_faces)/sizeof(test_faces[0]); ++j)
+  for(int j = 0; j < tangle->bimg.n; ++j)
     {
-      switch(tangle->box.wall[test_faces[j]])
-      {
-	case WALL_PERIODIC:
-	  //if x_L is periodic, x_H must be also
-	  shift_r = periodic_shift(&tangle->vnodes[k], &tangle->box, test_faces[j]);
-	  v_shift = calculate_vs(tangle, shift_r, -1);
-	  vec3_add(&v_shift_total, &v_shift_total, &v_shift);
-	  //the x_H is x_L + 1
-	  shift_r = periodic_shift(&tangle->vnodes[k], &tangle->box, test_faces[j]+1);
-	  v_shift = calculate_vs(tangle, shift_r, -1);
-	  vec3_add(&v_shift_total, &v_shift_total, &v_shift);
-	  break;
-	case WALL_MIRROR:
-	  //if x_L is mirror, x_H can be either mirror or open
-	  //TODO
-	  break;
-	case WALL_OPEN:
-	  //similar to above, but vice-versa
-	  //TODO
-	  break;
-	default:
-	  error("Unknown wall type %d", tangle->box.wall[test_faces[j]]);
-	  break;
-      }
+      shift_r = shifted(&tangle->bimg.images[j], tangle, &tangle->vnodes[k]);
+      v_shift = calculate_vs(tangle, shift_r, -1);
+      vec3_add(&v_shift_total, &v_shift_total, &v_shift);
     }
   //add everything to the result
   vec3_add(&tangle->vs[k], &tangle->vs[k], &v_shift_total);

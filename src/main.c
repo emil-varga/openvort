@@ -57,17 +57,18 @@ int main(int argc, char **argv)
   create_tangle(tangle, 512);
   for(int k=0; k<6; ++k)
       tangle->box.wall[k] = WALL_PERIODIC;
+  tangle->bimg = periodic_26;
 
-  tangle->box.bottom_left_back = vec3(-0.15, -0.15, -0.025);
-  tangle->box.top_right_front = vec3(0.15, 0.15, 0.025);
+  tangle->box.bottom_left_back = vec3(-0.15, -0.15, -0.15);
+  tangle->box.top_right_front = vec3(0.15, 0.15, 0.15);
 
-  struct vec3d center1 = vec3(0, 0, 0);
-  struct vec3d center2 = vec3(0, 0, 0);
+  struct vec3d center1 = vec3(0, 0.1, -0.01);
+  struct vec3d center2 = vec3(0, -0.1, 0.01);
   struct vec3d dir1    = vec3(0, 0, 1);
   struct vec3d dir2    = vec3(0, 0, -1);
   char filename[128];
 
-  add_circle(tangle, &center1, &dir1, 0.05, 128);
+  add_circle(tangle, &center1, &dir1, 0.1, 128);
   save_tangle("v1.dat", tangle);
   enforce_boundaries(tangle);
 
@@ -84,7 +85,7 @@ int main(int argc, char **argv)
   clockid_t clock = CLOCK_MONOTONIC;
 
   clock_gettime(clock, &t0);
-  for(int k=0; k < 10000; ++k)
+  for(int k=0; k < 20000; ++k)
     {
       printf("Step %d, recs: %d\n", k, recs);
       nrec = reconnect(tangle, 2.5e-3, DEG2RAD(5));

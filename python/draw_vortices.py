@@ -19,6 +19,7 @@ def draw_vortices(fn, plot_axes):
     vortex_idx = 0
     while np.any(vix == vortex_idx):
         ix = vix == vortex_idx
+        print(np.mean(z[ix]))
 
         plot_axes.plot(x[ix], y[ix], z[ix], '-o', ms=3)
         vortex_idx += 1

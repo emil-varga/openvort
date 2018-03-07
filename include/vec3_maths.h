@@ -80,6 +80,9 @@ static inline double segment_len(const struct segment *seg)
 struct segment seg_pwrap(const struct vec3d *r1, const struct vec3d *r2,
 			 const struct domain_box *box);
 
+struct vec3d box_shift(const struct vec3d *v, const struct domain_box *box,
+		       int shift[3]);
+
 struct vec3d mirror_shift(const struct vec3d *v, const struct domain_box *box,
 			  boundary_faces wall);
 

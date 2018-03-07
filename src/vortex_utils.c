@@ -28,6 +28,8 @@ void add_circle(struct tangle_state *tangle,
 {
   if(num_free_points(tangle) < Npoints)
     return;
+  if(!Npoints)
+    return;
 
   struct vec3d u, v, p, ptmp;
   int curr_point, last_point, first_point;
@@ -44,6 +46,7 @@ void add_circle(struct tangle_state *tangle,
 	 v.p[0], v.p[1], v.p[2]);
 
   first_point = -1;
+  curr_point = -1;
 
   for(int k=0; k<Npoints; ++k)
     {

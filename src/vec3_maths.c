@@ -49,6 +49,22 @@ struct segment seg_pwrap(const struct vec3d *r1, const struct vec3d *r2,
   return seg;
 }
 
+struct vec3d box_shift(const struct vec3d *v, const struct domain_box *box,
+		       int shift[3])
+{
+  double Lx = box->top_right_front.p[0] - box->bottom_left_back.p[0];
+  double Ly = box->top_right_front.p[1] - box->bottom_left_back.p[1];
+  double Lz = box->top_right_front.p[2] - box->bottom_left_back.p[2];
+  double Ls[] = {Lx, Ly, Lz};
+
+  struct vec3d out = *v;
+
+  for(int k = 0; k < 3; ++k)
+    out.p[k] += Ls[k]*shift[k];
+
+  return out;
+}
+
 struct vec3d periodic_shift(const struct vec3d *v, const struct domain_box *box,
 			  boundary_faces wall)
 {

@@ -51,6 +51,50 @@ struct neighbour_t {
 #define Y_BSP_ID_OFFSET 20
 #define Z_BSP_ID_OFFSET 40
 
+/*
+ * Structures describing the virtual tangles used for implementation of boundary conditions
+ */
+
+struct image_tangle {
+  int shift[3]; //positive/negative number of shifts in the units of box size
+  int reflect; //either a boundary_faces enum index or -1 for periodic
+};
+
+struct boundary_images {
+  const struct image_tangle *images;
+  int n;
+};
+
+//the actual image tangle configurations
+
+static const struct boundary_images no_img = {
+    .images = NULL,
+    .n = 0
+};
+
+//defined in boundary_images.c
+extern const struct boundary_images periodic_6;
+extern const struct boundary_images periodic_18;
+extern const struct boundary_images periodic_26;
+
+extern const struct boundary_images wall_1_6;
+extern const struct boundary_images wall_1_18;
+extern const struct boundary_images wall_1_26;
+
+
+static const struct image_tangle single_wall[] = {
+    {{0, 0, -1}, Z_L},
+    {{1, 0, 0}, -1},
+    {{-1, 0, 0}, -1},
+    {{0, 1, 0}, -1},
+    {{0, -1, 0}, -1}
+};
+
+//TODO: 2-wall channel, 4-wall channel, 5-wall half channel
+
+/*
+ * The structure that holds all the tangle information
+ */
 struct tangle_state {
   struct vec3d *vnodes;
   struct vec3d *vnodes_new;
@@ -65,69 +109,27 @@ struct tangle_state {
   int *recalculate;
 
   uint64_t *bsp_id; //for binary space partitioning -- id of the box
-  
+
   struct neighbour_t *connections;
 
   node_status *status; //pinned, free, empty, etc.
   //the boundary conditions in the 6 cardinal directions
   struct domain_box box;
-  
+  struct boundary_images bimg;
+
   int N;
   int next_free;
   int total_free;
 };
-
-/*
- * Structures describing the virtual tangles used for implementation of boundary conditions
- */
-
-struct image_tangle {
-  int shift[3]; //positive/negative number of shifts in the units of box size
-  int reflect; //either a boundary_faces enum index or -1 for periodic
-};
-
-struct boundary_images {
-  struct image_tangle *images;
-  int n;
-};
-
-struct vec3d shifted(const struct image_tangle *shift, const struct tangle_state *tangle,
-		     const struct vec3d *r);
-
-//the actual image tangle configurations
-
-static const struct image_tangle periodic_6_img[] = {
-    {{1, 0, 0}, -1},
-    {{-1, 0, 0}, -1},
-    {{0, 1, 0}, -1},
-    {{0, -1, 0}, -1},
-    {{0, 0, 1}, -1},
-    {{0, 0, -1}, -1}
-};
-
-static const struct boundary_images periodic_6 = {
-    .images = periodic_6_img,
-    .n = 6
-};
-
-//TODO:
-//const struct image_tangle periodic_26 = {}
-
-static const struct image_tangle single_wall[] = {
-    {{0, 0, -1}, Z_L},
-    {{1, 0, 0}, -1},
-    {{-1, 0, 0}, -1},
-    {{0, 1, 0}, -1},
-    {{0, -1, 0}, -1}
-};
-
-//TODO: 2-wall channel, 4-wall channel, 5-wall half channel
 
 void create_tangle(struct tangle_state *tangle, size_t n);
 void expand_tangle(struct tangle_state *tangle, size_t n);
 void free_tangle(struct tangle_state *tangle);
 int num_free_points(struct tangle_state *tangle);
 
+//calculates the shifted r according to the image_tangle conf
+struct vec3d shifted(const struct image_tangle *shift, const struct tangle_state *tangle,
+		     const struct vec3d *r);
 void enforce_boundaries(struct tangle_state *tangle);
 void update_tangents_normals(struct tangle_state *tangle);
 void update_velocities(struct tangle_state *tangle);

@@ -672,3 +672,14 @@ void add_point(struct tangle_state *tangle, int p)
   tangle->connections[p].forward = new_pt;
   tangle->connections[next].reverse = new_pt;
 }
+
+int tangle_total_points(struct tangle_state *tangle)
+{
+  int total = 0;
+  for(int k=0; k<tangle->N; ++k)
+    {
+      if(tangle->status[k].status != EMPTY)
+	total++;
+    }
+  return total;
+}

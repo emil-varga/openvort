@@ -87,9 +87,10 @@ int main(int argc, char **argv)
   clockid_t clock = CLOCK_MONOTONIC;
 
   clock_gettime(clock, &t0);
-  for(int k=0; k < 20000; ++k)
+  int Np = tangle_total_points(tangle);
+  for(int k=0; Np > 0; ++k)
     {
-      printf("Step %d, recs: %d\n", k, recs);
+      printf("Step %d, recs: %d, Np: %d\n", k, recs, Np);
       nrec = reconnect(tangle, 2.5e-3, DEG2RAD(5));
       check_integrity(tangle);
       eliminate_small_loops(tangle, 5);
@@ -110,6 +111,7 @@ int main(int argc, char **argv)
       enforce_boundaries(tangle);
 
       check_integrity(tangle);
+      Np = tangle_total_points(tangle);
       shot--;
     }
   clock_gettime(clock, &ti);

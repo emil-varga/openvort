@@ -126,6 +126,7 @@ void create_tangle(struct tangle_state *tangle, size_t n);
 void expand_tangle(struct tangle_state *tangle, size_t n);
 void free_tangle(struct tangle_state *tangle);
 int num_free_points(struct tangle_state *tangle);
+int tangle_points(struct tangle_state *tangle);
 
 //calculates the shifted r according to the image_tangle conf
 struct vec3d shifted(const struct image_tangle *shift, const struct tangle_state *tangle,

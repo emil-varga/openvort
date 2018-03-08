@@ -4,7 +4,7 @@
 #include <printf.h>
 #include <stddef.h>
 #include <math.h>
-#include <time.h> //for clock_gettime
+#include <time.h>
 
 #include <omp.h>
 #include <fenv.h>
@@ -39,6 +39,7 @@ int main(int argc, char **argv)
       return EXIT_FAILURE;
     }
 
+  srand48(time(NULL));
   feenableexcept(FE_OVERFLOW | FE_UNDERFLOW | FE_INVALID | FE_DIVBYZERO);
   struct tangle_state *tangle = (struct tangle_state*)malloc(sizeof(struct tangle_state));
 
@@ -58,24 +59,9 @@ int main(int argc, char **argv)
       return EXIT_FAILURE;
     }
 
-  /*
-  struct vec3d center1 = vec3(0, 0.1, -0.01);
-  struct vec3d center2 = vec3(0, -0.1, 0.01);
-  struct vec3d dir1    = vec3(0, 0, 1);
-  struct vec3d dir2    = vec3(0, 0, -1);
-
-
-  add_circle(tangle, &center1, &dir1, 0.1, 128);
-  save_tangle("v1.dat", tangle);
-  enforce_boundaries(tangle);
-
-  add_circle(tangle, &center2, &dir2, 0.1, 128);
-  save_tangle("v2.dat", tangle);
-  */
   save_tangle("v0.dat", tangle);
   enforce_boundaries(tangle);
   save_tangle("v1.dat", tangle);
-  update_tangle(tangle);
 
   const int Nshot = 100;
   int shot = Nshot - 1;
@@ -91,14 +77,14 @@ int main(int argc, char **argv)
   for(int k=0; Np > 0; ++k)
     {
       printf("Step %d, recs: %d, Np: %d\n", k, recs, Np);
+      update_tangle(tangle);
+      check_integrity(tangle);
       nrec = reconnect(tangle, 2.5e-3, DEG2RAD(5));
       check_integrity(tangle);
       eliminate_small_loops(tangle, 5);
       check_integrity(tangle);
       recs += nrec;
 
-      update_tangle(tangle);
-      check_integrity(tangle);
       if(!shot)
 	{
 	  sprintf(filename, "data_rec/frame%04d.dat", frame);

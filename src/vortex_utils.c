@@ -27,7 +27,10 @@ void add_circle(struct tangle_state *tangle,
 		int Npoints)
 {
   if(num_free_points(tangle) < Npoints)
-    return;
+    {
+      printf("overfilled tangle\n");
+      return;
+    }
   if(!Npoints)
     return;
 

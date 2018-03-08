@@ -2,6 +2,7 @@
 #define UTIL_H
 
 #include <assert.h>
+#include <math.h>
 
 /*
  * Assertion that also prints a useful message.
@@ -19,5 +20,7 @@
 void error(const char *msg, ...);
 
 void print_usage(const char *prog_name);
+
+#define DEG2RAD(X) ((X)*M_PI/180.0)
 
 #endif

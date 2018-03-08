@@ -14,6 +14,6 @@ void error(const char *msg, ...)
 void print_usage(const char *prog_name)
 {
   printf("Usage:\n");
-  printf(prog_name);
+  puts(prog_name);
   printf(" <path to config file>\n");
 }

@@ -6,8 +6,6 @@
 #include <math.h>
 #include <time.h> //for clock_gettime
 
-#include <libconfig.h>
-
 #include <omp.h>
 #include <fenv.h>
 
@@ -17,8 +15,8 @@
 #include "vortex_dynamics.h"
 #include "vortex_constants.h"
 #include "util.h"
+#include "configuration.h"
 
-#define DEG2RAD(X) ((X)*M_PI/180.0)
 
 void vec3_print(const struct vec3d *v)
 {
@@ -41,16 +39,6 @@ int main(int argc, char **argv)
       return EXIT_FAILURE;
     }
 
-  config_t cfg;
-  config_setting_t *setting;
-
-  config_init(&cfg);
-  if(!config_read_file(&cfg, argv[1]))
-    {
-      fprintf(stderr, "Can't read config file %s", argv[1]);
-      return EXIT_FAILURE;
-    }
-
   feenableexcept(FE_OVERFLOW | FE_UNDERFLOW | FE_INVALID | FE_DIVBYZERO);
   struct tangle_state *tangle = (struct tangle_state*)malloc(sizeof(struct tangle_state));
 
@@ -62,11 +50,20 @@ int main(int argc, char **argv)
   tangle->box.bottom_left_back = vec3(-0.15, -0.15, -0.15);
   tangle->box.top_right_front = vec3(0.15, 0.15, 0.15);
 
+  char filename[128];
+  if(!load_conf(argv[1], tangle))
+    {
+      free_tangle(tangle);
+      free(tangle);
+      return EXIT_FAILURE;
+    }
+
+  /*
   struct vec3d center1 = vec3(0, 0.1, -0.01);
   struct vec3d center2 = vec3(0, -0.1, 0.01);
   struct vec3d dir1    = vec3(0, 0, 1);
   struct vec3d dir2    = vec3(0, 0, -1);
-  char filename[128];
+
 
   add_circle(tangle, &center1, &dir1, 0.1, 128);
   save_tangle("v1.dat", tangle);
@@ -74,6 +71,11 @@ int main(int argc, char **argv)
 
   add_circle(tangle, &center2, &dir2, 0.1, 128);
   save_tangle("v2.dat", tangle);
+  */
+  save_tangle("v0.dat", tangle);
+  enforce_boundaries(tangle);
+  save_tangle("v1.dat", tangle);
+  update_tangle(tangle);
 
   const int Nshot = 100;
   int shot = Nshot - 1;
@@ -114,7 +116,6 @@ int main(int argc, char **argv)
   printf("Elapsed seconds: %f\n", time_diff(&t0, &ti));
   free_tangle(tangle);
   free(tangle);
-  config_destroy(&cfg);
 
   return EXIT_SUCCESS;
 }

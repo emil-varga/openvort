@@ -9,11 +9,68 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <getopt.h>
 
 #include <libconfig.h>
 
 #include "vec3_maths.h"
 #include "vortex_utils.h"
+#include "util.h"
+
+#define PATH_LEN 256
+//+1 for the \0
+char output_dir[PATH_LEN+1];
+char conf_file[PATH_LEN+1];
+
+struct option options[] = {
+    {"conf", required_argument, NULL, 'c'},
+    {"output", required_argument, NULL, 'o'},
+    {0, 0, 0, 0}
+};
+
+int parse_options(int argc, char **argv)
+{
+  int c;
+  int have_outdir = 0;
+  int have_conf = 0;
+
+  while(1)
+    {
+      c = getopt_long(argc, argv, "c:o:", options, NULL);
+
+      if(c==-1) //all options parsed
+	break;
+
+      switch(c)
+      {
+	case 'c':
+	  have_conf = 1;
+	  strncpy(conf_file, optarg, PATH_LEN);
+	  break;
+	case 'o':
+	  have_outdir = 1;
+	  strncpy(output_dir, optarg, PATH_LEN);
+	  break;
+	default:
+	  goto failure;
+	  break;
+      }
+    }
+
+  if(!have_outdir || !have_conf)
+    goto failure;
+
+  //trim the trailing / off of output_dir, if it's there
+  char *x = output_dir;
+  while(*(x+1)) x++;
+  if(*x == '/') *x = 0;
+
+  return 1;
+
+failure:
+  print_usage(argv[0]);
+  return 0;
+}
 
 int load_conf(const char *conf_file, struct tangle_state *tangle)
 {

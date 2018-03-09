@@ -106,6 +106,11 @@ void save_tangle(const char *filename, struct tangle_state *tangle)
   int *visited = (int *)calloc(tangle->N, sizeof(int));
   FILE *stream = fopen(filename, "w");
 
+  if(!stream) {
+      fprintf(stderr, "Can't open file %s\n", filename);
+      return;
+  }
+
   for(int k=0; k < tangle->N; ++k)
     {
       if(!visited[k])

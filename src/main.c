@@ -33,11 +33,10 @@ double time_diff(struct timespec *t0, struct timespec *t1)
 
 int main(int argc, char **argv)
 {
-  if(argc != 2)
-    {
-      print_usage(argv[0]);
-      return EXIT_FAILURE;
-    }
+  //this populates char conf_file[] and char output_dir[]
+  if(!parse_options(argc, argv))
+    return EXIT_FAILURE;
+  setup_outdir(output_dir);
 
   srand48(time(NULL));
   feenableexcept(FE_OVERFLOW | FE_UNDERFLOW | FE_INVALID | FE_DIVBYZERO);
@@ -52,7 +51,7 @@ int main(int argc, char **argv)
   tangle->box.top_right_front = vec3(0.15, 0.15, 0.15);
 
   char filename[128];
-  if(!load_conf(argv[1], tangle))
+  if(!load_conf(conf_file, tangle))
     {
       free_tangle(tangle);
       free(tangle);
@@ -87,7 +86,8 @@ int main(int argc, char **argv)
 
       if(!shot)
 	{
-	  sprintf(filename, "data_rec/frame%04d.dat", frame);
+	  //output_dir declared extern in configuration.h
+	  sprintf(filename, "%s/frame%04d.dat", output_dir, frame);
 	  save_tangle(filename, tangle);
 	  frame++;
 	  shot = Nshot;

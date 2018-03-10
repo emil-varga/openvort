@@ -6,13 +6,6 @@
 
 #include "vec3_maths.h"
 
-typedef enum _bc {
-  OPEN,
-  PIN_WALL,
-  SLIP_WALL,
-  PERIODIC
-} boundary_conditions;
-
 /*
  * Inward-facing normals of the box boundary face walls.
  * Can (and should) be indexed with boundary_faces enum.
@@ -26,11 +19,11 @@ typedef enum _ns_e {
   FREE, //ordinary vortex point
   PINNED, //pinned on the wall
   PINNED_SLIP //pinned, but can slip
-} node_status_enum;
+} node_status_t;
 
 //status of the node and on which wall it is pinned
 typedef struct _ns {
-  node_status_enum status;
+  node_status_t status;
   boundary_faces pin_wall;
 } node_status;
 
@@ -82,16 +75,6 @@ extern const struct boundary_images wall_1_18;
 extern const struct boundary_images wall_1_26;
 
 
-static const struct image_tangle single_wall[] = {
-    {{0, 0, -1}, Z_L},
-    {{1, 0, 0}, -1},
-    {{-1, 0, 0}, -1},
-    {{0, 1, 0}, -1},
-    {{0, -1, 0}, -1}
-};
-
-//TODO: 2-wall channel, 4-wall channel, 5-wall half channel
-
 /*
  * The structure that holds all the tangle information
  */
@@ -125,6 +108,7 @@ struct tangle_state {
 void create_tangle(struct tangle_state *tangle, size_t n);
 void expand_tangle(struct tangle_state *tangle, size_t n);
 void free_tangle(struct tangle_state *tangle);
+struct vec3d step_node(const struct tangle_state *tangle, int i, int where);
 int num_free_points(struct tangle_state *tangle);
 int tangle_total_points(struct tangle_state *tangle);
 

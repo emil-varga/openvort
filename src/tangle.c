@@ -306,6 +306,8 @@ static inline struct vec3d segment_field1(struct segment *seg, struct vec3d r)
 static inline struct vec3d segment_field(const struct tangle_state *tangle, size_t i, struct vec3d r)
 {
   int next = tangle->connections[i].forward;
+  if(next == -1) //this is an edge point on a wall
+    return vec3(0,0,0);
   struct segment seg = seg_pwrap(tangle->vnodes + i, tangle->vnodes + next, &tangle->box);
 
   return segment_field1(&seg, r);
@@ -365,7 +367,7 @@ struct vec3d calculate_vs(struct tangle_state *tangle, struct vec3d r, int skip)
 void update_velocity(struct tangle_state *tangle, int k)
 {
   int m, i;
-  if(tangle->connections[k].forward == -1)
+  if(tangle->status[k].status == EMPTY)
     return;
 
   if(tangle->status[k].status == PINNED)
@@ -597,20 +599,43 @@ void eliminate_small_loops(struct tangle_state *tangle, int loop_length)
       tangle->recalculate[k]++;
 
       int loop = 0;
-      int z = tangle->connections[k].forward;
-      while(z != k)
+      int here = k;
+      int next = tangle->connections[here].forward;
+      while(next != k)
 	{
-	  tangle->recalculate[z]++;
-	  z = tangle->connections[z].forward;
+	  if(next == -1 && tangle->status[here].status != EMPTY)
+	    {
+	      //we hit a wall, turn back from k
+	      here = k;
+	      next = tangle->connections[here].reverse;
+	      while(next != -1)
+		{
+		  tangle->recalculate[here]++;
+		  here = next;
+		  next = tangle->connections[here].reverse;
+		  loop++;
+		}
+	      //'here' now points to a node with its back to the wall
+	      break;//exit the outer loop,
+	    }
+	  tangle->recalculate[next]++;
+	  here = next;
+	  next = tangle->connections[next].forward;
 	  loop++;
 	}
-      if(loop < loop_length)
-	{ //the loop is short, delete it
-	  z = k;
-	  while(tangle->connections[z].forward > 0)
+      if(loop < loop_length) //the loop is short, delete it
+	{
+	  /*
+	   * for loops, the starting point doesn't matter
+	   * but for wall-pinned lines the code bellow only goes
+	   * forward, so we have to start at the end facing away from
+	   * the wall
+	  */
+	  next = here;
+	  while(tangle->connections[next].forward > 0)
 	    {
-	      int tmp = z;
-	      z = tangle->connections[z].forward;
+	      int tmp = next;
+	      next = tangle->connections[next].forward;
 	      tangle->connections[tmp].forward = -1;
 	      tangle->connections[tmp].reverse = -1;
 	      tangle->status[tmp].status = EMPTY;

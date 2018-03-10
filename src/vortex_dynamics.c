@@ -97,9 +97,15 @@ void rk4_step(struct tangle_state *tangle, double dt)
 //helper function to swap around the connection indices
 int do_reconnection(struct tangle_state *tangle, size_t k, size_t l);
 
+//helper for wall-reconnections
+int check_wall(struct tangle_state *tangle, int k, int wall, double rdist);
+int connect_to_wall(struct tangle_state *tangle, int k, int wall, double rdist,
+		   node_status_t pin_mode);
+
 /*
-  Run through all the pairs of nodes and check their distence if they are not
-  immediate neighbours. Reconnect them if they are close enough.
+  Run through all the pairs of nodes and check their distance if they are not
+  immediate neighbors. Reconnect them if they are close enough. Also reconnect points close
+  to a solid wall.
 
   This could, and should, in the future include some smarter estimation of possibility
   of a reconnections -- i.e., where in the BSP tree the two nodes are and only check them
@@ -116,16 +122,53 @@ int reconnect(struct tangle_state *tangle, double rec_dist, double rec_angle)
   for(k=0; k<tangle->N; ++k)
     tangle->recalculate[k] = 0;
 
+  /*
+   * "reconnect" with walls
+   */
+  for(int wall = 0; wall < 6; ++wall)
+    {
+      if(tangle->box.wall[wall] == WALL_OPEN ||
+	 tangle->box.wall[wall] == WALL_PERIODIC)
+	continue;
+
+      for(k=0; k<tangle->N; ++k)
+	{
+	  if(tangle->status[k].status == PINNED      ||
+	     tangle->status[k].status == PINNED_SLIP ||
+	     tangle->status[k].status == EMPTY       ||
+	     tangle->recalculate[k])
+	    continue;
+
+	  //coerce_to_wall affects more than just one point
+	  //it needs to find two ends that should be attached to
+	  //the wall
+	  if(check_wall(tangle, k, wall, rec_dist))
+	    connect_to_wall(tangle, k, wall, rec_dist,
+			   PINNED);
+	}
+    }
+
+  /*
+   * Now do standard vortex-vortex reconnections
+   */
+
   for(k=0; k<tangle->N; ++k)
     {
-      if(tangle->connections[k].forward == -1 || tangle->recalculate[k])
+      //do not reconnect points attached to the walls
+
+      if(tangle->status[k].status == EMPTY       ||
+	 tangle->status[k].status == PINNED      ||
+	 tangle->status[k].status == PINNED_SLIP ||
+	 tangle->recalculate[k])
 	continue; //skip empty nodes and nodes that reconnected in this pass
       
       for(l=k+1; l<tangle->N; ++l)
 	{
-	  if(tangle->connections[l].forward == -1 ||
-	     tangle->connections[k].forward == l  ||
-	     tangle->connections[k].reverse == l  ||
+	  if(tangle->status[l].status == EMPTY       ||
+	     tangle->status[l].status == PINNED      ||
+	     tangle->status[l].status == PINNED_SLIP ||
+	     tangle->connections[k].forward == l     ||
+	     tangle->connections[k].reverse == l     ||
 	     tangle->recalculate[l])
 	    continue; //skip empty nodes and neighbors of k
 	              //and nodes that went through a reconnection 
@@ -236,4 +279,123 @@ int do_reconnection(struct tangle_state *tangle, size_t k, size_t l)
     }
 
   return 1;
+}
+
+int check_wall(struct tangle_state *tangle, int k, int wall, double rdist)
+{
+  /*
+   * Checks whether a node k is closer than rdist to the wall.
+   */
+  int idx[6];
+  idx[X_L] = idx[X_H] = 0;
+  idx[Y_L] = idx[Y_H] = 1;
+  idx[Z_L] = idx[Z_H] = 2;
+  switch(wall)
+  {
+    case X_L:
+    case Y_L:
+    case Z_L:
+      return tangle->vnodes[k].p[idx[wall]] < (rdist + tangle->box.bottom_left_back.p[idx[wall]]);
+
+    case X_H:
+    case Y_H:
+    case Z_H:
+      return tangle->vnodes[k].p[idx[wall]] > (tangle->box.top_right_front.p[idx[wall]] - rdist);
+
+    default:
+      break;
+  }
+  return 0;
+}
+
+double wall_dist(struct tangle_state *tangle, int k, int wall)
+{
+  /*
+   * Checks whether a node k is closer than rdist to the wall.
+   */
+  int idx[6];
+  idx[X_L] = idx[X_H] = 0;
+  idx[Y_L] = idx[Y_H] = 1;
+  idx[Z_L] = idx[Z_H] = 2;
+  switch(wall)
+  {
+    case X_L:
+    case Y_L:
+    case Z_L:
+      return abs(tangle->vnodes[k].p[idx[wall]] - tangle->box.bottom_left_back.p[idx[wall]]);
+
+    case X_H:
+    case Y_H:
+    case Z_H:
+      return abs(tangle->vnodes[k].p[idx[wall]] - tangle->box.top_right_front.p[idx[wall]]);
+
+    default:
+      break;
+  }
+  return 0;
+}
+
+int connect_to_wall(struct tangle_state *tangle, int k, int wall, double rdist,
+		   node_status_t pin_mode)
+{
+  //check that the node is actually getting closer to the wall
+  //boundary_normals are inward-facing unit normals
+  if(vec3_dot(&tangle->vels[k], &boundary_normals[wall]) > 0)
+    return 0;
+
+  int next = tangle->connections[k].forward;
+  int prev = tangle->connections[k].reverse;
+  double d0 = wall_dist(tangle, k, wall);
+  double d1 = wall_dist(tangle, next, wall);
+  double dm1 = wall_dist(tangle, next, wall);
+
+  struct segment s1 = seg_pwrap(&tangle->vnodes[k], &tangle->vnodes[next], &tangle->box);
+  struct segment sm1 = seg_pwrap(&tangle->vnodes[k], &tangle->vnodes[prev], &tangle->box);
+  double vd1 = segment_len(&s1);
+  double vdm1 = segment_len(&sm1);
+
+  //check that the total length does not increase
+  if(vd1 < d0 + d1 && vdm1 < d0 + dm1)
+    return 0;
+
+  struct vec3d tmp;
+
+  //point 1
+  int new_pt = get_tangle_next_free(tangle);
+  tangle->status[new_pt].status = pin_mode;
+  tangle->status[new_pt].pin_wall = wall;
+
+  //point 2
+  int new_pt2 = get_tangle_next_free(tangle);
+  tangle->status[new_pt2].status = pin_mode;
+  tangle->status[new_pt2].pin_wall = wall;
+
+  vec3_mul(&tmp, &boundary_normals[wall], d0);
+  vec3_sub(&tangle->vnodes[new_pt], &tangle->vnodes[k], &tmp);
+
+  if(d1 < dm1)
+    {
+      vec3_mul(&tmp, &boundary_normals[wall], d1);
+      vec3_sub(&tangle->vnodes[new_pt2], &tangle->vnodes[next], &tmp);
+      tangle->connections[k].forward = new_pt;
+      tangle->connections[new_pt].forward = -1;
+      tangle->connections[new_pt].reverse = k;
+      tangle->connections[new_pt2].forward = next;
+      tangle->connections[new_pt2].reverse = -1;
+      tangle->connections[next].reverse = new_pt2;
+    }
+  else
+    {
+      vec3_mul(&tmp, &boundary_normals[wall], dm1);
+      vec3_sub(&tangle->vnodes[new_pt2], &tangle->vnodes[prev], &tmp);
+
+      tangle->connections[k].reverse = new_pt;
+      tangle->connections[new_pt].forward = k;
+      tangle->connections[new_pt].reverse = -1;
+      tangle->connections[new_pt2].forward = -1;
+      tangle->connections[new_pt2].reverse = prev;
+      tangle->connections[prev].forward = new_pt2;
+    }
+
+  return 2;
 }

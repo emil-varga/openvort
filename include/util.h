@@ -18,8 +18,8 @@
 #endif //ifndef NDEBUG
 
 void error(const char *msg, ...);
-
 void print_usage(const char *prog_name);
+int setup_outdir(const char *dirname);
 
 #define DEG2RAD(X) ((X)*M_PI/180.0)
 

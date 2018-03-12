@@ -23,6 +23,14 @@ typedef enum _fc {
   Z_L, Z_H
 } boundary_faces;
 
+/*
+ * Inward-facing normals of the box boundary face walls.
+ * Can (and should) be indexed with boundary_faces enum.
+ *
+ * Defined in vec3_maths.c
+ */
+extern const struct vec3d boundary_normals[6];
+
 struct domain_box {
   struct vec3d bottom_left_back;
   struct vec3d top_right_front;
@@ -85,6 +93,7 @@ struct vec3d box_shift(const struct vec3d *v, const struct domain_box *box,
 
 struct vec3d mirror_shift(const struct vec3d *v, const struct domain_box *box,
 			  boundary_faces wall);
+struct vec3d mirror_dir_reflect(const struct vec3d *v, boundary_faces wall);
 
 struct vec3d periodic_shift(const struct vec3d *v, const struct domain_box *box,
 			    boundary_faces wall);

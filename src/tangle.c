@@ -16,22 +16,13 @@
 #define _GNU_SOURCE
 #include <fenv.h>
 
-/*
- * Inward-facing normals of the box boundary face walls
- */
-
-const struct vec3d boundary_normals[] = {
-    {{1, 0, 0}},
-    {{-1, 0, 0}},
-    {{0, 1, 0}},
-    {{0, -1, 0}},
-    {{0, 0, 1}},
-    {{0, 0, -1}}
-};
-
 struct vec3d shifted(const struct image_tangle *shift, const struct tangle_state *tangle,
 		     const struct vec3d *r)
 {
+  /*
+   * Mirror images of only depth 1 are supported (higher depth could make sense
+   * for two mirror facing each other)
+   */
   struct vec3d rs = *r;
   double Ls[3];
   for(int k = 0; k<3; ++k)
@@ -391,6 +382,7 @@ void update_velocity(struct tangle_state *tangle, int k)
   	tangle->vs[k].p[i] += segment_vel.p[i];
     }
 
+  //calculate the velocity due to boundary images
   struct vec3d shift_r, v_shift;
   struct vec3d v_shift_total = vec3(0, 0, 0);
 
@@ -398,6 +390,8 @@ void update_velocity(struct tangle_state *tangle, int k)
     {
       shift_r = shifted(&tangle->bimg.images[j], tangle, &tangle->vnodes[k]);
       v_shift = calculate_vs(tangle, shift_r, -1);
+      if(tangle->bimg.images[k].reflect > -1) //mirror wall
+	v_shift = mirror_dir_reflect(&v_shift, tangle->bimg.images[k].reflect);
       vec3_add(&v_shift_total, &v_shift_total, &v_shift);
     }
   //add everything to the result

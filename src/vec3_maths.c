@@ -8,6 +8,19 @@ const struct vec3d DIR_Y = {{0, 1, 0}};
 const struct vec3d DIR_Z = {{0, 0, 1}};
 const struct vec3d DIRS[3] = {{{1, 0, 0}}, {{0, 1, 0}}, {{0, 0, 1}}};
 
+/*
+ * Inward-facing normals of the box boundary face walls
+ */
+
+const struct vec3d boundary_normals[] = {
+    {{1, 0, 0}},
+    {{-1, 0, 0}},
+    {{0, 1, 0}},
+    {{0, -1, 0}},
+    {{0, 0, 1}},
+    {{0, 0, -1}}
+};
+
 struct segment seg_pwrap(const struct vec3d *r1, const struct vec3d *r2,
 			 const struct domain_box *box)
 {
@@ -142,6 +155,22 @@ struct vec3d mirror_shift(const struct vec3d *v, const struct domain_box *box,
   }
 
   mv.p[coord] = wall_pos - mv.p[coord];
+
+  return mv;
+}
+
+struct vec3d mirror_dir_reflect(const struct vec3d *v, boundary_faces wall)
+{
+  /*
+   * Reflect a directional vector in a mirror (i.e., the component normal
+   * to the mirror reverses).
+   */
+  struct vec3d mv = *v;
+
+  double nc = vec3_dot(&mv, &boundary_normals[wall]);
+  struct vec3d tmp;
+  vec3_mul(&tmp, &boundary_normals[wall], -2*nc);
+  vec3_add(&mv, &mv, &tmp);
 
   return mv;
 }

@@ -6,14 +6,6 @@
 
 #include "vec3_maths.h"
 
-/*
- * Inward-facing normals of the box boundary face walls.
- * Can (and should) be indexed with boundary_faces enum.
- *
- * Defined in tangle.c
- */
-extern const struct vec3d boundary_normals[6];
-
 typedef enum _ns_e {
   EMPTY = -1, //no point here
   FREE, //ordinary vortex point

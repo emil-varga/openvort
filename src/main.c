@@ -43,12 +43,6 @@ int main(int argc, char **argv)
   struct tangle_state *tangle = (struct tangle_state*)malloc(sizeof(struct tangle_state));
 
   create_tangle(tangle, 512);
-  for(int k=0; k<6; ++k)
-      tangle->box.wall[k] = WALL_PERIODIC;
-  tangle->bimg = periodic_26;
-
-  tangle->box.bottom_left_back = vec3(-0.15, -0.15, -0.15);
-  tangle->box.top_right_front = vec3(0.15, 0.15, 0.15);
 
   char filename[128];
   if(!load_conf(conf_file, tangle))

@@ -390,8 +390,8 @@ void update_velocity(struct tangle_state *tangle, int k)
     {
       shift_r = shifted(&tangle->bimg.images[j], tangle, &tangle->vnodes[k]);
       v_shift = calculate_vs(tangle, shift_r, -1);
-      if(tangle->bimg.images[k].reflect > -1) //mirror wall
-	v_shift = mirror_dir_reflect(&v_shift, tangle->bimg.images[k].reflect);
+      if(tangle->bimg.images[j].reflect > -1) //mirror wall
+	v_shift = mirror_dir_reflect(&v_shift, tangle->bimg.images[j].reflect);
       vec3_add(&v_shift_total, &v_shift_total, &v_shift);
     }
   //add everything to the result
@@ -504,20 +504,24 @@ static inline int out_of_box(const struct tangle_state *tangle, const struct vec
 	  tangle->box.top_right_front.p[2]
       };
 
+  int face = -1;
   if(x < bounds[X_L])
-    return X_L;
+    face = X_L;
   if(x > bounds[X_H])
-    return X_H;
+    face = X_H;
   if(y < bounds[Y_L])
-    return Y_L;
+    face = Y_L;
   if(y > bounds[Y_H])
-    return Y_H;
+    face = Y_H;
   if(z < bounds[Z_L])
-    return Z_L;
+    face = Z_L;
   if(z > bounds[Z_H])
-    return Z_H;
+    face = Z_H;
 
-  return -1;
+  if(face > -1 && tangle->box.wall[face] == WALL_OPEN)
+    face = -1;
+
+  return face;
 }
 void enforce_boundaries(struct tangle_state *tangle)
 {

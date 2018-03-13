@@ -10,6 +10,10 @@
 
 #include "tangle.h"
 
+/*
+ * Constant boundary configuration declared in tangle.h
+ */
+
 const struct image_tangle periodic_6_img[] = {
     {{-1, 0, 0}, -1},
     {{0, -1, 0}, -1},
@@ -126,6 +130,11 @@ const struct image_tangle wall_1_26_img[] = {
     {{1, 1, -1}, Z_L},
     {{1, 1, 0}, -1},
     {{1, 1, 1}, -1}
+};
+
+const struct boundary_images open_boundaries = {
+    .images = NULL,
+    .n = 0
 };
 
 const struct boundary_images periodic_6 = {

@@ -16,6 +16,7 @@
 #include "vec3_maths.h"
 #include "vortex_utils.h"
 #include "util.h"
+#include "normal_fluid.h"
 
 #define PATH_LEN 256
 //+1 for the \0
@@ -27,6 +28,18 @@ struct option options[] = {
     {"output", required_argument, NULL, 'o'},
     {0, 0, 0, 0}
 };
+
+void set_walls_full(struct tangle_state *tangle, wall_type wall)
+{
+  for(int k=0; k<6; ++k)
+        tangle->box.wall[k] = wall;
+}
+
+void set_walls_xy_periodic(struct tangle_state *tangle)
+{
+  set_walls_full(tangle, WALL_PERIODIC);
+  tangle->box.wall[Z_L] = tangle->box.wall[Z_H] = WALL_OPEN;
+}
 
 int parse_options(int argc, char **argv)
 {
@@ -103,6 +116,22 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
   if(config_lookup_float(&cfg, "KAPPA", &dval))
     KAPPA = dval;
 
+  if(!config_lookup_string(&cfg, "normal-vel", &str))
+    get_vn = get_vn_noflow;
+  else
+    {
+      if(strcmp(str, "no flow") == 0)
+	get_vn = get_vn_noflow;
+      else if(strcmp(str, "spherical") == 0)
+	{
+	  get_vn = get_vn_spherical;
+	  config_lookup_float(&cfg, "spherical_vn_strength", &dval);
+	  spherical_vn_strength = dval;
+	  config_lookup_float(&cfg, "spherical_vn_cutoff", &dval);
+	  spherical_vn_cutoff = dval;
+	}
+    }
+
   //setup the domain box size
 
   config_setting_t *domain, *point;
@@ -137,17 +166,40 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
       goto failure;
     }
   if(strcmp(str, "periodic-6") == 0)
-    tangle->bimg = periodic_6;
+    {
+      tangle->bimg = periodic_6;
+      set_walls_full(tangle, WALL_PERIODIC);
+    }
   else if(strcmp(str, "periodic-18") == 0)
-    tangle->bimg = periodic_18;
+    {
+      tangle->bimg = periodic_18;
+      set_walls_full(tangle, WALL_PERIODIC);
+    }
   else if(strcmp(str, "periodic-26") == 0)
-    tangle->bimg = periodic_26;
+    {
+      tangle->bimg = periodic_26;
+      set_walls_full(tangle, WALL_PERIODIC);
+    }
   else if(strcmp(str, "wall-1-6") == 0)
-    tangle->bimg = wall_1_6;
+    {
+      tangle->bimg = wall_1_6;
+      set_walls_full(tangle, WALL_PERIODIC);
+    }
   else if(strcmp(str, "wall-1-18") == 0)
-    tangle->bimg = wall_1_18;
+    {
+      tangle->bimg = wall_1_18;
+      set_walls_full(tangle, WALL_PERIODIC);
+    }
   else if(strcmp(str, "wall-1-26") == 0)
-    tangle->bimg = wall_1_26;
+    {
+      tangle->bimg = wall_1_26;
+      set_walls_full(tangle, WALL_PERIODIC);
+    }
+  else if(strcmp(str, "open") == 0)
+    {
+      tangle->bimg = open_boundaries;
+      set_walls_full(tangle, WALL_OPEN);
+    }
   else
     {
       fprintf(stderr, "Error: unknown boundary condition\n");

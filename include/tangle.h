@@ -51,13 +51,8 @@ struct boundary_images {
 };
 
 //the actual image tangle configurations
-
-static const struct boundary_images no_img = {
-    .images = NULL,
-    .n = 0
-};
-
 //defined in boundary_images.c
+extern const struct boundary_images open_boundaries;
 extern const struct boundary_images periodic_6;
 extern const struct boundary_images periodic_18;
 extern const struct boundary_images periodic_26;

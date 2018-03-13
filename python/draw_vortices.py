@@ -21,11 +21,11 @@ def draw_vortices(fn, plot_axes):
         ix = vix == vortex_idx
         print(np.mean(z[ix]))
 
-        plot_axes.plot(x[ix], y[ix], z[ix], 'o', ms=3)
+        plot_axes.plot(x[ix], y[ix], z[ix], '-', ms=3)
         vortex_idx += 1
 
 if __name__ == '__main__':
     from mpl_toolkits.mplot3d import Axes3D
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    draw_vortices('../v0.dat', ax)
+    draw_vortices('../v1.dat', ax)

@@ -15,12 +15,12 @@ from glob import glob
 
 from draw_vortices import draw_vortices
 
-data_dir = '../data_rec'
+data_dir = '../data_spherical'
 
 files = glob(path.join(data_dir, 'frame*.dat'))
 files.sort()
 
-fig = plt.figure()
+fig = plt.figure(figsize=(16,9))
 ax = fig.add_subplot(111, projection='3d')
 
 i=-1
@@ -32,10 +32,11 @@ for fn in files:
 
     ax.clear()
     draw_vortices(fn, ax)
-    ax.set_xlim(-0.15, 0.15)
-    ax.set_ylim(-0.15, 0.15)
-    ax.set_zlim(-0.15, 0.15)
+    ax.set_xlim(-0.5, 0.5)
+    ax.set_ylim(-0.5, 0.5)
+    ax.set_zlim(-0.5, 0.5)
     ax.set_aspect('equal')
-    fig.savefig(fn.replace('.dat', '.png'))
+    fig.tight_layout()
+    fig.savefig(fn.replace('.dat', '.png'), dpi=120)
 
 #plt.close(fig)

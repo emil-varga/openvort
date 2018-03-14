@@ -116,7 +116,7 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
   if(config_lookup_float(&cfg, "KAPPA", &dval))
     KAPPA = dval;
 
-  if(!config_lookup_string(&cfg, "normal-vel", &str))
+  if(!config_lookup_string(&cfg, "normal_vel", &str))
     get_vn = get_vn_noflow;
   else
     {

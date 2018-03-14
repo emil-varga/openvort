@@ -21,7 +21,8 @@ def draw_vortices(fn, plot_axes):
         ix = vix == vortex_idx
         print(np.mean(z[ix]))
 
-        plot_axes.plot(x[ix], y[ix], z[ix], '-', ms=3)
+        plot_axes.plot(x[ix], y[ix], z[ix], '-', ms=3, lw=0.5,
+                       color = 'red')
         vortex_idx += 1
 
 if __name__ == '__main__':

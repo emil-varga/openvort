@@ -1,6 +1,7 @@
 vortices
 data
 data_rec
+data*
 *.mp4
 python/__pycache__
 

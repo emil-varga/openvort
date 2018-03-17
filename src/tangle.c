@@ -3,9 +3,9 @@
 #include <stdlib.h>
 #include <omp.h>
 #include <assert.h>
+#include <external_velocity.h>
 #include "tangle.h"
 #include "vortex_constants.h"
-#include "normal_fluid.h"
 #include "util.h"
 #include "vec3_maths.h"
 

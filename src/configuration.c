@@ -16,7 +16,7 @@
 #include "vec3_maths.h"
 #include "vortex_utils.h"
 #include "util.h"
-#include "normal_fluid.h"
+#include "external_velocity.h"
 
 #define PATH_LEN 256
 //+1 for the \0
@@ -85,6 +85,8 @@ failure:
   return 0;
 }
 
+int setup_external_velocity(config_setting_t *v_conf_setting, struct v_conf_t **v_conf);
+
 int load_conf(const char *conf_file, struct tangle_state *tangle)
 {
   config_t cfg;
@@ -116,21 +118,15 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
   if(config_lookup_float(&cfg, "KAPPA", &dval))
     KAPPA = dval;
 
-  if(!config_lookup_string(&cfg, "normal_vel", &str))
-    get_vn = get_vn_noflow;
-  else
-    {
-      if(strcmp(str, "no flow") == 0)
-	get_vn = get_vn_noflow;
-      else if(strcmp(str, "spherical") == 0)
-	{
-	  get_vn = get_vn_spherical;
-	  config_lookup_float(&cfg, "spherical_vn_strength", &dval);
-	  spherical_vn_strength = dval;
-	  config_lookup_float(&cfg, "spherical_vn_cutoff", &dval);
-	  spherical_vn_cutoff = dval;
-	}
-    }
+
+  config_setting_t *vel_conf;
+  vel_conf = config_lookup(&cfg, "vn_conf");
+  if(vel_conf && config_setting_type(vel_conf) == CONFIG_TYPE_GROUP)
+    setup_external_velocity(vel_conf, &vn_conf);
+
+  vel_conf = config_lookup(&cfg, "vs_conf");
+  if(vel_conf && config_setting_type(vel_conf) == CONFIG_TYPE_GROUP)
+    setup_external_velocity(vel_conf, &vs_conf);
 
   //setup the domain box size
 
@@ -218,9 +214,6 @@ failure:
   return 0;
 }
 
-void insert_random_loops(struct tangle_state *tangle, int N);
-
-
 int setup_init(const char *conf_file, struct tangle_state *tangle)
 {
   config_t cfg;
@@ -267,27 +260,4 @@ failure:
   return 0;
 }
 
-void insert_random_loops(struct tangle_state *tangle, int N)
-{
-  //TODO: configurable range of loop radii?, number of points?
-  double Ls[3];
-  for(int k = 0; k<3; ++k)
-	Ls[k] = tangle->box.top_right_front.p[k] - tangle->box.bottom_left_back.p[k];
-
-  const double D = (Ls[0] + Ls[1] + Ls[2]) / 3.0;
-  const double rmin = 0.05*D;
-  const double rmax = D;
-
-  for(int k = 0; k<N; ++k)
-    {
-      struct vec3d dir = vec3(drand48(), drand48(), drand48());
-      vec3_normalize(&dir);
-
-      struct vec3d c;
-      for(int j=0; j<3; ++j)
-	c.p[j] = tangle->box.bottom_left_back.p[j] + drand48()*Ls[j];
-
-      double r =  rmin + drand48()*(rmax - rmin);
-      add_circle(tangle, &c, &dir, r, 64);
-    }
-}
+int setup_external_velocity(config_setting_t *v_conf_setting, struct v_conf_t **v_conf);

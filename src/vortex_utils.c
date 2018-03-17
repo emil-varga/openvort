@@ -80,6 +80,32 @@ void add_circle(struct tangle_state *tangle,
   tangle->connections[first_point].reverse = curr_point;
 }
 
+void insert_random_loops(struct tangle_state *tangle, int N)
+{
+  //TODO: configurable range of loop radii?, number of points?
+  double Ls[3];
+  for(int k = 0; k<3; ++k)
+	Ls[k] = tangle->box.top_right_front.p[k] - tangle->box.bottom_left_back.p[k];
+
+  const double D = (Ls[0] + Ls[1] + Ls[2]) / 3.0;
+  const double rmin = 0.05*D;
+  const double rmax = D;
+
+  for(int k = 0; k<N; ++k)
+    {
+      struct vec3d dir = vec3(drand48(), drand48(), drand48());
+      vec3_normalize(&dir);
+
+      struct vec3d c;
+      for(int j=0; j<3; ++j)
+	c.p[j] = tangle->box.bottom_left_back.p[j] + drand48()*Ls[j];
+
+      double r =  rmin + drand48()*(rmax - rmin);
+      add_circle(tangle, &c, &dir, r, 64);
+    }
+}
+
+
 void write_vector(FILE *stream, struct vec3d *v)
 {
   fprintf(stream, "%.15g\t%.15g\t%.15g",

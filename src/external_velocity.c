@@ -83,6 +83,12 @@ struct v_conf_t v_confs[] = {
 	.v_params = {
 	    {"external_v", vector_param}
 	}
+    },
+    {
+      .name = "",
+      .fun = NULL,
+      .n_params = 0,
+      .v_params = {}
     }
 };
 

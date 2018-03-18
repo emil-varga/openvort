@@ -85,7 +85,50 @@ failure:
   return 0;
 }
 
-int setup_external_velocity(config_setting_t *v_conf_setting, struct v_conf_t **v_conf);
+int setup_external_velocity(config_setting_t *v_conf_setting, struct v_conf_t **v_conf)
+{
+  double dval;
+  const char *str;
+  struct vec3d vval;
+  config_setting_t *vec_cfg;
+
+  config_setting_lookup_string(v_conf_setting, "type", &str);
+
+  struct v_conf_t *test = &v_confs[0];
+  for(;strlen(test->name) > 0; test++)
+    {
+      if(strcmp(test->name, str) == 0)
+	{
+	  *v_conf = test;
+	  break;
+	}
+    }
+  if(strlen(test->name) == 0)
+    return -1; //we did not find the requested config
+
+  //we found the requested config, now load its parameters, if any
+  //TODO: erro checking
+  for(int k=0; k<(*v_conf)->n_params; ++k)
+    {
+      switch((*v_conf)->v_params[k].type)
+      {
+	case scalar_param:
+	  config_setting_lookup_float(v_conf_setting, (*v_conf)->v_params[k].name, &dval);
+	  (*v_conf)->v_params[k].value.scalar = dval;
+	  break;
+	case vector_param:
+	  vec_cfg = config_setting_lookup(v_conf_setting, "flow");
+	  for(int j = 0; j<3; ++j)
+	    vval.p[j] = config_setting_get_float_elem(vec_cfg, j);
+	  (*v_conf)->v_params[k].value.vector = vval;
+	  break;
+	default:
+	  break;
+      }
+    }
+
+  return 0;
+}
 
 int load_conf(const char *conf_file, struct tangle_state *tangle)
 {

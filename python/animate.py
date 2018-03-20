@@ -15,7 +15,7 @@ from glob import glob
 
 from draw_vortices import draw_vortices
 
-data_dir = '../data_spherical'
+data_dir = '../data_cf'
 
 files = glob(path.join(data_dir, 'frame*.dat'))
 files.sort()

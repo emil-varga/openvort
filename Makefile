@@ -1,4 +1,4 @@
-CC=gcc -fopenmp
+CC=gcc -fopenmp 
 CFLAGS=  -O2 `gsl-config --cflags` -fsanitize=undefined -fsanitize=float-divide-by-zero -fsanitize=leak\
          `pkg-config --cflags libconfig`
 DEBUG = -Wall -Wextra -pedantic -ggdb -D_DEBUG_

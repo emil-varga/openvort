@@ -117,12 +117,30 @@ int setup_external_velocity(config_setting_t *v_conf_setting, struct v_conf_t **
 	  (*v_conf)->v_params[k].value.scalar = dval;
 	  break;
 	case vector_param:
-	  vec_cfg = config_setting_lookup(v_conf_setting, "flow");
+	  vec_cfg = config_setting_lookup(v_conf_setting, (*v_conf)->v_params[k].name);
 	  for(int j = 0; j<3; ++j)
 	    vval.p[j] = config_setting_get_float_elem(vec_cfg, j);
 	  (*v_conf)->v_params[k].value.vector = vval;
 	  break;
 	default:
+	  break;
+      }
+    }
+
+  printf("Using external velocity %s\n", (*v_conf)->name);
+  printf("With parameters:\n");
+  for(int k=0; k < (*v_conf)->n_params; ++k)
+    {
+      printf("%s = ", (*v_conf)->v_params[k].name);
+      switch((*v_conf)->v_params[k].type)
+      {
+	case scalar_param:
+	  printf("%g\n", (*v_conf)->v_params[k].value.scalar);
+	  break;
+	case vector_param:
+	  printf("(%g, %g, %g)\n", (*v_conf)->v_params[k].value.vector.p[0],
+		 (*v_conf)->v_params[k].value.vector.p[1],
+		 (*v_conf)->v_params[k].value.vector.p[2]);
 	  break;
       }
     }

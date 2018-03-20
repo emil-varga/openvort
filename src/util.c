@@ -27,6 +27,7 @@ int setup_outdir(const char *dirname)
 
   if(test){
       //the directory exist and we can open it
+      closedir(test);
       return 1;
   } else {
       //either it doesn't exist or we can't open it

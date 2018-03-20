@@ -9,6 +9,7 @@
 #include <math.h>
 #include <string.h>
 #include "vec3_maths.h"
+#include <stdio.h>
 
 /*
  * Calculates the normal fluid velocity at point *where and
@@ -88,7 +89,7 @@ struct v_conf_t v_confs[] = {
       .name = "",
       .fun = NULL,
       .n_params = 0,
-      .v_params = {}
+      .v_params = {{0,0}}
     }
 };
 
@@ -115,9 +116,9 @@ int get_v_spherical(const struct vec3d *where, struct vec3d *res, struct v_conf_
   double strength;
   double cutoff;
   int err;
-  if(err = get_v_param_scalar(vconf, "strength", &strength))
+  if(!(err = get_v_param_scalar(vconf, "strength", &strength)))
     return err;
-  if(err = get_v_param_scalar(vconf, "cutoff", &cutoff))
+  if(!(err = get_v_param_scalar(vconf, "cutoff", &cutoff)))
     return err;
 
   double r = vec3_d(where);

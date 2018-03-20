@@ -56,7 +56,7 @@ int main(int argc, char **argv)
   enforce_boundaries(tangle);
   save_tangle("v1.dat", tangle);
 
-  const int Nshot = 100;
+  const int Nshot = 10;
   int shot = Nshot - 1;
   int frame = 0;
   int recs = 0;
@@ -86,8 +86,8 @@ int main(int argc, char **argv)
 	  frame++;
 	  shot = Nshot;
 	} 
-      rk4_step(tangle, 1e-3);
-      remesh(tangle, 2.5e-3, 10e-3);
+      rk4_step(tangle, 5e-5);
+      remesh(tangle, 1e-3, 5e-3);
       enforce_boundaries(tangle);
 
       check_integrity(tangle);

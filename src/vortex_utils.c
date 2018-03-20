@@ -106,6 +106,72 @@ void insert_random_loops(struct tangle_state *tangle, int N)
 }
 
 
+void clip_at_wall(struct tangle_state *tangle)
+{
+  /*
+   * Clips the tangle at the lower z-wall
+   */
+  double limit = tangle->box.bottom_left_back.p[2];
+  for(int k=0; k<tangle->N; ++k)
+    tangle->recalculate[k] = 0;
+
+  for(int kk=0; kk<tangle->N; ++kk)
+    {
+      if(tangle->status[kk].status == EMPTY ||
+	  tangle->recalculate[kk] > 0)
+	continue;
+
+      int here = kk;
+      int next = tangle->connections[kk].forward;
+      int tmp;
+
+#define lchk(z) (tangle->vnodes[z].p[2] > limit)
+      int seek_under = lchk(here);
+
+      while(next != kk)
+	{
+	  if(seek_under) //we are above and are looking for the crossing point
+	    {
+	      if(!lchk(next)) //the next is below
+		{
+		  seek_under = !seek_under;
+		  tangle->vnodes[next].p[2] = limit;
+		  tangle->recalculate[here]++;
+		  here = next;
+		  next = tangle->connections[here].forward;
+		  tangle->connections[here].forward = -1;
+		  tangle->status[here].status = PINNED;
+		  tangle->status[here].pin_wall = Z_L;
+		  continue;
+		}
+	      tangle->recalculate[here]++;
+	      here = next;
+	      next = tangle->connections[here].forward;
+	    }
+	  else //we are bellow and looking for the crossing point
+	    {
+	      if(lchk(next))
+		{
+		  seek_under = !seek_under;
+		  tangle->vnodes[here].p[2] = limit;
+		  tangle->recalculate[here]++;
+		  tangle->connections[here].reverse = -1;
+		  tangle->status[here].status = PINNED;
+		  tangle->status[here].pin_wall = Z_L;
+		  here = next;
+		  next = tangle->connections[here].forward;
+		  continue;
+		}
+	      tangle->recalculate[here]++;
+	      tangle->status[here].status = EMPTY;
+	      here = next;
+	      next = tangle->connections[here].forward;
+	    }
+	}
+    }
+#undef lchk
+}
+
 void write_vector(FILE *stream, struct vec3d *v)
 {
   fprintf(stream, "%.15g\t%.15g\t%.15g",

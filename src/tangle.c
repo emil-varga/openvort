@@ -369,6 +369,10 @@ void update_velocity(struct tangle_state *tangle, int k)
 
   tangle->vs[k] = lia_velocity(tangle, k);
   
+  struct vec3d evs;
+  get_vs(&tangle->vnodes[k], &evs);
+  vec3_add(&tangle->vs[k], &tangle->vs[k], &evs);
+
   for(m=0; m<tangle->N; ++m)
     {
       if(tangle->connections[m].forward == -1 ||

@@ -432,7 +432,7 @@ void update_velocity(struct tangle_state *tangle, int k)
 void update_velocities(struct tangle_state *tangle)
 {
   int i;
-  #pragma omp parallel private(i) num_threads(6)
+  #pragma omp parallel private(i) num_threads(global_num_threads)
     {
       #pragma omp for
       for(i=0; i<tangle->N; ++i)
@@ -537,15 +537,11 @@ void enforce_boundaries(struct tangle_state *tangle)
       face = out_of_box(tangle, &tangle->vnodes[k]);
       if(face >= 0)
 	  {
-	    printf("%d %g %g %g\n", face,
-		   tangle->vnodes[k].p[0],
-		   tangle->vnodes[k].p[1],
-		   tangle->vnodes[k].p[2]);
 	    //this should be only possible with periodic faces
 	    assert_msg(tangle->status[k].status != PINNED ||
 		       tangle->status[k].status != PINNED_SLIP,
 		       "pinned node outside of the box\n"
-		       "this should have been caut with reconnections")
+		       "this should have been caught with reconnections")
 	    while((face=out_of_box(tangle, &tangle->vnodes[k])) >= 0)
 	      tangle->vnodes[k] = periodic_shift(&tangle->vnodes[k], &tangle->box, face);
 	  }

@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <getopt.h>
+#include <math.h>
 
 #include <libconfig.h>
 
@@ -126,25 +127,6 @@ int setup_external_velocity(config_setting_t *v_conf_setting, struct v_conf_t **
 	  break;
       }
     }
-
-  printf("Using external velocity %s\n", (*v_conf)->name);
-  printf("With parameters:\n");
-  for(int k=0; k < (*v_conf)->n_params; ++k)
-    {
-      printf("%s = ", (*v_conf)->v_params[k].name);
-      switch((*v_conf)->v_params[k].type)
-      {
-	case scalar_param:
-	  printf("%g\n", (*v_conf)->v_params[k].value.scalar);
-	  break;
-	case vector_param:
-	  printf("(%g, %g, %g)\n", (*v_conf)->v_params[k].value.vector.p[0],
-		 (*v_conf)->v_params[k].value.vector.p[1],
-		 (*v_conf)->v_params[k].value.vector.p[2]);
-	  break;
-      }
-    }
-
   return 0;
 }
 
@@ -179,6 +161,22 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
   if(config_lookup_float(&cfg, "KAPPA", &dval))
     KAPPA = dval;
 
+  if(config_lookup_float(&cfg, "dt", &dval))
+    global_dt = dval;
+
+  if(config_lookup_float(&cfg, "dl_min", &dval))
+    global_dl_min = dval;
+  if(config_lookup_float(&cfg, "dl_max", &dval))
+    global_dl_max = dval;
+  if(config_lookup_int(&cfg, "small_loop_cutoff", &ival))
+    small_loop_cutoff = ival;
+  if(config_lookup_float(&cfg, "reconnection_angle_cutoff", &dval))
+    reconnection_angle_cutoff = M_PI/180.0 * dval;
+  if(config_lookup_int(&cfg, "frame_shots", &ival))
+    frame_shot = ival;
+
+  if(config_lookup_int(&cfg, "num_threads", &ival))
+    global_num_threads = ival;
 
   config_setting_t *vel_conf;
   vel_conf = config_lookup(&cfg, "vn_conf");
@@ -321,4 +319,52 @@ failure:
   return 0;
 }
 
-int setup_external_velocity(config_setting_t *v_conf_setting, struct v_conf_t **v_conf);
+void print_ev_config(struct v_conf_t **v_conf)
+{
+  printf("type = %s\n", (*v_conf)->name);
+  printf("With parameters:\n");
+  for(int k=0; k < (*v_conf)->n_params; ++k)
+    {
+      printf("%s = ", (*v_conf)->v_params[k].name);
+      switch((*v_conf)->v_params[k].type)
+	{
+	case scalar_param:
+  	  printf("%g\n", (*v_conf)->v_params[k].value.scalar);
+  	  break;
+  	case vector_param:
+  	  printf("(%g, %g, %g)\n", (*v_conf)->v_params[k].value.vector.p[0],
+  		 (*v_conf)->v_params[k].value.vector.p[1],
+  		 (*v_conf)->v_params[k].value.vector.p[2]);
+  	  break;
+        }
+      }
+}
+
+void print_config()
+{
+  printf("Normal fluid setup:\n");
+  print_ev_config(&vn_conf);
+
+  printf("Superfluid setup:\n");
+  print_ev_config(&vs_conf);
+
+  printf(
+      "time step                  = %g s\n"
+      "minimum distance           = %g cm\n"
+      "maximum distance           = %g cm\n"
+      "minimum reconnection angle = %g rad\n"
+      "alpha                      = %g\n"
+      "alpha_p                    = %g\n"
+      "small loop cutoff          = %d points\n"
+      "steps per frame            = %d\n"
+      "number of threads          = %d\n",
+      global_dt,
+      global_dl_min,
+      global_dl_max,
+      reconnection_angle_cutoff,
+      alpha,
+      alpha_p,
+      small_loop_cutoff,
+      frame_shot,
+      global_num_threads);
+}

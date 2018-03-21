@@ -24,5 +24,6 @@ extern char conf_file[];
 int parse_options(int argc, char **argv);
 int load_conf(const char *conf_file, struct tangle_state *tangle);
 int setup_init(const char *conf_file, struct tangle_state *tangle);
+void print_config();
 
 #endif /* CONFIGURATION_H */

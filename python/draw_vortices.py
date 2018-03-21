@@ -9,7 +9,7 @@ Created on Sun Oct 22 14:42:05 2017
 import numpy as np
 import matplotlib.pyplot as plt
 
-def draw_vortices(fn, plot_axes):
+def draw_vortices(fn, plot_axes, max_len=0.05):
     data = np.loadtxt(fn)
     x = data[:,1]
     y = data[:,2]
@@ -19,14 +19,27 @@ def draw_vortices(fn, plot_axes):
     vortex_idx = 0
     while np.any(vix == vortex_idx):
         ix = vix == vortex_idx
-        print(np.mean(z[ix]))
+        rs = np.column_stack((x[ix], y[ix], z[ix]))
+        for r, rn in zip(rs[:-1,:], rs[1:,:]):
+#            print(r, rn)
+            if np.linalg.norm(r - rn) < max_len:
+                plot_axes.plot([r[0], rn[0]],
+                               [r[1], rn[1]],
+                               [r[2], rn[2]],
+                               '-', color='red', lw=0.5)
+        if np.linalg.norm(rs[0,:] - rs[-1,:]) < max_len:
+            plot_axes.plot([rs[0,0], rs[-1,0]],
+                           [rs[0,1], rs[-1,1]],
+                           [rs[0,2], rs[-1,2]],
+                           '-', color='red', lw = 0.5)
 
-        plot_axes.plot(x[ix], y[ix], z[ix], '-', ms=3, lw=0.5,
-                       color = 'red')
+
+        #plot_axes.plot(x[ix], y[ix], z[ix], '.', ms=3, lw=0.5,
+        #               color = 'red')
         vortex_idx += 1
 
 if __name__ == '__main__':
     from mpl_toolkits.mplot3d import Axes3D
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    draw_vortices('../v1.dat', ax)
+    draw_vortices('../data_cf/frame0430.dat', ax)

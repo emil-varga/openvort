@@ -18,7 +18,7 @@ void euler_step2(struct tangle_state *result,
 
   for(k=0; k<tangle->N; ++k)
     {
-      if(tangle->connections[k].forward==-1)
+      if(tangle->status[k].status == EMPTY)
 	continue; //empty node
       struct vec3d move;
       if(!use_vel)
@@ -47,7 +47,16 @@ void rk4_step2(struct tangle_state *result,
 
   N = tangle->N;
   for(int k=0; k < 3; ++k)
-    create_tangle(&rk_state[k], N);
+    {
+      create_tangle(&rk_state[k], N);
+      //only copy the stuff we actualy need
+      rk_state[k].bimg = tangle->bimg;
+      for(int kk=0; kk < N; ++kk)
+	{
+	  rk_state[k].status[kk] = tangle->status[kk];
+	  rk_state[k].connections[kk] = tangle->connections[kk];
+	}
+    }
 
   //calculate k1
   euler_step2(&rk_state[0], tangle, dt/2, NULL);
@@ -86,7 +95,9 @@ void rk4_step2(struct tangle_state *result,
     }
 
   for(int k=0; k<3; ++k)
-    free_tangle(&rk_state[k]);
+    {
+      free_tangle(&rk_state[k]);
+    }
 }
 
 void rk4_step(struct tangle_state *tangle, double dt)

@@ -66,15 +66,15 @@ struct v_conf_t v_confs[] = {
         .name = "no flow",
         .fun = get_v_noflow,
         .n_params = 0,
-        .v_params = {{0,0}}
+        .v_params = {{0,0,{.scalar = 0}}}
     },
     {
 	.name = "spherical",
 	.fun = get_v_spherical,
 	.n_params = 2,
 	.v_params = {
-	    {"strength", scalar_param},
-	    {"cutoff", scalar_param}
+	    {"strength", scalar_param, {.scalar = 0}},
+	    {"cutoff", scalar_param, {.scalar = 0}}
 	}
     },
     {
@@ -82,25 +82,25 @@ struct v_conf_t v_confs[] = {
 	.fun = get_v_simple,
 	.n_params = 1,
 	.v_params = {
-	    {"external_v", vector_param}
+	    {"external_v", vector_param, {.scalar = 0}}
 	}
     },
     {
       .name = "",
       .fun = NULL,
       .n_params = 0,
-      .v_params = {{0,0}}
+      .v_params = {{0,0,{.scalar = 0}}}
     }
 };
 
-int get_v_noflow(const struct vec3d *where, struct vec3d *res, struct v_conf_t *vconf)
+int get_v_noflow(const struct vec3d *where __attribute__((unused)), struct vec3d *res, struct v_conf_t * v_conf __attribute__((unused)))
 {
   *res = vec3(0, 0, 0); //no flow
 
   return 0;
 }
 
-int get_v_simple(const struct vec3d *where, struct vec3d *res,  struct v_conf_t *vconf)
+int get_v_simple(const struct vec3d *where __attribute__((unused)), struct vec3d *res,  struct v_conf_t *vconf)
 {
   return get_v_param_vector(vconf, "simple", res);
 }

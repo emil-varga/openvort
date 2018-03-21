@@ -52,47 +52,41 @@ int main(int argc, char **argv)
       return EXIT_FAILURE;
     }
 
-  save_tangle("v0.dat", tangle);
   enforce_boundaries(tangle);
-  save_tangle("v1.dat", tangle);
 
-  const int Nshot = 10;
-  int shot = Nshot - 1;
+  int shot = frame_shot - 1;
   int frame = 0;
   int recs = 0;
   int nrec = 0;
 
   struct timespec t0, ti;
   clockid_t clock = CLOCK_MONOTONIC;
-
+  print_config();
   clock_gettime(clock, &t0);
   int Np = tangle_total_points(tangle);
+  double time = 0;
   for(int k=0; Np > 0; ++k)
     {
-      printf("Step %d, recs: %d, Np: %d\n", k, recs, Np);
+      printf("Step %d, time = %g, recs: %d, Np: %d\n", k, time, recs, Np);
       update_tangle(tangle);
-      check_integrity(tangle);
-      nrec = reconnect(tangle, 2.5e-3, DEG2RAD(5));
-      check_integrity(tangle);
-      eliminate_small_loops(tangle, 5);
-      check_integrity(tangle);
+      nrec = reconnect(tangle, global_dl_min, reconnection_angle_cutoff);
       recs += nrec;
-
+      eliminate_small_loops(tangle, small_loop_cutoff);
       if(!shot)
 	{
 	  //output_dir declared extern in configuration.h
 	  sprintf(filename, "%s/frame%04d.dat", output_dir, frame);
 	  save_tangle(filename, tangle);
 	  frame++;
-	  shot = Nshot;
+	  shot = frame_shot;
 	} 
-      rk4_step(tangle, 5e-5);
-      remesh(tangle, 1e-3, 5e-3);
+      rk4_step(tangle, global_dt);
+      remesh(tangle, global_dl_min, global_dl_max);
       enforce_boundaries(tangle);
 
-      check_integrity(tangle);
       Np = tangle_total_points(tangle);
       shot--;
+      time += global_dt;
     }
   clock_gettime(clock, &ti);
   printf("Elapsed seconds: %f\n", time_diff(&t0, &ti));

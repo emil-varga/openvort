@@ -28,7 +28,6 @@ void add_circle(struct tangle_state *tangle,
 {
   if(num_free_points(tangle) < Npoints)
     {
-      printf("overfilled tangle\n");
       return;
     }
   if(!Npoints)
@@ -43,10 +42,6 @@ void add_circle(struct tangle_state *tangle,
 
   vec3_mul(&u, &u, 1/vec3_d(&u));
   vec3_mul(&v, &v, 1/vec3_d(&v));
-
-  printf("u:(%f, %f, %f), v:(%f, %f, %f)\n",
-	 u.p[0], u.p[1], u.p[2],
-	 v.p[0], v.p[1], v.p[2]);
 
   first_point = -1;
   curr_point = -1;

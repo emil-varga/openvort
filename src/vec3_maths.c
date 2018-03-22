@@ -154,7 +154,7 @@ struct vec3d mirror_shift(const struct vec3d *v, const struct domain_box *box,
       break;
   }
 
-  mv.p[coord] = wall_pos - mv.p[coord];
+  mv.p[coord] = 2*wall_pos - mv.p[coord];
 
   return mv;
 }

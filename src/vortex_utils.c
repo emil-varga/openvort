@@ -132,24 +132,30 @@ void clip_at_wall(struct tangle_state *tangle)
 		  seek_under = !seek_under;
 		  tangle->vnodes[next].p[2] = limit;
 		  tangle->recalculate[here]++;
-		  here = next;
+		  tangle->recalculate[next]++;
+		  tmp = tangle->connections[next].forward;
+
+		  tangle->connections[next].forward = -1;
+		  tangle->status[next].status = PINNED;
+		  tangle->status[next].pin_wall = Z_L;
+
+		  here = tmp;
 		  next = tangle->connections[here].forward;
-		  tangle->connections[here].forward = -1;
-		  tangle->status[here].status = PINNED;
-		  tangle->status[here].pin_wall = Z_L;
 		  continue;
 		}
 	      tangle->recalculate[here]++;
+	      tangle->recalculate[next]++;
 	      here = next;
 	      next = tangle->connections[here].forward;
 	    }
 	  else //we are bellow and looking for the crossing point
 	    {
-	      if(lchk(next))
+	      if(lchk(next)) //the next is above
 		{
 		  seek_under = !seek_under;
 		  tangle->vnodes[here].p[2] = limit;
 		  tangle->recalculate[here]++;
+		  tangle->recalculate[next]++;
 		  tangle->connections[here].reverse = -1;
 		  tangle->status[here].status = PINNED;
 		  tangle->status[here].pin_wall = Z_L;
@@ -158,7 +164,9 @@ void clip_at_wall(struct tangle_state *tangle)
 		  continue;
 		}
 	      tangle->recalculate[here]++;
+	      tangle->recalculate[next]++;
 	      tangle->status[here].status = EMPTY;
+	      tangle->status[next].status = EMPTY;
 	      here = next;
 	      next = tangle->connections[here].forward;
 	    }
@@ -202,7 +210,7 @@ void save_tangle(const char *filename, struct tangle_state *tangle)
     {
       if(!visited[k])
 	{
-	  if(tangle->connections[k].forward < 0)
+	  if(tangle->status[k].status == EMPTY)
 	    {
 	      visited[k] = 1;
 	      continue;
@@ -215,9 +223,23 @@ void save_tangle(const char *filename, struct tangle_state *tangle)
 	      save_point(stream, vortex_idx, tangle, curr);
 	      visited[curr] = 1;
 	      curr = tangle->connections[curr].forward;
+	      if(curr < 0)
+		{
+		  curr = tangle->connections[first].reverse;
+		  while(tangle->connections[curr].reverse > 0)
+		    {
+		      save_point(stream, vortex_idx, tangle, curr);
+		      visited[curr] = 1;
+		      curr = tangle->connections[curr].reverse;
+		    }
+		  break;
+		}
 	    }
-	  save_point(stream, vortex_idx, tangle, curr);
-	  visited[curr] = 1;
+	  if(curr > 0)
+	    {
+	      save_point(stream, vortex_idx, tangle, curr);
+	      visited[curr] = 1;
+	    }
 	  vortex_idx++;
 	}
     }
@@ -236,13 +258,13 @@ int check_integrity(const struct tangle_state *tangle)
     {
       int next = tangle->connections[k].forward;
       int prev = tangle->connections[k].reverse;
-      if(next >= 0)
+      if(next >= 0 && tangle->status[k].status == FREE)
 	{
 	  if(k != tangle->connections[next].reverse)
 	    error("Forward connection broken %d %d %d\n", k, next,
 		  tangle->connections[next].reverse);
 	}
-      if(prev >= 0)
+      if(prev >= 0 && tangle->status[k].status == FREE)
 	{
 	  if( k!= tangle->connections[prev].forward)
 	    error("Reverse connection broken %d %d %d\n", k, prev,

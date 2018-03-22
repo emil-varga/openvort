@@ -16,6 +16,7 @@ void add_circle(struct tangle_state *tangle,
 		struct vec3d *center, struct vec3d *dir, double r,
 		int Npoints);
 void insert_random_loops(struct tangle_state *tangle, int N);
+void clip_at_wall(struct tangle_state *tangle);
 
 void save_tangle(const char *filename, struct tangle_state *tangle);
 

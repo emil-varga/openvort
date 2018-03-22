@@ -457,13 +457,13 @@ static inline int search_next_free(struct tangle_state *tangle)
 {
   //if something is already available, just return that
   if(tangle->next_free < tangle->N &&
-     tangle->connections[tangle->next_free].forward == -1)
+     tangle->status[tangle->next_free].status == EMPTY)
     return tangle->next_free++;
   
   //otherwise we have to search for it
 
   for(int k=0; k<tangle->N; ++k)
-    if(tangle->connections[k].forward == -1)
+    if(tangle->status[k].status == EMPTY)
       {
 	tangle->next_free = k+1;
 	return k;
@@ -524,7 +524,7 @@ static inline int out_of_box(const struct tangle_state *tangle, const struct vec
   if(z > bounds[Z_H])
     face = Z_H;
 
-  if(face > -1 && tangle->box.wall[face] == WALL_OPEN)
+  if(face > -1 && tangle->box.wall[face] != WALL_PERIODIC)
     face = -1;
 
   return face;
@@ -558,7 +558,7 @@ void remesh(struct tangle_state *tangle, double min_dist, double max_dist)
   int added = 0;
   for(int k=0; k<tangle->N; ++k)
     {
-      if(tangle->status[k].status == EMPTY ||
+      if(tangle->status[k].status == EMPTY  || tangle->status[k].status == PINNED || tangle->status[k].status == PINNED_SLIP ||
 	 tangle->connections[k].forward < 0 ||
 	 tangle->connections[k].reverse < 0) //empty or pinned point
 	continue;
@@ -598,7 +598,7 @@ void eliminate_small_loops(struct tangle_state *tangle, int loop_length)
 
   for(int k=0; k < tangle->N; ++k)
     {
-      if(tangle->connections[k].forward < 0 ||
+      if(tangle->status[k].status == EMPTY ||
 	 tangle->recalculate[k])
 	continue; //empty or visited point
 
@@ -638,7 +638,7 @@ void eliminate_small_loops(struct tangle_state *tangle, int loop_length)
 	   * the wall
 	  */
 	  next = here;
-	  while(tangle->connections[next].forward > 0)
+	  while(next > 0)
 	    {
 	      int tmp = next;
 	      next = tangle->connections[next].forward;

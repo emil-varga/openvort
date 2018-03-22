@@ -244,16 +244,28 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
     {
       tangle->bimg = wall_1_6;
       set_walls_full(tangle, WALL_PERIODIC);
+      tangle->box.wall[Z_L] = WALL_MIRROR;
+      tangle->box.wall[Z_H] = WALL_OPEN;
     }
   else if(strcmp(str, "wall-1-18") == 0)
     {
       tangle->bimg = wall_1_18;
       set_walls_full(tangle, WALL_PERIODIC);
+      tangle->box.wall[Z_L] = WALL_MIRROR;
+      tangle->box.wall[Z_H] = WALL_OPEN;
     }
   else if(strcmp(str, "wall-1-26") == 0)
     {
       tangle->bimg = wall_1_26;
       set_walls_full(tangle, WALL_PERIODIC);
+      tangle->box.wall[Z_L] = WALL_MIRROR;
+      tangle->box.wall[Z_H] = WALL_OPEN;
+    }
+  else if(strcmp(str, "wall-1-open") == 0)
+    {
+      tangle->bimg = wall_1_open;
+      set_walls_full(tangle, WALL_OPEN);
+      tangle->box.wall[Z_L] = WALL_MIRROR;
     }
   else if(strcmp(str, "open") == 0)
     {
@@ -303,12 +315,16 @@ int setup_init(const char *conf_file, struct tangle_state *tangle)
 	      fprintf(stderr, "Error: set the number of loops in config_file\n");
 	      goto failure;
 	    }
+	  if(tangle->box.wall[Z_L] == WALL_MIRROR)
+	    clip_at_wall(tangle);
 	}
       else if(strcmp(str, "one loop") == 0)
 	{
-	  struct vec3d c = vec3(0,0.05,-0.05);
-	  struct vec3d d = vec3(0,1,1);
+	  struct vec3d c = vec3(0,0,-0.1);
+	  struct vec3d d = vec3(1,0,0);
 	  add_circle(tangle, &c, &d, 0.05, 128);
+	  if(tangle->box.wall[Z_L] == WALL_MIRROR)
+	    clip_at_wall(tangle);
 	}//TODO: add more init modes
       else
 	{

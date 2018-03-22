@@ -552,7 +552,7 @@ void enforce_boundaries(struct tangle_state *tangle)
 }
 
 void remove_point(struct tangle_state *tangle, int point_idx);
-void add_point(struct tangle_state *tangle, int point_idx);
+int add_point(struct tangle_state *tangle, int point_idx);
 void remesh(struct tangle_state *tangle, double min_dist, double max_dist)
 {
   int added = 0;
@@ -582,7 +582,8 @@ void remesh(struct tangle_state *tangle, double min_dist, double max_dist)
       if( lf > max_dist ) //since we are adding between k and next, check only lf
 	{
 	  added++;
-	  add_point(tangle, k);
+	  int new_pt = add_point(tangle, k);
+	  update_tangent_normal(tangle, new_pt);
 	}
     }
   //we could have added points outside of the domain
@@ -664,7 +665,7 @@ void remove_point(struct tangle_state *tangle, int point_idx)
 
 
 //add a point between p and p+1 (p+1 in the sense of connections)
-void add_point(struct tangle_state *tangle, int p)
+int add_point(struct tangle_state *tangle, int p)
 {
   int next = tangle->connections[p].forward;
   int new_pt = get_tangle_next_free(tangle);
@@ -702,6 +703,7 @@ void add_point(struct tangle_state *tangle, int p)
   tangle->connections[new_pt].forward = next;
   tangle->connections[p].forward = new_pt;
   tangle->connections[next].reverse = new_pt;
+  return new_pt;
 }
 
 int tangle_total_points(struct tangle_state *tangle)

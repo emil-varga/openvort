@@ -86,7 +86,7 @@ failure:
   return 0;
 }
 
-int setup_external_velocity(config_setting_t *v_conf_setting, struct v_conf_t **v_conf)
+int setup_external_velocity(config_setting_t *v_conf_setting, struct v_conf_t *v_conf)
 {
   double dval;
   const char *str;
@@ -100,7 +100,8 @@ int setup_external_velocity(config_setting_t *v_conf_setting, struct v_conf_t **
     {
       if(strcmp(test->name, str) == 0)
 	{
-	  *v_conf = test;
+	  printf("found v_conf: %s %s\n", test->name, str);
+	  *v_conf = *test;
 	  break;
 	}
     }
@@ -108,20 +109,20 @@ int setup_external_velocity(config_setting_t *v_conf_setting, struct v_conf_t **
     return -1; //we did not find the requested config
 
   //we found the requested config, now load its parameters, if any
-  //TODO: erro checking
-  for(int k=0; k<(*v_conf)->n_params; ++k)
+  //TODO: error checking
+  for(int k=0; k<(v_conf)->n_params; ++k)
     {
-      switch((*v_conf)->v_params[k].type)
+      switch((v_conf)->v_params[k].type)
       {
 	case scalar_param:
-	  config_setting_lookup_float(v_conf_setting, (*v_conf)->v_params[k].name, &dval);
-	  (*v_conf)->v_params[k].value.scalar = dval;
+	  config_setting_lookup_float(v_conf_setting, (v_conf)->v_params[k].name, &dval);
+	  (v_conf)->v_params[k].value.scalar = dval;
 	  break;
 	case vector_param:
-	  vec_cfg = config_setting_lookup(v_conf_setting, (*v_conf)->v_params[k].name);
+	  vec_cfg = config_setting_lookup(v_conf_setting, (v_conf)->v_params[k].name);
 	  for(int j = 0; j<3; ++j)
 	    vval.p[j] = config_setting_get_float_elem(vec_cfg, j);
-	  (*v_conf)->v_params[k].value.vector = vval;
+	  (v_conf)->v_params[k].value.vector = vval;
 	  break;
 	default:
 	  break;
@@ -184,6 +185,8 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
   vel_conf = config_lookup(&cfg, "vn_conf");
   if(vel_conf && config_setting_type(vel_conf) == CONFIG_TYPE_GROUP)
     setup_external_velocity(vel_conf, &vn_conf);
+  printf("set up %s\n", vn_conf.name);
+
 
   vel_conf = config_lookup(&cfg, "vs_conf");
   if(vel_conf && config_setting_type(vel_conf) == CONFIG_TYPE_GROUP)
@@ -327,22 +330,22 @@ failure:
   return 0;
 }
 
-void print_ev_config(struct v_conf_t **v_conf)
+void print_ev_config(struct v_conf_t *v_conf)
 {
-  printf("type = %s\n", (*v_conf)->name);
+  printf("type = %s\n", (v_conf)->name);
   printf("With parameters:\n");
-  for(int k=0; k < (*v_conf)->n_params; ++k)
+  for(int k=0; k < (v_conf)->n_params; ++k)
     {
-      printf("%s = ", (*v_conf)->v_params[k].name);
-      switch((*v_conf)->v_params[k].type)
+      printf("%s = ", (v_conf)->v_params[k].name);
+      switch((v_conf)->v_params[k].type)
 	{
 	case scalar_param:
-  	  printf("%g\n", (*v_conf)->v_params[k].value.scalar);
+  	  printf("%g\n", (v_conf)->v_params[k].value.scalar);
   	  break;
   	case vector_param:
-  	  printf("(%g, %g, %g)\n", (*v_conf)->v_params[k].value.vector.p[0],
-  		 (*v_conf)->v_params[k].value.vector.p[1],
-  		 (*v_conf)->v_params[k].value.vector.p[2]);
+  	  printf("(%g, %g, %g)\n", (v_conf)->v_params[k].value.vector.p[0],
+  		 (v_conf)->v_params[k].value.vector.p[1],
+  		 (v_conf)->v_params[k].value.vector.p[2]);
   	  break;
         }
       }

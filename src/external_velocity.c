@@ -20,13 +20,13 @@
 
 int get_vn(const struct vec3d *where, struct vec3d *res)
 {
-  vn_conf->fun(where, res, vn_conf);
+  vn_conf.fun(where, res, &vn_conf);
   return 1;
 }
 
 int get_vs(const struct vec3d *where, struct vec3d *res)
 {
-  vs_conf->fun(where, res, vs_conf);
+  vs_conf.fun(where, res, &vs_conf);
   return 1;
 }
 
@@ -58,8 +58,8 @@ int get_v_param_vector(const struct v_conf_t *vconf, const char *name, struct ve
   return 0;
 }
 
-struct v_conf_t *vn_conf = &v_confs[0];
-struct v_conf_t *vs_conf = &v_confs[0];
+struct v_conf_t vn_conf;
+struct v_conf_t vs_conf;
 
 struct v_conf_t v_confs[] = {
     {
@@ -122,15 +122,16 @@ int get_v_spherical(const struct vec3d *where, struct vec3d *res, struct v_conf_
     return err;
 
   double r = vec3_d(where);
-  if(r < cutoff)
-    {
-      *res = vec3(0,0,0);
-      return 0;
-    }
+  double factor = exp( - (cutoff/r) *(cutoff/r));
+  //if(r < cutoff)
+  //  {
+  //    *res = vec3(0,0,0);
+  //    return 0;
+  //  }
 
   *res = *where;
   vec3_normalize(res);
-  vec3_mul(res, res, strength/(4*M_PI*r*r));
+  vec3_mul(res, res, strength/(4*M_PI*r*r)*factor);
 
   return 0;
 }

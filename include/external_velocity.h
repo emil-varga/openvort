@@ -36,8 +36,8 @@ struct v_conf_t {
 };
 
 extern struct v_conf_t v_confs[];
-extern struct v_conf_t *vn_conf;
-extern struct v_conf_t *vs_conf;
+extern struct v_conf_t vn_conf;
+extern struct v_conf_t vs_conf;
 
 int get_v_param_scalar(const struct v_conf_t *vconf, const char *name, double *res);
 int get_v_param_vector(const struct v_conf_t *vconf, const char *name, struct vec3d *res);

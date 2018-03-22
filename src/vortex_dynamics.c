@@ -218,6 +218,12 @@ int reconnect(struct tangle_state *tangle, double rec_dist, double rec_angle)
 	  if(vec3_dot(&dx, &dv) > 0)
 	    continue; //the points are getting further from each other
 
+	  //save the old connections because we might need them later
+	  int knext = tangle->connections[k].forward;
+	  int kprev = tangle->connections[k].reverse;
+	  int lnext = tangle->connections[l].forward;
+	  int lprev = tangle->connections[l].reverse;
+
 	  //angle is not too close and we can finally reconnect points k and l
 	  if(!do_reconnection(tangle, k, l))
 	    continue; //do_reconnect additionally checks if the total length doesn't increase
@@ -227,10 +233,14 @@ int reconnect(struct tangle_state *tangle, double rec_dist, double rec_angle)
 	  tangle->recalculate[k]++;
 	  tangle->recalculate[tangle->connections[k].forward]++;
 	  tangle->recalculate[tangle->connections[k].reverse]++;
+	  tangle->recalculate[knext]++;
+	  tangle->recalculate[kprev]++;
 
 	  tangle->recalculate[l]++;
 	  tangle->recalculate[tangle->connections[l].forward]++;
 	  tangle->recalculate[tangle->connections[l].reverse]++;
+	  tangle->recalculate[lnext]++;
+	  tangle->recalculate[lprev]++;
 
 	  Nrecs++;
 	  

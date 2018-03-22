@@ -172,6 +172,8 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
     small_loop_cutoff = ival;
   if(config_lookup_float(&cfg, "reconnection_angle_cutoff", &dval))
     reconnection_angle_cutoff = M_PI/180.0 * dval;
+  if(config_lookup_float(&cfg, "reconnection_distance", &dval))
+     rec_dist = dval;
   if(config_lookup_int(&cfg, "frame_shots", &ival))
     frame_shot = ival;
 
@@ -298,7 +300,13 @@ int setup_init(const char *conf_file, struct tangle_state *tangle)
 	      fprintf(stderr, "Error: set the number of loops in config_file\n");
 	      goto failure;
 	    }
-	} //TODO: add more init modes
+	}
+      else if(strcmp(str, "one loop") == 0)
+	{
+	  struct vec3d c = vec3(0,0.05,-0.05);
+	  struct vec3d d = vec3(0,1,1);
+	  add_circle(tangle, &c, &d, 0.05, 128);
+	}//TODO: add more init modes
       else
 	{
 	  fprintf(stderr, "Error: unknown initialization mode: %s\n", str);

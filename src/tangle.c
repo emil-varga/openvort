@@ -39,19 +39,19 @@ struct vec3d shifted(const struct image_tangle *shift, const struct tangle_state
       rs.p[0] = 2*tangle->box.bottom_left_back.p[0] - r->p[0];
       break;
     case X_H:
-      rs.p[0] = 2*tangle->box.top_right_front.p[0] + r->p[0];
+      rs.p[0] = 2*tangle->box.top_right_front.p[0] - r->p[0];
       break;
     case Y_L:
       rs.p[1] = 2*tangle->box.bottom_left_back.p[1] - r->p[1];
       break;
     case Y_H:
-      rs.p[1] = 2*tangle->box.top_right_front.p[1] + r->p[1];
+      rs.p[1] = 2*tangle->box.top_right_front.p[1] - r->p[1];
       break;
     case Z_L:
       rs.p[2] = 2*tangle->box.bottom_left_back.p[2] - r->p[2];
       break;
     case Z_H:
-      rs.p[2] = 2*tangle->box.top_right_front.p[2] + r->p[2];
+      rs.p[2] = 2*tangle->box.top_right_front.p[2] - r->p[2];
       break;
     default: //no reflection
       break;
@@ -76,6 +76,7 @@ void create_tangle(struct tangle_state *tangle, size_t n)
   for(size_t k=0; k<n; ++k)
     {
       tangle->status[k].status = EMPTY;
+      tangle->status[k].pin_wall = -1;
       tangle->connections[k].forward = -1;
       tangle->connections[k].reverse = -1;
     }
@@ -114,6 +115,7 @@ void expand_tangle(struct tangle_state *tangle, size_t n)
       for(k=old_n; k<n; ++k)
   	{
 	  tangle->status[k].status = EMPTY;
+	  tangle->status[k].pin_wall = -1;
   	  tangle->connections[k].forward = -1;
   	  tangle->connections[k].reverse = -1;
   	}
@@ -180,7 +182,6 @@ struct vec3d step_node(const struct tangle_state *tangle, int i, int where)
       error("Walking across empty node.");//we should never get here
       return vec3(0,0,0);
     }
-
   //to suppress warning
   return vec3(0,0,0);
 }
@@ -257,9 +258,9 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k)
 	  tangle->normals[k].p[i]  += s_2_cf[z]/d_s_diff[z]*ds[z].p[i];
 	}
     }
-  double x = vec3_d(&tangle->tangents[k]);
-  vec3_mul(&tangle->normals[k], &tangle->normals[k], 1/x/x);
-  vec3_normalize(&tangle->tangents[k]);
+  //double x = vec3_d(&tangle->tangents[k]);
+  //vec3_mul(&tangle->normals[k], &tangle->normals[k], 1/x/x);
+  //vec3_normalize(&tangle->tangents[k]);
 }
 
 /*
@@ -304,7 +305,7 @@ static inline struct vec3d segment_field(const struct tangle_state *tangle, size
   return segment_field1(&seg, r);
 }
 
-static inline struct vec3d lia_velocity(const struct tangle_state *tangle, size_t i)
+static inline struct vec3d lia_velocity(const struct tangle_state *tangle, int i)
 {
   const struct vec3d *p    = tangle->vnodes + i;
   struct vec3d next = step_node(tangle, i, +1);
@@ -402,6 +403,7 @@ void update_velocity(struct tangle_state *tangle, int k)
   vec3_add(&tangle->vs[k], &tangle->vs[k], &v_shift_total);
 
   tangle->vels[k] = tangle->vs[k];
+
 
   if(use_mutual_friction)
     {
@@ -527,6 +529,7 @@ static inline int out_of_box(const struct tangle_state *tangle, const struct vec
 
   return face;
 }
+
 void enforce_boundaries(struct tangle_state *tangle)
 {
   int face;
@@ -555,7 +558,9 @@ void remesh(struct tangle_state *tangle, double min_dist, double max_dist)
   int added = 0;
   for(int k=0; k<tangle->N; ++k)
     {
-      if(tangle->connections[k].forward < 0) //empty point
+      if(tangle->status[k].status == EMPTY ||
+	 tangle->connections[k].forward < 0 ||
+	 tangle->connections[k].reverse < 0) //empty or pinned point
 	continue;
 
       int next = tangle->connections[k].forward;
@@ -569,7 +574,9 @@ void remesh(struct tangle_state *tangle, double min_dist, double max_dist)
 
       //can we remove point k?
       if( (lf < min_dist || lr < min_dist) && (lf + lr) < max_dist )
+	{
 	  remove_point(tangle, k);
+	}
 
       //do we need an extra point?
       if( lf > max_dist ) //since we are adding between k and next, check only lf
@@ -662,6 +669,7 @@ void add_point(struct tangle_state *tangle, int p)
   int next = tangle->connections[p].forward;
   int new_pt = get_tangle_next_free(tangle);
   tangle->status[new_pt].status = FREE;
+  tangle->status[new_pt].pin_wall = -1;
 
   struct vec3d s0 = tangle->vnodes[p];
   struct vec3d s1 = tangle->vnodes[next];

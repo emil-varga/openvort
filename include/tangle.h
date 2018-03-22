@@ -16,7 +16,7 @@ typedef enum _ns_e {
 //status of the node and on which wall it is pinned
 typedef struct _ns {
   node_status_t status;
-  boundary_faces pin_wall;
+  int pin_wall;
 } node_status;
 
 #define PERIODIC_X 1

@@ -13,6 +13,7 @@ extern double global_dt;
 extern double global_dl_min;
 extern double global_dl_max;
 extern double reconnection_angle_cutoff;
+extern double rec_dist;
 
 extern int small_loop_cutoff;
 extern int frame_shot; //how often to save a snapshot of the tangle

@@ -22,15 +22,15 @@ void euler_step2(struct tangle_state *result,
 	continue; //empty node
       struct vec3d move;
       if(!use_vel)
-      {
-		  vec3_mul(&move, &tangle->vels[k], dt);
-		  vec3_add(&result->vnodes[k], &tangle->vnodes[k],
-			   &move);
-      } else {
-    	  vec3_mul(&move, &use_vel[k], dt);
-    	  vec3_add(&result->vnodes[k], &tangle->vnodes[k],
-    	  			   &move);
-      }
+	{
+	  vec3_mul(&move, &tangle->vels[k], dt);
+	  vec3_add(&result->vnodes[k], &tangle->vnodes[k], &move);
+	}
+      else
+	{
+	  vec3_mul(&move, &use_vel[k], dt);
+	  vec3_add(&result->vnodes[k], &tangle->vnodes[k], &move);
+	}
     }
 }
 
@@ -51,6 +51,7 @@ void rk4_step2(struct tangle_state *result,
       create_tangle(&rk_state[k], N);
       //only copy the stuff we actualy need
       rk_state[k].bimg = tangle->bimg;
+      rk_state[k].box = tangle->box;
       for(int kk=0; kk < N; ++kk)
 	{
 	  rk_state[k].status[kk] = tangle->status[kk];
@@ -58,18 +59,21 @@ void rk4_step2(struct tangle_state *result,
 	}
     }
 
-  //calculate k1
+  //calculate k2
   euler_step2(&rk_state[0], tangle, dt/2, NULL);
+  enforce_boundaries(&rk_state[0]);
   update_tangents_normals(&rk_state[0]);
   update_velocities(&rk_state[0]);
 
-  //calculate k2
+  //calculate k3
   euler_step2(&rk_state[1], tangle, dt/2, rk_state[0].vels);
+  enforce_boundaries(&rk_state[1]);
   update_tangents_normals(&rk_state[1]);
   update_velocities(&rk_state[1]);
 
-  //calculate k3
+  //calculate k4
   euler_step2(&rk_state[2], tangle, dt/2, rk_state[1].vels);
+  enforce_boundaries(&rk_state[2]);
   update_tangents_normals(&rk_state[2]);
   update_velocities(&rk_state[2]);
 

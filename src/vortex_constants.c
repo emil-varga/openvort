@@ -25,6 +25,7 @@ double global_dt = 1e-3;
 double global_dl_min = 1e-3;
 double global_dl_max = 5e-3;
 double reconnection_angle_cutoff = 0.087; //in radians, about 5 deg
+double rec_dist = 1e-3;
 
 int small_loop_cutoff = 5;
 int frame_shot = 100;

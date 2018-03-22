@@ -1,7 +1,6 @@
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
-#include <printf.h>
 #include <stddef.h>
 #include <math.h>
 #include <time.h>
@@ -53,6 +52,7 @@ int main(int argc, char **argv)
     }
 
   enforce_boundaries(tangle);
+  remesh(tangle, global_dl_min, global_dl_max);
 
   int shot = frame_shot - 1;
   int frame = 0;
@@ -69,7 +69,7 @@ int main(int argc, char **argv)
     {
       printf("Step %d, time = %g, recs: %d, Np: %d\n", k, time, recs, Np);
       update_tangle(tangle);
-      nrec = reconnect(tangle, global_dl_min, reconnection_angle_cutoff);
+      nrec = reconnect(tangle, rec_dist, reconnection_angle_cutoff);
       recs += nrec;
       eliminate_small_loops(tangle, small_loop_cutoff);
       if(!shot)
@@ -84,6 +84,11 @@ int main(int argc, char **argv)
       remesh(tangle, global_dl_min, global_dl_max);
       enforce_boundaries(tangle);
 
+      if(check_integrity(tangle))
+	{
+	  printf("Integrity error\n");
+	  return -1;
+	}
       Np = tangle_total_points(tangle);
       shot--;
       time += global_dt;

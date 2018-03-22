@@ -42,4 +42,4 @@ if __name__ == '__main__':
     from mpl_toolkits.mplot3d import Axes3D
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    draw_vortices('../data_cf/frame0430.dat', ax)
+    draw_vortices('../data_tst2/frame0122.dat', ax)

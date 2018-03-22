@@ -36,6 +36,9 @@ for fn in files:
     ax.set_ylim(-0.1, 0.1)
     ax.set_zlim(-0.1, 0.1)
     ax.set_aspect('equal')
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    ax.set_zlabel("z")
     fig.tight_layout()
     fig.savefig(fn.replace('.dat', '.png'), dpi=120)
 

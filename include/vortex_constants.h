@@ -21,4 +21,7 @@ extern int global_num_threads;
 
 extern int use_mutual_friction;
 
+extern int eliminate_origin_loops;
+extern double eliminate_loops_origin_cutoff;
+
 #endif //VORTEX_CONSTANTS_H

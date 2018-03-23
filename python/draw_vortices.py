@@ -34,7 +34,7 @@ def draw_vortices(fn, plot_axes, max_len=0.05):
 #                           '-', color='red', lw = 0.5)
 
 
-        plot_axes.plot(x[ix], y[ix], z[ix], '-', ms=3, lw=0.5,
+        plot_axes.plot(x[ix], y[ix], z[ix], '-', ms=2, lw=0.5,
                        color = 'red')
         vortex_idx += 1
 

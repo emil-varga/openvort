@@ -33,3 +33,7 @@ int global_num_threads = 4;
 
 //switch mutual friction on/off
 int use_mutual_friction = 1;
+
+//elimination of loops near the origin (for spherical flows)
+int eliminate_origin_loops = 0; //default off
+double eliminate_loops_origin_cutoff = 3e-2;

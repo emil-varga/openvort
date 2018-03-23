@@ -178,6 +178,11 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
   if(config_lookup_int(&cfg, "frame_shots", &ival))
     frame_shot = ival;
 
+  if(config_lookup_bool(&cfg, "eliminate_origin_loops", &ival))
+      eliminate_origin_loops = ival;
+  if(config_lookup_float(&cfg, "eliminate_loops_origin_cutoff", &dval))
+      eliminate_loops_origin_cutoff = dval;
+
   if(config_lookup_int(&cfg, "num_threads", &ival))
     global_num_threads = ival;
 
@@ -384,7 +389,9 @@ void print_config()
       "alpha_p                    = %g\n"
       "small loop cutoff          = %d points\n"
       "steps per frame            = %d\n"
-      "number of threads          = %d\n",
+      "number of threads          = %d\n"
+      "loop removal near origin   = %s\n"
+      "loop removal cutoff        = %g cm\n",
       global_dt,
       global_dl_min,
       global_dl_max,
@@ -393,5 +400,7 @@ void print_config()
       alpha_p,
       small_loop_cutoff,
       frame_shot,
-      global_num_threads);
+      global_num_threads,
+      eliminate_origin_loops ? "On" : "Off",
+      eliminate_loops_origin_cutoff);
 }

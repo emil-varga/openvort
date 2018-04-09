@@ -42,6 +42,27 @@ void set_walls_xy_periodic(struct tangle_state *tangle)
   tangle->box.wall[Z_L] = tangle->box.wall[Z_H] = WALL_OPEN;
 }
 
+int load_conf_vector(config_t *cfg, const char *name, struct vec3d *v)
+{
+  config_setting_t *vector;
+  vector = config_lookup(cfg, name);
+  if(vector && config_setting_type(vector) == CONFIG_TYPE_LIST)
+    {
+	*v = vec3(
+	    config_setting_get_float_elem(vector, 0),
+	    config_setting_get_float_elem(vector, 1),
+	    config_setting_get_float_elem(vector, 2)
+	  );
+    }
+  else
+    goto failure;
+
+  return 1;
+
+failure:
+  return 0;
+}
+
 int parse_options(int argc, char **argv)
 {
   int c;
@@ -325,9 +346,18 @@ int setup_init(const char *conf_file, struct tangle_state *tangle)
 	}
       else if(strcmp(str, "one loop") == 0)
 	{
-	  struct vec3d c = vec3(0,0,-0.1);
-	  struct vec3d d = vec3(1,0,0);
-	  add_circle(tangle, &c, &d, 0.05, 128);
+	  struct vec3d c;
+	  struct vec3d d;
+	  double r;
+	  int N;
+	  load_conf_vector(&cfg, "loop_center", &c);
+	  load_conf_vector(&cfg, "loop_dir", &d);
+	  if(!config_lookup_float(&cfg, "loop_r", &r))
+	    goto failure;
+	  if(!config_lookup_int(&cfg, "loop_N", &N))
+	    goto failure;
+	  add_circle(tangle, &c, &d, r, N);
+
 	  if(tangle->box.wall[Z_L] == WALL_MIRROR)
 	    clip_at_wall(tangle);
 	}//TODO: add more init modes

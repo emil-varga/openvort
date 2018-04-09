@@ -258,9 +258,9 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k)
 	  tangle->normals[k].p[i]  += s_2_cf[z]/d_s_diff[z]*ds[z].p[i];
 	}
     }
-  //double x = vec3_d(&tangle->tangents[k]);
-  //vec3_mul(&tangle->normals[k], &tangle->normals[k], 1/x/x);
-  //vec3_normalize(&tangle->tangents[k]);
+  double x = vec3_d(&tangle->tangents[k]);
+  vec3_mul(&tangle->normals[k], &tangle->normals[k], 1/x/x);
+  vec3_normalize(&tangle->tangents[k]);
 }
 
 /*
@@ -317,7 +317,7 @@ static inline struct vec3d lia_velocity(const struct tangle_state *tangle, int i
   double l_next = segment_len(&sf);
   double l_prev = segment_len(&sr);
 
-  double f = KAPPA*log(sqrt(l_next*l_prev)/VORTEX_WIDTH)/4/M_PI;
+  double f = KAPPA*log(2*sqrt(l_next*l_prev)/sqrt(M_E)/VORTEX_WIDTH)/4/M_PI;
 
   struct vec3d vv;
   vec3_cross(&vv, tangle->tangents+i, tangle->normals+i);

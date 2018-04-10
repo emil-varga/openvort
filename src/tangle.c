@@ -404,7 +404,6 @@ void update_velocity(struct tangle_state *tangle, int k)
 
   tangle->vels[k] = tangle->vs[k];
 
-
   if(use_mutual_friction)
     {
       struct vec3d tmp, dv;

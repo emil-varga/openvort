@@ -209,9 +209,11 @@ double vec3_ndot(const struct vec3d *u, const struct vec3d *v)
 void vec3_cross(struct vec3d *res,
 		const struct vec3d *u, const struct vec3d *v)
 {
-  res->p[0] = u->p[1] * v->p[2] - u->p[2] * v->p[1];
-  res->p[1] = u->p[2] * v->p[0] - u->p[0] * v->p[2];
-  res->p[2] = u->p[0] * v->p[1] - u->p[1] * v->p[0];
+  struct vec3d vv = *v;
+  struct vec3d uu = *u;
+  res->p[0] = uu.p[1] * vv.p[2] - uu.p[2] * vv.p[1];
+  res->p[1] = uu.p[2] * vv.p[0] - uu.p[0] * vv.p[2];
+  res->p[2] = uu.p[0] * vv.p[1] - uu.p[1] * vv.p[0];
 }
 
 void vec3_mul(struct vec3d *res,

@@ -53,6 +53,7 @@ int main(int argc, char **argv)
 
   enforce_boundaries(tangle);
   remesh(tangle, global_dl_min, global_dl_max);
+  update_tangle(tangle);
 
   int shot = frame_shot - 1;
   int frame = 0;
@@ -68,7 +69,6 @@ int main(int argc, char **argv)
   for(int k=0; Np > 0; ++k)
     {
       printf("Step %d, time = %g, recs: %d, Np: %d\n", k, time, recs, Np);
-      update_tangle(tangle);
       nrec = reconnect(tangle, rec_dist, reconnection_angle_cutoff);
       recs += nrec;
       eliminate_small_loops(tangle, small_loop_cutoff);
@@ -79,7 +79,8 @@ int main(int argc, char **argv)
 	  save_tangle(filename, tangle);
 	  frame++;
 	  shot = frame_shot;
-	} 
+	}
+      update_tangle(tangle);
       rk4_step(tangle, global_dt);
       remesh(tangle, global_dl_min, global_dl_max);
       enforce_boundaries(tangle);

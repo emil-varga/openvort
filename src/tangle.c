@@ -391,7 +391,6 @@ void update_velocity(struct tangle_state *tangle, int k)
 
   for(int j = 0; j < tangle->bimg.n; ++j)
     {
-      printf("agea\n");
       shift_r = shifted(&tangle->bimg.images[j], tangle, &tangle->vnodes[k]);
       v_shift = calculate_vs(tangle, shift_r, -1);
       if(tangle->bimg.images[j].reflect > -1) //mirror wall

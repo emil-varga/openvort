@@ -24,7 +24,7 @@ rse = []
 rcs = []
 ts = []
 vs_teor = []
-alphap = 1.766e-2
+alphap = 0.02
 #alphap=0
 
 a = 1e-8
@@ -66,14 +66,7 @@ f, ax = plt.subplots(1,1)
 ax.plot(rs, vs, '-o')
 ax.plot(rs, vs_teor, '--s')
 
+f, ax = plt.subplots(1,1)
 vs = np.array(vs)
 vs_teor = np.array(vs_teor)
-
-f, ax = plt.subplots(1,1)
-ax.plot(rs, 2*np.abs(vs_teor - vs)/(vs_teor + vs), '-x')
-
-f, ax = plt.subplots(1,1)
-ax.plot(rs, rcs, '-o')
-
-f, ax = plt.subplots(1,1)
-ax.plot(rs, rse, '-o')
+ax.plot(rs, 2*100*abs(vs - vs_teor)/(vs + vs_teor), '.')

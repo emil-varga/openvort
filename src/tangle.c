@@ -281,7 +281,7 @@ static inline struct vec3d segment_field1(struct segment *seg, struct vec3d r)
 
   //this can happen in periodic boundary conditions
   //TODO: the logic should be moved higher
-  if(denom < 1e-8)
+  if(lR < 1e-8 || lRp1 < 1e-8)
     return vec3(0, 0, 0);
 
   struct vec3d vv;
@@ -320,7 +320,7 @@ static inline struct vec3d lia_velocity(const struct tangle_state *tangle, int i
   double f = KAPPA*log(2*sqrt(l_next*l_prev)/sqrt(M_E)/VORTEX_WIDTH)/4/M_PI;
 
   struct vec3d vv;
-  vec3_cross(&vv, tangle->tangents+i, tangle->normals+i);
+  vec3_cross(&vv, &tangle->tangents[i], &tangle->normals[i]);
   vec3_mul(&vv, &vv, f);
 
   return vv;
@@ -340,8 +340,7 @@ struct vec3d calculate_vs_shift(struct tangle_state *tangle, struct vec3d r, int
     {
       if(tangle->connections[m].forward == -1   ||
 	 skip == m                              ||
-	 skip == tangle->connections[m].forward ||
-	 skip == tangle->connections[m].reverse)
+	 skip == tangle->connections[m].forward)
 	continue;
 
       struct vec3d ivs = segment_field(tangle, m, r);
@@ -378,8 +377,7 @@ void update_velocity(struct tangle_state *tangle, int k)
     {
       if(tangle->connections[m].forward == -1 ||
   	 m == k                               ||
-  	 m == tangle->connections[k].forward  ||
-  	 m == tangle->connections[k].reverse)
+  	 k == tangle->connections[m].forward)
   	continue;
       
       struct vec3d segment_vel = segment_field(tangle, m, tangle->vnodes[k]);
@@ -393,6 +391,7 @@ void update_velocity(struct tangle_state *tangle, int k)
 
   for(int j = 0; j < tangle->bimg.n; ++j)
     {
+      printf("agea\n");
       shift_r = shifted(&tangle->bimg.images[j], tangle, &tangle->vnodes[k]);
       v_shift = calculate_vs(tangle, shift_r, -1);
       if(tangle->bimg.images[j].reflect > -1) //mirror wall

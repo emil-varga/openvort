@@ -258,9 +258,9 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k)
 	  tangle->normals[k].p[i]  += s_2_cf[z]/d_s_diff[z]*ds[z].p[i];
 	}
     }
-  double x = vec3_d(&tangle->tangents[k]);
-  vec3_mul(&tangle->normals[k], &tangle->normals[k], 1/x/x);
-  vec3_normalize(&tangle->tangents[k]);
+  //double x = vec3_d(&tangle->tangents[k]);
+  //vec3_mul(&tangle->normals[k], &tangle->normals[k], 1/x/x);
+  //vec3_normalize(&tangle->tangents[k]);
 }
 
 /*
@@ -713,31 +713,36 @@ int add_point(struct tangle_state *tangle, int p)
   tangle->status[new_pt].status = FREE;
   tangle->status[new_pt].pin_wall = -1;
 
+  update_tangent_normal(tangle, p);
+  update_tangent_normal(tangle, next);
+
   struct vec3d s0 = tangle->vnodes[p];
   struct vec3d s1 = tangle->vnodes[next];
   struct segment seg = seg_pwrap(&s0, &s1, &tangle->box);
   s1 = seg.r2;
-
-  struct vec3d s0p = tangle->tangents[p];
-  struct vec3d s1p = tangle->tangents[next];
 
   struct vec3d s0pp = tangle->normals[p];
   struct vec3d s1pp = tangle->normals[next];
 
   double l = vec3_dist(&s0, &s1);
 
-  struct vec3d a, b, c, new;
+  struct vec3d a, b, new;
+
+  struct vec3d n;
+  vec3_add(&n, &s0pp, &s1pp);
+  vec3_mul(&n, &n, 0.5);
+  double R = 1/vec3_d(&n);
+  double delta = R - sqrt(R*R - l*l/4);
+
+  vec3_normalize(&n);
+  vec3_mul(&n, &n, -1);
+
   vec3_add(&a, &s0, &s1);
   vec3_mul(&a, &a, 0.5);
 
-  vec3_sub(&b, &s0p, &s1p);
-  vec3_mul(&b, &b, l/4);
-
-  vec3_add(&c, &s0pp, &s1pp);
-  vec3_mul(&c, &c, l*l/16);
+  vec3_mul(&b, &n, delta);
 
   vec3_add(&new, &a, &b);
-  vec3_add(&new, &new, &c);
 
   tangle->vnodes[new_pt] = new;
   tangle->connections[new_pt].reverse = p;

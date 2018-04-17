@@ -15,10 +15,10 @@ from glob import glob
 
 from draw_vortices import draw_vortices
 
-#data_dir = '/media/Raid/simulations/spherical_counterflow/T145/data_1mms@5mm_olr'
+data_dir = '/media/Raid/simulations/spherical_counterflow/T130/data_1mms@5mm_olr_fix3'
 #data_dir = '../data_cf'
 #data_dir = '/home/emil/DATA/data_1mms@5mm_olr'
-data_dir = '../data_oneloop'
+#data_dir = '../data_oneloop'
 
 files = glob(path.join(data_dir, 'frame*.dat'))
 files.sort()

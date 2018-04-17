@@ -123,11 +123,11 @@ int get_v_spherical(const struct vec3d *where, struct vec3d *res, struct v_conf_
 
   double r = vec3_d(where);
   double factor = exp( - (cutoff/r) *(cutoff/r));
-  //if(r < cutoff)
-  //  {
-  //    *res = vec3(0,0,0);
-  //    return 0;
-  //  }
+  if(r < 1e-8) //hard cutoff to prevent 1/0 SIGFPE
+    {
+      *res = vec3(0,0,0);
+      return 0;
+    }
 
   *res = *where;
   vec3_normalize(res);

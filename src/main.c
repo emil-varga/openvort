@@ -83,6 +83,7 @@ int main(int argc, char **argv)
       update_tangle(tangle);
       rk4_step(tangle, global_dt);
       remesh(tangle, global_dl_min, global_dl_max);
+      eliminate_small_loops(tangle, small_loop_cutoff);
       enforce_boundaries(tangle);
 
       /*if(check_integrity(tangle))

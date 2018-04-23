@@ -195,6 +195,25 @@ void save_point(FILE *stream, int vort_idx,
   fprintf(stream, "\n");
 }
 
+int load_point(FILE *stream, struct tangle_state *tangle, int idx)
+{
+  int vidx;
+  struct vec3d *pos     = &tangle->vnodes[idx];
+  struct vec3d *vel     = &tangle->vels[idx];
+  struct vec3d *tangent = &tangle->tangents[idx];
+  struct vec3d *normal  = &tangle->normals[idx];
+  int ret = fscanf(stream, "%d\t%lg\t%lg\t%lg\t%lg\t%lg\t%lg\t%lg\t%lg\t%lg\t%lg\t%lg\t%lg",
+	   &vidx,
+	   pos->p,     pos->p+1,     pos->p+2,
+	   vel->p,     vel->p+1,     vel->p+2,
+	   tangent->p, tangent->p+1, tangent->p+2,
+	   normal->p,  normal->p+1,  normal->p+2);
+  if(ret == EOF)
+    return -1;
+
+  return vidx;
+}
+
 void save_tangle(const char *filename, struct tangle_state *tangle)
 {
   int vortex_idx = 0;
@@ -246,6 +265,31 @@ void save_tangle(const char *filename, struct tangle_state *tangle)
 
   free(visited);
   fclose(stream);
+}
+
+int load_tangle(const char *filename, struct tangle_state *tangle)
+{
+  FILE *file = fopen(filename, "r");
+  int vidx = 0;
+  int lvidx;
+  int pidx = 0;
+  int pidx_start = 0;
+  while((lvidx = load_point(file, tangle, pidx)) != EOF)
+    {
+      if(lvidx != vidx)
+	{
+	  //we are on a new vortex
+	  vidx++;
+	  if(lvidx != vidx)
+	    return -1; //something's wrong
+
+	  //stitch together the vortex we finished
+	  tangle->connections[pidx_start].reverse = pidx - 1;
+	  tangle->connections[pidx-1].forward = pidx_start;
+	}
+    }
+
+  return 0;
 }
 
 int check_loop(const struct tangle_state *tangle, int *visited, int k);

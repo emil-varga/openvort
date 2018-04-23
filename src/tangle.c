@@ -639,13 +639,15 @@ void eliminate_small_loops(struct tangle_state *tangle, int loop_length)
 	   * the wall
 	  */
 	  next = here;
-	  while(next > 0)
+	  while(1)
 	    {
 	      int tmp = next;
 	      next = tangle->connections[next].forward;
 	      tangle->connections[tmp].forward = -1;
 	      tangle->connections[tmp].reverse = -1;
 	      tangle->status[tmp].status = EMPTY;
+	      if(next == here)
+		break;
 	    }
 	}
     }
@@ -730,7 +732,12 @@ int add_point(struct tangle_state *tangle, int p)
   vec3_add(&n, &s0pp, &s1pp);
   vec3_mul(&n, &n, 0.5);
   double R = 1/vec3_d(&n);
-  double delta = R - sqrt(R*R - l*l/4);
+  double dR = R*R - l*l/4;
+  //dR can become < 0 for sharp cusps
+  //simplest way to deal with it is to treat the s0 and s1 as sitting
+  //on opposite ends of a circle, for which dR = 0
+  //this does not preserve curvature, but this is below our resolution anyway
+  double delta = dR > 0 ? R - sqrt(dR) : R;
 
   vec3_normalize(&n);
   vec3_mul(&n, &n, -1);

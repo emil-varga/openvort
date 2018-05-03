@@ -24,4 +24,6 @@ extern int use_mutual_friction;
 extern int eliminate_origin_loops;
 extern double eliminate_loops_origin_cutoff;
 
+extern int eliminate_zaxis_loops;
+extern double eliminate_loops_zaxis_cutoff;
 #endif //VORTEX_CONSTANTS_H

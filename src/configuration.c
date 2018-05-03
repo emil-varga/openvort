@@ -204,6 +204,11 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
   if(config_lookup_float(&cfg, "eliminate_loops_origin_cutoff", &dval))
       eliminate_loops_origin_cutoff = dval;
 
+  if(config_lookup_bool(&cfg, "eliminate_zaxis_loops", &ival))
+    eliminate_zaxis_loops = ival;
+  if(config_lookup_float(&cfg, "eliminate_loops_origin_cutoff", &dval))
+    eliminate_loops_zaxis_cutoff = dval;
+
   if(config_lookup_int(&cfg, "num_threads", &ival))
     global_num_threads = ival;
 

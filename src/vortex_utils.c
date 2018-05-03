@@ -78,17 +78,21 @@ void add_circle(struct tangle_state *tangle,
 void insert_random_loops(struct tangle_state *tangle, int N)
 {
   //TODO: configurable range of loop radii?, number of points?
+  double D = 1;
   double Ls[3];
   for(int k = 0; k<3; ++k)
+    {
 	Ls[k] = tangle->box.top_right_front.p[k] - tangle->box.bottom_left_back.p[k];
+	if(Ls[k] < D)
+	  D = Ls[k];
+    }
 
-  const double D = (Ls[0] + Ls[1] + Ls[2]) / 3.0;
   const double rmin = 0.05*D;
   const double rmax = D;
 
   for(int k = 0; k<N; ++k)
     {
-      struct vec3d dir = vec3(drand48(), drand48(), drand48());
+      struct vec3d dir = vec3(drand48()-0.5, drand48()-0.5, drand48()-0.5);
       vec3_normalize(&dir);
 
       struct vec3d c;

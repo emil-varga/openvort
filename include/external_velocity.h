@@ -45,5 +45,7 @@ int get_v_param_vector(const struct v_conf_t *vconf, const char *name, struct ve
 int get_v_noflow(const struct vec3d *where, struct vec3d *res, struct v_conf_t *vconf);
 int get_v_simple(const struct vec3d *where, struct vec3d *res, struct v_conf_t *vconf);
 int get_v_spherical(const struct vec3d *where, struct vec3d *res, struct v_conf_t *vconf);
+int get_v_spherical_and_simple(const struct vec3d *where, struct vec3d *res, struct v_conf_t *vconf);
+int get_v_cylindrical(const struct vec3d *where, struct vec3d *res, struct v_conf_t *vconf);
 
 #endif /* INCLUDE_EXTERNAL_VELOCITY_H_ */

@@ -17,9 +17,14 @@ from draw_vortices import draw_vortices
 import sys
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
+    if len(sys.argv) < 2:
         print('provide data dir as the command line argument')
     data_dir = path.abspath(sys.argv[1])
+    
+    slow=False
+    if len(sys.argv) > 2:
+        if sys.argv[2] == "slow":
+            slow = True
 
     files = glob(path.join(data_dir, 'frame*.dat'))
     files.sort()
@@ -35,10 +40,11 @@ if __name__ == '__main__':
         print("{}/{}".format(i, len(files)))
 
         ax.clear()
-        draw_vortices(fn, ax)
-        ax.set_xlim(-0.1, 0.1)
-        ax.set_ylim(-0.1, 0.1)
-        ax.set_zlim(-0.1, 0.1)
+        ax.auto_scale_xyz(1, 1, 1)
+        draw_vortices(fn, ax, slow=slow)
+        ax.set_xlim(-0.25, 0.25)
+        ax.set_ylim(-0.25, 0.25)
+        ax.set_zlim(-0.25, 0.25)
         ax.set_aspect('equal')
         ax.set_xlabel("x")
         ax.set_ylabel("y")

@@ -86,6 +86,25 @@ struct v_conf_t v_confs[] = {
 	}
     },
     {
+	.name = "spherical and simple",
+	.fun = get_v_spherical_and_simple,
+	.n_params = 3,
+	.v_params = {
+	    {"external_v", vector_param, {.scalar = 0}},
+	    {"strength", scalar_param, {.scalar = 0}},
+	    {"cutoff", scalar_param, {.scalar = 0}}
+	}
+    },
+    {
+	.name = "cylindrical",
+	.fun = get_v_cylindrical,
+	.n_params = 2,
+	.v_params = {
+	    {"strength", scalar_param, {.scalar = 0}},
+	    {"cutoff", scalar_param, {.scalar = 0}}
+	}
+    },
+    {
       .name = "",
       .fun = NULL,
       .n_params = 0,
@@ -135,5 +154,40 @@ int get_v_spherical(const struct vec3d *where, struct vec3d *res, struct v_conf_
   vec3_normalize(res);
   vec3_mul(res, res, strength/(4*M_PI*r*r)*factor);
 
+  return 0;
+}
+
+int get_v_spherical_and_simple(const struct vec3d *where, struct vec3d *res, struct v_conf_t *vconf)
+{
+  //TODO
+  return 0;
+}
+
+int get_v_cylindrical(const struct vec3d *where, struct vec3d *res, struct v_conf_t *vconf)
+{
+  //strength is meant per unit length
+  double strength;
+  double cutoff;
+  int err;
+  if(!(err = get_v_param_scalar(vconf, "strength", &strength)))
+    return err;
+  if(!(err = get_v_param_scalar(vconf, "cutoff", &cutoff)))
+    return err;
+
+  //the cylinder is oriented along the z-axis
+  double r = sqrt(where->p[0]*where->p[0] + where->p[1]*where->p[1]);
+  double attn = (cutoff/r)*(cutoff/r);
+
+  if(r < 1e-8 || attn > 100)
+    {
+      *res = vec3(0, 0, 0);
+      return 0;
+    }
+  double factor = exp(-attn);
+
+  *res = *where;
+  res->p[2] = 0;
+  vec3_normalize(res);
+  vec3_mul(res, res, strength/(2*M_PI*r)*factor);
   return 0;
 }

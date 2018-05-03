@@ -37,3 +37,7 @@ int use_mutual_friction = 1;
 //elimination of loops near the origin (for spherical flows)
 int eliminate_origin_loops = 0; //default off
 double eliminate_loops_origin_cutoff = 3e-2;
+
+//similar to the spherical case, but for cylinder around zaxis
+int eliminate_zaxis_loops = 0;
+double eliminate_loops_zaxis_cutoff = 2e-2;

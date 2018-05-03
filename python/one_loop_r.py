@@ -63,8 +63,13 @@ for fn in files:
 
 
 f, ax = plt.subplots(1,1)
-ax.plot(rs, vs, '-o')
-ax.plot(rs, vs_teor, '--s')
+ax.plot(rs, vs, 'o', label = 'numerics, alpha = 0.1, alphap = 0.2')
+ax.plot(rs, vs_teor, '-', lw=3, label='mf-corrected theory, alphap = 0.2')
+ax.plot(rs, np.array(vs_teor)/(1-alphap), '--', lw=3, label='theory, no mf')
+ax.legend(loc='best')
+ax.set_xlabel('radius (cm)')
+ax.set_ylabel('velocity (cm/s)')
+f.tight_layout()
 
 f, ax = plt.subplots(1,1)
 vs = np.array(vs)

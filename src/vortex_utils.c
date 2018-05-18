@@ -303,7 +303,7 @@ int load_tangle(const char *filename, struct tangle_state *tangle)
   int current_vidx; //index of vortex we are loading now
   int pidx = 0; //index of position to store a loaded point
   int pidx_start = 0; //where does the vortex begin
-  while((current_vidx = load_point(file, tangle, pidx)) != EOF)
+  while((current_vidx = load_point(file, tangle, pidx)) >= 0)
     {
       tangle->connections[pidx].reverse = pidx - 1;
       tangle->connections[pidx].forward = pidx + 1;

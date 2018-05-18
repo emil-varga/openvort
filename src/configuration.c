@@ -32,6 +32,11 @@
 #include "external_velocity.h"
 
 #define PATH_LEN 256
+
+//whether and from what file are we restarting the calculation
+static int restart = 0;
+static char restart_path[PATH_LEN];
+
 //+1 for the \0
 char output_dir[PATH_LEN+1];
 char conf_file[PATH_LEN+1];
@@ -181,36 +186,39 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
   double dval;
   const char *str;
 
-  //setup general properties
+  //general properties
+  if(config_lookup_int(&cfg, "frame_shots", &ival))
+    frame_shot = ival;
+  if(config_lookup_float(&cfg, "KAPPA", &dval))
+      KAPPA = dval;
+  if(config_lookup_int(&cfg, "num_threads", &ival))
+      global_num_threads = ival;
 
+  //mutual friction
   if(config_lookup_bool(&cfg, "use_mutual_friction", &ival))
     use_mutual_friction = ival;
-
   if(config_lookup_float(&cfg, "alpha", &dval))
     alpha = dval;
-
   if(config_lookup_float(&cfg, "alpha_p", &dval))
     alpha_p = dval;
 
-  if(config_lookup_float(&cfg, "KAPPA", &dval))
-    KAPPA = dval;
-
+  //resolution
   if(config_lookup_float(&cfg, "dt", &dval))
-    global_dt = dval;
-
+      global_dt = dval;
   if(config_lookup_float(&cfg, "dl_min", &dval))
     global_dl_min = dval;
   if(config_lookup_float(&cfg, "dl_max", &dval))
     global_dl_max = dval;
+
+  //reconnections and small loop cutoff
   if(config_lookup_int(&cfg, "small_loop_cutoff", &ival))
     small_loop_cutoff = ival;
   if(config_lookup_float(&cfg, "reconnection_angle_cutoff", &dval))
     reconnection_angle_cutoff = M_PI/180.0 * dval;
   if(config_lookup_float(&cfg, "reconnection_distance", &dval))
      rec_dist = dval;
-  if(config_lookup_int(&cfg, "frame_shots", &ival))
-    frame_shot = ival;
 
+  //spherical and cylindrical cutoff
   if(config_lookup_bool(&cfg, "eliminate_origin_loops", &ival))
       eliminate_origin_loops = ival;
   if(config_lookup_float(&cfg, "eliminate_loops_origin_cutoff", &dval))
@@ -218,18 +226,14 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
 
   if(config_lookup_bool(&cfg, "eliminate_zaxis_loops", &ival))
     eliminate_zaxis_loops = ival;
-  if(config_lookup_float(&cfg, "eliminate_loops_origin_cutoff", &dval))
+  if(config_lookup_float(&cfg, "eliminate_loops_zaxis_cutoff", &dval))
     eliminate_loops_zaxis_cutoff = dval;
 
-  if(config_lookup_int(&cfg, "num_threads", &ival))
-    global_num_threads = ival;
-
+  //external velocity configuration
   config_setting_t *vel_conf;
   vel_conf = config_lookup(&cfg, "vn_conf");
   if(vel_conf && config_setting_type(vel_conf) == CONFIG_TYPE_GROUP)
     setup_external_velocity(vel_conf, &vn_conf);
-  printf("set up %s\n", vn_conf.name);
-
 
   vel_conf = config_lookup(&cfg, "vs_conf");
   if(vel_conf && config_setting_type(vel_conf) == CONFIG_TYPE_GROUP)
@@ -237,23 +241,12 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
 
   //setup the domain box size
 
-  config_setting_t *domain, *point;
+  config_setting_t *domain;
   domain = config_lookup(&cfg, "domain");
   if(domain && config_setting_type(domain) == CONFIG_TYPE_LIST)
     {
-	  point = config_setting_get_elem(domain, 0);
-	  tangle->box.bottom_left_back = vec3(
-	      config_setting_get_float_elem(point, 0),
-	      config_setting_get_float_elem(point, 1),
-	      config_setting_get_float_elem(point, 2)
-	      );
-
-	  point = config_setting_get_elem(domain, 1);
-	  tangle->box.top_right_front = vec3(
-	      config_setting_get_float_elem(point, 0),
-	      config_setting_get_float_elem(point, 1),
-	      config_setting_get_float_elem(point, 2)
-	      );
+	  load_conf_vector(&cfg, "domain.[0]", &(tangle->box.bottom_left_back));
+	  load_conf_vector(&cfg, "domain.[1]", &(tangle->box.top_right_front));
     }
   else
     {
@@ -345,6 +338,7 @@ int setup_init(const char *conf_file, struct tangle_state *tangle)
     }
 
   const char *str;
+  char *path;
   int ival;
 
   if(config_lookup_string(&cfg, "init_mode", &str))
@@ -377,8 +371,14 @@ int setup_init(const char *conf_file, struct tangle_state *tangle)
 
 	  if(tangle->box.wall[Z_L] == WALL_MIRROR)
 	    clip_at_wall(tangle);
-	}//TODO: add more init modes
-      else
+	}
+      else if(strcmp(str, "restart") == 0)
+	{
+	  config_lookup_string(&cfg, "init_file", &path);
+	  strncpy(restart_path, path, PATH_LEN);
+	  load_tangle(restart_path, tangle);
+	}
+      else//TODO: add more init modes
 	{
 	  fprintf(stderr, "Error: unknown initialization mode: %s\n", str);
 	  goto failure;

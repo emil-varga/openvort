@@ -234,6 +234,8 @@ int load_point(FILE *stream, struct tangle_state *tangle, int idx)
   if(ret == EOF)
     return -1;
 
+  tangle->status[idx].status = FREE;
+
   return vidx;
 }
 
@@ -290,26 +292,40 @@ void save_tangle(const char *filename, struct tangle_state *tangle)
   fclose(stream);
 }
 
+/*
+ * Loads a tangle from a file.
+ * TODO: does not support walls yet, only closed loops
+ */
 int load_tangle(const char *filename, struct tangle_state *tangle)
 {
   FILE *file = fopen(filename, "r");
-  int vidx = 0;
-  int lvidx;
-  int pidx = 0;
-  int pidx_start = 0;
-  while((lvidx = load_point(file, tangle, pidx)) != EOF)
+  int vidx = 0; //vortex index
+  int current_vidx; //index of vortex we are loading now
+  int pidx = 0; //index of position to store a loaded point
+  int pidx_start = 0; //where does the vortex begin
+  while((current_vidx = load_point(file, tangle, pidx)) != EOF)
     {
-      if(lvidx != vidx)
+      tangle->connections[pidx].reverse = pidx - 1;
+      tangle->connections[pidx].forward = pidx + 1;
+
+      if(current_vidx != vidx)
 	{
 	  //we are on a new vortex
+	  //stitch together the vortex we finished
+	  tangle->connections[pidx_start].reverse = pidx-1;
+	  tangle->connections[pidx-1].forward = pidx_start;
+
+	  //move on to the next
 	  vidx++;
-	  if(lvidx != vidx)
+	  pidx_start = pidx;
+	  if(current_vidx != vidx)
 	    return -1; //something's wrong
 
-	  //stitch together the vortex we finished
-	  tangle->connections[pidx_start].reverse = pidx - 1;
-	  tangle->connections[pidx-1].forward = pidx_start;
 	}
+
+      pidx++;
+      if(pidx > tangle->N - 1)
+      	expand_tangle(tangle, 2*tangle->N);
     }
 
   return 0;

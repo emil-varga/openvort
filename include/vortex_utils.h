@@ -38,7 +38,7 @@ void insert_random_loops(struct tangle_state *tangle, int N);
 void clip_at_wall(struct tangle_state *tangle);
 
 void save_tangle(const char *filename, struct tangle_state *tangle);
-void load_tangle(const char *filename, struct tangle_state *tangle);
+int load_tangle(const char *filename, struct tangle_state *tangle);
 
 int check_integrity(const struct tangle_state *tangle);
 int is_empty(const struct tangle_state *tangle, int k);

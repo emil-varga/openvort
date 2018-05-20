@@ -338,7 +338,7 @@ int setup_init(const char *conf_file, struct tangle_state *tangle)
     }
 
   const char *str;
-  char *path;
+  const char *path;
   int ival;
 
   if(config_lookup_string(&cfg, "init_mode", &str))

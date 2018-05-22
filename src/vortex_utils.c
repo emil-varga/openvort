@@ -328,6 +328,10 @@ int load_tangle(const char *filename, struct tangle_state *tangle)
       	expand_tangle(tangle, 2*tangle->N);
     }
 
+  //stitch the last vortex together because the inner if never ran
+  tangle->connections[pidx_start].reverse = pidx-1;
+  tangle->connections[pidx-1].forward = pidx_start;
+
   return 0;
 }
 

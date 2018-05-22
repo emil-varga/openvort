@@ -138,7 +138,6 @@ int setup_external_velocity(config_setting_t *v_conf_setting, struct v_conf_t *v
     {
       if(strcmp(test->name, str) == 0)
 	{
-	  printf("found v_conf: %s %s\n", test->name, str);
 	  *v_conf = *test;
 	  break;
 	}
@@ -401,32 +400,38 @@ failure:
 void print_ev_config(struct v_conf_t *v_conf)
 {
   printf("type = %s\n", (v_conf)->name);
-  printf("With parameters:\n");
-  for(int k=0; k < (v_conf)->n_params; ++k)
+  if(v_conf->n_params > 0)
     {
-      printf("%s = ", (v_conf)->v_params[k].name);
-      switch((v_conf)->v_params[k].type)
+      printf("With parameters:\n");
+      for(int k=0; k < (v_conf)->n_params; ++k)
 	{
-	case scalar_param:
-  	  printf("%g\n", (v_conf)->v_params[k].value.scalar);
-  	  break;
-  	case vector_param:
-  	  printf("(%g, %g, %g)\n", (v_conf)->v_params[k].value.vector.p[0],
-  		 (v_conf)->v_params[k].value.vector.p[1],
-  		 (v_conf)->v_params[k].value.vector.p[2]);
-  	  break;
-        }
-      }
+	  printf("%s = ", (v_conf)->v_params[k].name);
+	  switch((v_conf)->v_params[k].type)
+	    {
+	    case scalar_param:
+	      printf("%g\n", (v_conf)->v_params[k].value.scalar);
+	      break;
+	    case vector_param:
+	      printf("(%g, %g, %g)\n", (v_conf)->v_params[k].value.vector.p[0],
+		     (v_conf)->v_params[k].value.vector.p[1],
+		     (v_conf)->v_params[k].value.vector.p[2]);
+	      break;
+	    }
+	  }
+    }
 }
 
 void print_config()
 {
-  printf("Normal fluid setup:\n");
+  printf("###########     Normal fluid setup     ###########\n");
   print_ev_config(&vn_conf);
+  printf("##################################################\n\n");
 
-  printf("Superfluid setup:\n");
+  printf("###########     Superfluid setup       ###########\n");
   print_ev_config(&vs_conf);
+  printf("##################################################\n\n");
 
+  printf("###########     Simulation parameters  ###########\n")
   printf(
       "time step                  = %g s\n"
       "minimum distance           = %g cm\n"

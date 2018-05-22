@@ -69,6 +69,7 @@ int main(int argc, char **argv)
       return EXIT_FAILURE;
     }
 
+  eliminate_small_loops(tangle, small_loop_cutoff);
   enforce_boundaries(tangle);
   remesh(tangle, global_dl_min, global_dl_max);
   update_tangle(tangle);

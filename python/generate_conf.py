@@ -1,46 +1,70 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Fri May 18 18:07:11 2018
+Copyright (C) 2018 Emil Varga <varga.emil@gmail.com>
 
-@author: emil
+This file is part of OpenVort.
+
+OpenVort is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+OpenVort is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-config_template = """
-domain = ([-0.05, -0.05, -0.05], [0.05, 0.05, 0.05]);
+import tcal
 
-boundaries = "open";
+config_template_general = """
+domain = ([-{D}, -{D}, -{D}], [{D}, {D}, {D}]);
 
-use_mutual_friction = True;
-alpha = 0.034;
-alpha_p = 1.383e-2;
+boundaries = "{boundary}";
 
-frame_shots = 1;
-dt = 1e-4; #seconds
-dl_min = 1e-3; #cm
-dl_max = 2e-3; #cm
-small_loop_cutoff = 5; #points
-reconnection_angle_cutoff = 5; #degrees
-reconnection_distance = 2e-3;
-num_threads = 4
-eliminate_origin_loops = True;
-eliminate_loops_origin_cutoff = 2e-2
+use_mutual_friction = {use_mf};
+alpha = {alpha};
+alpha_p = {alphap};
 
-init_mode = "restart";
-init_file = "T130/data_1mms@5mm_olr_fix4/frame6000.dat"
-
-#vns = 0.1 cm/s 5 mm away from the origin
-
-vn_conf = {
-        type     = "no flow";
-        strength = 0.300044613;
-        cutoff   = 2e-2;
-};
-
-vs_conf = {
-        type     = "no flow";
-        strength = -0.014114653;
-        cutoff   = 2e-2;
-};
+frame_shots = {frame_shots};
+dt = {dt}; #seconds
+dl_min = {dl_min}; #cm
+dl_max = {dl_max}; #cm
+small_loop_cutoff = {small_cutoff}; #points
+reconnection_angle_cutoff = {rec_angle}; #degrees
+reconnection_distance = {rec_d};
+num_threads = {nthreads}
+eliminate_origin_loops = {origin_removal};
+eliminate_loops_origin_cutoff = {origin_removal_cutoff};
 """
 
+def generate_v_conf(vnvs, flow_type, parameters):
+    v_conf = "{}_conf = {{\n\ttype = \"{}\";".format(vnvs, flow_type)
+
+    for p in parameters:
+        v_conf += '\n\t{} = {};'.format(p, parameters[p])
+    v_conf += '\n};'
+
+    return v_conf
+
+def generate_init_conf(init_type, init_parameters):
+    init_conf = "init_mode = {};".format(init_type)
+
+    for p in init_parameters:
+        init_conf += "\n{} = {};".format(p, init_parameters[p])
+
+    return init_conf
+
+def generate_general_conf(D = 0.05, boundary = 'open', use_mf = True, alpha = 0.1, alphap = 0.01,
+                          frame_shots = 5, dt = 1e-4, dl_min = 1e-3, dl_max = 2e-3,
+                          small_cutoff = 5, rec_angle = 5, rec_d = 2e-3,
+                          nthreads = 4,
+                          eliminate_origin_loops = False, origin_removal_cutoff = 2e-2):
+
+    return config_template_general.format(D=0.1)
+
+print(generate_v_conf('vn', 'spherical', {'str':10, 'cutoff':5}))

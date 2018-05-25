@@ -1,9 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Sun Oct 22 13:50:04 2017
+Copyright (C) 2018 Emil Varga <varga.emil@gmail.com>
 
-@author: emil
+This file is part of OpenVort.
+
+OpenVort is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+OpenVort is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 
@@ -20,7 +33,7 @@ if __name__ == '__main__':
     if len(sys.argv) < 2:
         print('provide data dir as the command line argument')
     data_dir = path.abspath(sys.argv[1])
-    
+
     slow=False
     if len(sys.argv) > 2:
         if sys.argv[2] == "slow":

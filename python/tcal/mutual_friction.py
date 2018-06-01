@@ -19,6 +19,9 @@ alpha_data = data[:,3]
 alphap_data = data[:,4]
 
 B = interp.InterpolatedUnivariateSpline(T_data, B_data, k = 1)
-Bp = interp.InterpolatedUnivariateSpline(T_data, B_data, k = 1)
-alpha = interp.InterpolatedUnivariateSpline(T_data, B_data, k = 1)
-alphap = interp.InterpolatedUnivariateSpline(T_data, B_data, k = 1)
+Bp = interp.InterpolatedUnivariateSpline(T_data, Bp_data, k = 1)
+alpha = interp.InterpolatedUnivariateSpline(T_data, alpha_data, k = 3)
+alphap = interp.InterpolatedUnivariateSpline(T_data, alphap_data, k = 3)
+
+if __name__ == '__main__':
+    print(alpha(1.65), alphap(1.65))

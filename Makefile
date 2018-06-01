@@ -18,7 +18,7 @@
 #####################################################################
 
 CC=gcc -fopenmp
-CFLAGS=  -O0 `gsl-config --cflags` -fsanitize=undefined -fsanitize=float-divide-by-zero -fsanitize=leak\
+CFLAGS=  -O2 `gsl-config --cflags` -fsanitize=undefined -fsanitize=float-divide-by-zero -fsanitize=leak\
          `pkg-config --cflags libconfig`
 #CFLAGS = -O2 `pkg-config --cflags libconfig` `gsl-config --cflags`
 DEBUG = -Wall -Wextra -pedantic -ggdb -D_DEBUG_

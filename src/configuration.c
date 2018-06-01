@@ -431,7 +431,7 @@ void print_config()
   print_ev_config(&vs_conf);
   printf("##################################################\n\n");
 
-  printf("###########     Simulation parameters  ###########\n")
+  printf("###########     Simulation parameters  ###########\n");
   printf(
       "time step                  = %g s\n"
       "minimum distance           = %g cm\n"

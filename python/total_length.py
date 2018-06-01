@@ -24,13 +24,13 @@ import matplotlib.pyplot as plt
 from glob import glob
 import os.path as path
 
-data_dir = '../data_spherical'
+data_dir = '/media/Raid/simulations/spherical_counterflow/T130/data_1mms@5mm_olr_fix4_decay'
 
 files = glob(path.join(data_dir, 'frame*.dat'))
 files.sort()
 
 lengths = []
-files = files[:]
+files = files[::100]
 
 for fn in files:
     print(fn)

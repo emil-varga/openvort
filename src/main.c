@@ -85,6 +85,7 @@ int main(int argc, char **argv)
   clock_gettime(clock, &t0);
   int Np = tangle_total_points(tangle);
   double time = 0;
+  fflush(stdout);
   for(int k=0; Np > 0; ++k)
     {
       printf("Step %d, time = %g, recs: %d, Np: %d\n", k, time, recs, Np);
@@ -113,6 +114,7 @@ int main(int argc, char **argv)
       Np = tangle_total_points(tangle);
       shot--;
       time += global_dt;
+      fflush(stdout);
     }
   clock_gettime(clock, &ti);
   printf("Elapsed seconds: %f\n", time_diff(&t0, &ti));

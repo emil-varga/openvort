@@ -12,7 +12,7 @@ from .soft import s
 from .c_T import c
 from .mutual_friction import B, Bp, alpha, alphap
 
-from .schwarz_coefs import c1, c2, Il, alpha
+#from .schwarz_coefs import c1, c2, Il, alpha
 
 tp = get_T_interpolant()
 
@@ -24,3 +24,6 @@ def vs(A, T, Q):
 
 def vns(A, T, Q):
     return abs(vn(A, T, Q)) + abs(vs(A, T, Q))
+
+if __name__ == '__main__':
+    print(alpha(1.65), alphap(1.65))

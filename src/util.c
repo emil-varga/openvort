@@ -24,6 +24,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <vec3_maths.h>
 
 void error(const char *msg, ...)
 {
@@ -31,6 +32,11 @@ void error(const char *msg, ...)
   va_start(args, msg);
   vfprintf(stderr, msg, args);
   abort();
+}
+
+void print_vec(const struct vec3d *v)
+{
+  printf("(%.3g, %.3g, %.3g)", v->p[0], v->p[1], v->p[2]);
 }
 
 void print_usage(const char *prog_name)

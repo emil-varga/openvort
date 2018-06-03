@@ -16,7 +16,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+along with OpenVort.  If not, see <http://www.gnu.org/licenses/>.
 
 The purpose of these functions is to generate config file for the OpenVort run.
 This is useful especially for the mutual friction parameters which can be looked up

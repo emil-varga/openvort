@@ -79,7 +79,7 @@ def generate_spherical_v_conf(T, vns_at_5mm, cutoff):
     Sn = tcal.rs(T)/tcal.r(T) * Sns
     Ss = tcal.rn(T)/tcal.r(T) * Sns
 
-    conf_str_s = generate_v_conf('vs', 'spherical', {'strength' : Ss, 'cutoff' : cutoff})
+    conf_str_s = generate_v_conf('vs', 'spherical', {'strength' : -Ss, 'cutoff' : cutoff})
     conf_str_n = generate_v_conf('vn', 'spherical', {'strength' : Sn, 'cutoff' : cutoff})
 
     return conf_str_n + conf_str_s
@@ -93,7 +93,7 @@ def generate_general_conf(T, D = 0.05, boundary = 'open', use_mf = True,
     alpha = tcal.alpha(T)
     alphap = tcal.alphap(T)
 
-    return config_template_general.format(D=0.1, boundary = boundary,
+    return config_template_general.format(D=D, boundary = boundary,
                                           use_mf = use_mf, alpha = alpha, alphap = alphap,
                                           frame_shots = frame_shots, nthreads = nthreads,
                                           dt = dt, dl_min = dl_min, dl_max = dl_max,
@@ -102,10 +102,10 @@ def generate_general_conf(T, D = 0.05, boundary = 'open', use_mf = True,
                                           origin_removal = eliminate_origin_loops,
                                           origin_removal_cutoff = origin_removal_cutoff)
 
-def make_conf(T, vns_at_5mm, out_dir, cutoff = 1e-2, D=0.05):
+def make_conf(T, vns_at_5mm, out_dir, cutoff = 1e-2, D=0.05, cutoff_v = 0.9e-2):
     cf_general = generate_general_conf(T, D = D, eliminate_origin_loops=True,
                                        origin_removal_cutoff=cutoff)
-    cf_v = generate_spherical_v_conf(T, vns_at_5mm, 0.9*cutoff)
+    cf_v = generate_spherical_v_conf(T, vns_at_5mm, cutoff_v)
 
     cf = cf_general + cf_v
 
@@ -116,3 +116,10 @@ def make_conf(T, vns_at_5mm, out_dir, cutoff = 1e-2, D=0.05):
 
 
 print(generate_general_conf(1.95) + generate_spherical_v_conf(1.95, 1, 2e-2))
+
+if __name__ == '__main__':
+   Ts = [1.4, 1.5, 1.55];
+   vs = [0.1]
+   for T in Ts:
+      for v in vs:
+         make_conf(T, v, '/media/Raid/simulations/spherical_counterflow/new_series', cutoff = 2e-2, cutoff_v = 0.015)

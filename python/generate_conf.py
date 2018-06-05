@@ -102,9 +102,15 @@ def generate_general_conf(T, D = 0.05, boundary = 'open', use_mf = True,
                                           origin_removal = eliminate_origin_loops,
                                           origin_removal_cutoff = origin_removal_cutoff)
 
-def make_conf(T, vns_at_5mm, out_dir, cutoff = 1e-2, D=0.05, cutoff_v = 0.9e-2):
+def make_conf(T, vns_at_5mm, out_dir, cutoff = 1e-2, D=0.05, cutoff_v = 0.9e-2, dt = None):
+    v_cut = vns_at_5mm * (0.5/cutoff)**2
+    dt_cut = cutoff/v_cut
+
+    if dt is None:
+        dt = dt_cut / 5;
+
     cf_general = generate_general_conf(T, D = D, eliminate_origin_loops=True,
-                                       origin_removal_cutoff=cutoff)
+                                       origin_removal_cutoff=cutoff, dt = dt)
     cf_v = generate_spherical_v_conf(T, vns_at_5mm, cutoff_v)
 
     cf = cf_general + cf_v
@@ -118,8 +124,10 @@ def make_conf(T, vns_at_5mm, out_dir, cutoff = 1e-2, D=0.05, cutoff_v = 0.9e-2):
 print(generate_general_conf(1.95) + generate_spherical_v_conf(1.95, 1, 2e-2))
 
 if __name__ == '__main__':
-   Ts = [1.4, 1.5, 1.55];
-   vs = [0.1]
+   Ts = [1.30, 1.35, 1.4, 1.45, 1.5, 1.55, 1.65, 1.75, 1.95, 2.10, 2.16];
+#   Ts = [1.45]
+   vs = [0.01, 0.1, 1.0]
    for T in Ts:
       for v in vs:
-         make_conf(T, v, '/media/Raid/simulations/spherical_counterflow/new_series', cutoff = 2e-2, cutoff_v = 0.015)
+         make_conf(T, v, '/media/Raid/simulations/spherical_counterflow/new_series/RUN3',
+                   cutoff = 2e-2, cutoff_v = 0.015)

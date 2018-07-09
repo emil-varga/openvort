@@ -1,0 +1,6 @@
+This code, called OpenVort, calculates the movement of quantized vortices in He II using the vortex filament model of K. W. Schwarz. The code requires libconfig for reading of config files,
+OpenMP for parallelisation and Glibc for floating point exception handling (fenableexcept).
+
+Docomentation is a "work-in-progress." See the configuration .cfg files for a rough idea on how to use it.
+
+OpenVort is Free Software. Feel free to use it for whatever you want.

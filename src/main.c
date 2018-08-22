@@ -72,7 +72,7 @@ int main(int argc, char **argv)
   eliminate_small_loops(tangle, small_loop_cutoff);
   enforce_boundaries(tangle);
   remesh(tangle, global_dl_min, global_dl_max);
-  update_tangle(tangle);
+  update_tangle(tangle, 0);
 
   int shot = frame_shot - 1;
   int frame = 0;
@@ -89,7 +89,7 @@ int main(int argc, char **argv)
   for(int k=0; Np > 0; ++k)
     {
       printf("Step %d, time = %g, recs: %d, Np: %d\n", k, time, recs, Np);
-      nrec = reconnect(tangle, rec_dist, reconnection_angle_cutoff);
+      nrec = reconnect(tangle, time, rec_dist, reconnection_angle_cutoff);
       recs += nrec;
       eliminate_small_loops(tangle, small_loop_cutoff);
       if(!shot)
@@ -100,8 +100,8 @@ int main(int argc, char **argv)
 	  frame++;
 	  shot = frame_shot;
 	}
-      update_tangle(tangle);
-      rk4_step(tangle, global_dt);
+      update_tangle(tangle, time);
+      rk4_step(tangle, time, global_dt);
       remesh(tangle, global_dl_min, global_dl_max);
       eliminate_small_loops(tangle, small_loop_cutoff);
       enforce_boundaries(tangle);

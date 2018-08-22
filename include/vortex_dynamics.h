@@ -46,7 +46,7 @@ struct ab4_state {
 
 void euler_step(struct tangle_state *tangle, double dt);
 
-void rk4_step(struct tangle_state *tangle, double dt);
+void rk4_step(struct tangle_state *tangle, double t, double dt);
 void ab4_init_state(struct ab4_state **state,
 		    const struct tangle_state *tangle, double dt);
 void ab4_step(struct tangle_state *tangle, struct ab4_state *state);
@@ -54,6 +54,6 @@ void ab4_step(struct tangle_state *tangle, struct ab4_state *state);
 
 //reconnections
 
-int reconnect(struct tangle_state *tangle, double rec_dist, double rec_angle);
+int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec_angle);
 
 #endif //VORTEX_DYNAMICS

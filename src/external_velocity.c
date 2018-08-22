@@ -30,15 +30,15 @@
  * returns 1 on success
  */
 
-int get_vn(const struct vec3d *where, struct vec3d *res)
+int get_vn(const struct vec3d *where, double t, struct vec3d *res)
 {
-  vn_conf.fun(where, res, &vn_conf);
+  vn_conf.fun(where, t, res, &vn_conf);
   return 1;
 }
 
-int get_vs(const struct vec3d *where, struct vec3d *res)
+int get_vs(const struct vec3d *where, double t, struct vec3d *res)
 {
-  vs_conf.fun(where, res, &vs_conf);
+  vs_conf.fun(where, t, res, &vs_conf);
   return 1;
 }
 
@@ -117,6 +117,17 @@ struct v_conf_t v_confs[] = {
 	}
     },
     {
+	.name = "oscillating",
+	.fun = get_v_oscillating,
+	.n_params = 4,
+	.v_params = {
+	    {"strength", scalar_param, {.scalar = 0}},
+	    {"frequency", scalar_param, {.scalar = 0}},
+	    {"wave", vector_param, {.scalar = 0}},
+	    {"polarization", vector_param, {.scalar = 0}}
+	}
+    },
+    {
       .name = "",
       .fun = NULL,
       .n_params = 0,
@@ -124,14 +135,14 @@ struct v_conf_t v_confs[] = {
     }
 };
 
-int get_v_noflow(const struct vec3d *where __attribute__((unused)), struct vec3d *res, struct v_conf_t * v_conf __attribute__((unused)))
+int get_v_noflow(const struct vec3d *where __attribute__((unused)), double t __attribute__((unused)), struct vec3d *res, struct v_conf_t * v_conf __attribute__((unused)))
 {
   *res = vec3(0, 0, 0); //no flow
 
   return 0;
 }
 
-int get_v_simple(const struct vec3d *where __attribute__((unused)), struct vec3d *res,  struct v_conf_t *vconf)
+int get_v_simple(const struct vec3d *where __attribute__((unused)), double t __attribute__((unused)), struct vec3d *res,  struct v_conf_t *vconf)
 {
   return get_v_param_vector(vconf, "simple", res);
 }
@@ -142,7 +153,7 @@ int get_v_simple(const struct vec3d *where __attribute__((unused)), struct vec3d
  * from the origin to he point of interest (*where).
  */
 
-int get_v_spherical(const struct vec3d *where, struct vec3d *res, struct v_conf_t *vconf)
+int get_v_spherical(const struct vec3d *where, double t __attribute__((unused)), struct vec3d *res, struct v_conf_t *vconf)
 {
   double strength;
   double cutoff;
@@ -169,13 +180,13 @@ int get_v_spherical(const struct vec3d *where, struct vec3d *res, struct v_conf_
   return 0;
 }
 
-int get_v_spherical_and_simple(const struct vec3d *where, struct vec3d *res, struct v_conf_t *vconf)
+int get_v_spherical_and_simple(const struct vec3d *where, double t __attribute__((unused)), struct vec3d *res, struct v_conf_t *vconf)
 {
   //TODO
   return 0;
 }
 
-int get_v_cylindrical(const struct vec3d *where, struct vec3d *res, struct v_conf_t *vconf)
+int get_v_cylindrical(const struct vec3d *where, double t __attribute__((unused)), struct vec3d *res, struct v_conf_t *vconf)
 {
   //strength is meant per unit length
   double strength;
@@ -201,5 +212,29 @@ int get_v_cylindrical(const struct vec3d *where, struct vec3d *res, struct v_con
   res->p[2] = 0;
   vec3_normalize(res);
   vec3_mul(res, res, strength/(2*M_PI*r)*factor);
+  return 0;
+}
+
+int get_v_oscillating(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf)
+{
+  double freq;
+  double strength;
+  struct vec3d k;
+  struct vec3d pol;
+
+  int err;
+  if(!(err = get_v_param_scalar(vconf, "frequency", &freq)))
+    return err;
+  if(!(err = get_v_param_scalar(vconf, "strength", &strength)))
+    return err;
+  if(!(err = get_v_param_vector(vconf, "wave", &k)))
+    return err;
+  if(!(err = get_v_param_vector(vconf, "polarization", &pol)))
+    return err;
+
+  double X = cos(vec3_dot(&k, where));
+  double T = cos(2*M_PI*freq*t);
+
+  vec3_mul(res, &pol, strength*X*T);
   return 0;
 }

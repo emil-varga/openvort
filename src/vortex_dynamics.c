@@ -59,7 +59,7 @@ void euler_step(struct tangle_state *tangle, double dt)
 }
 
 void rk4_step2(struct tangle_state *result,
-	       const struct tangle_state *tangle, double dt)
+	       const struct tangle_state *tangle, double t, double dt)
 {
   int N;
   struct tangle_state rk_state[3]; //k2 through k4, we already have k1 in tangle
@@ -82,19 +82,19 @@ void rk4_step2(struct tangle_state *result,
   euler_step2(&rk_state[0], tangle, dt/2, NULL);
   enforce_boundaries(&rk_state[0]);
   update_tangents_normals(&rk_state[0]);
-  update_velocities(&rk_state[0]);
+  update_velocities(&rk_state[0], t + dt/2);
 
   //calculate k3
   euler_step2(&rk_state[1], tangle, dt/2, rk_state[0].vels);
   enforce_boundaries(&rk_state[1]);
   update_tangents_normals(&rk_state[1]);
-  update_velocities(&rk_state[1]);
+  update_velocities(&rk_state[1], t+dt/2);
 
   //calculate k4
   euler_step2(&rk_state[2], tangle, dt/2, rk_state[1].vels);
   enforce_boundaries(&rk_state[2]);
   update_tangents_normals(&rk_state[2]);
-  update_velocities(&rk_state[2]);
+  update_velocities(&rk_state[2], t + dt);
 
   for(int k=0; k < N; ++k)
     {
@@ -123,9 +123,9 @@ void rk4_step2(struct tangle_state *result,
     }
 }
 
-void rk4_step(struct tangle_state *tangle, double dt)
+void rk4_step(struct tangle_state *tangle, double t, double dt)
 {
-  rk4_step2(tangle, tangle, dt);
+  rk4_step2(tangle, tangle, t, dt);
 }
 
 //helper function to swap around the connection indices
@@ -145,7 +145,7 @@ int connect_to_wall(struct tangle_state *tangle, int k, int wall, double rdist,
   of a reconnections -- i.e., where in the BSP tree the two nodes are and only check them
   if can, in principle, be close enough.
  */
-int reconnect(struct tangle_state *tangle, double rec_dist, double rec_angle)
+int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec_angle)
 {
   int k, l;
   struct vec3d *v1, *v2; //points under test
@@ -229,8 +229,8 @@ int reconnect(struct tangle_state *tangle, double rec_dist, double rec_angle)
 	  //Do not reconnect if the nodes are getting further apart from each other
 	  struct vec3d dx, dv;
 	  //we only update velocities if we really need them
-	  update_velocity(tangle, k);
-	  update_velocity(tangle, l);
+	  update_velocity(tangle, k, t);
+	  update_velocity(tangle, l, t);
 	  vec3_sub(&dx, v1, v2);
 	  vec3_sub(&dv, &tangle->vels[k], &tangle->vels[l]);
 

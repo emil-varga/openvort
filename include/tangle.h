@@ -124,8 +124,8 @@ struct vec3d shifted(const struct image_tangle *shift, const struct tangle_state
 		     const struct vec3d *r);
 void enforce_boundaries(struct tangle_state *tangle);
 void update_tangents_normals(struct tangle_state *tangle);
-void update_velocities(struct tangle_state *tangle);
-void update_velocity(struct tangle_state *tangle, int k);
+void update_velocities(struct tangle_state *tangle, double t);
+void update_velocity(struct tangle_state *tangle, int k, double t);
 
 /**
   @brief calculates the superfluid velocity
@@ -140,9 +140,9 @@ void eliminate_small_loops(struct tangle_state *tangle, int loop_length);
 
 int get_tangle_next_free(struct tangle_state *tangle);
 
-static inline void update_tangle(struct tangle_state *tangle)
+static inline void update_tangle(struct tangle_state *tangle, double t)
 {
   update_tangents_normals(tangle);
-  update_velocities(tangle);
+  update_velocities(tangle, t);
 }
 #endif //TANGLE_H

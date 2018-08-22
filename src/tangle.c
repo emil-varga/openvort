@@ -374,7 +374,7 @@ struct vec3d calculate_vs(struct tangle_state *tangle, struct vec3d r, int skip)
   return calculate_vs_shift(tangle, r, skip, NULL);
 }
 
-void update_velocity(struct tangle_state *tangle, int k)
+void update_velocity(struct tangle_state *tangle, int k, double t)
 {
   int m, i;
   if(tangle->status[k].status == EMPTY)
@@ -389,7 +389,7 @@ void update_velocity(struct tangle_state *tangle, int k)
   tangle->vs[k] = lia_velocity(tangle, k);
   
   struct vec3d evs;
-  get_vs(&tangle->vnodes[k], &evs);
+  get_vs(&tangle->vnodes[k], t, &evs);
   vec3_add(&tangle->vs[k], &tangle->vs[k], &evs);
 
   for(m=0; m<tangle->N; ++m)
@@ -426,7 +426,7 @@ void update_velocity(struct tangle_state *tangle, int k)
       struct vec3d tmp, dv;
 
       //the velocity difference
-      get_vn(&tangle->vnodes[k], &dv);
+      get_vn(&tangle->vnodes[k], t, &dv);
       vec3_sub(&dv, &dv, &tangle->vs[k]);
 
       //the dissipative term
@@ -447,7 +447,7 @@ void update_velocity(struct tangle_state *tangle, int k)
     }
 }
 
-void update_velocities(struct tangle_state *tangle)
+void update_velocities(struct tangle_state *tangle, double t)
 {
   int i;
   #pragma omp parallel private(i) num_threads(global_num_threads)
@@ -455,7 +455,7 @@ void update_velocities(struct tangle_state *tangle)
       #pragma omp for
       for(i=0; i<tangle->N; ++i)
 	{
-	  update_velocity(tangle, i);
+	  update_velocity(tangle, i, t);
 	}
     }
 }

@@ -17,8 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
 
-#ifndef INCLUDE_EXTERNAL_VELOCITY_H_
-#define INCLUDE_EXTERNAL_VELOCITY_H_
+#ifndef EXTERNAL_VELOCITY_H
+#define EXTERNAL_VELOCITY_H
 
 #include "vec3_maths.h"
 
@@ -61,4 +61,4 @@ int get_v_spherical_and_simple(const struct vec3d *where, double t, struct vec3d
 int get_v_cylindrical(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf);
 int get_v_oscillating(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf);
 
-#endif /* INCLUDE_EXTERNAL_VELOCITY_H_ */
+#endif /* EXTERNAL_VELOCITY_H */

@@ -81,7 +81,7 @@ int main(int argc, char **argv)
 
   struct timespec t0, ti;
   clockid_t clock = CLOCK_MONOTONIC;
-  print_config();
+  print_config(tangle);
   clock_gettime(clock, &t0);
   int Np = tangle_total_points(tangle);
   double time = 0;

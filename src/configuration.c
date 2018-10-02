@@ -63,7 +63,7 @@ int load_conf_vector(config_t *cfg, const char *name, struct vec3d *v)
 {
   config_setting_t *vector;
   vector = config_lookup(cfg, name);
-  if(vector && config_setting_type(vector) == CONFIG_TYPE_LIST)
+  if(vector && config_setting_type(vector) == CONFIG_TYPE_ARRAY)
     {
 	*v = vec3(
 	    config_setting_get_float_elem(vector, 0),
@@ -77,6 +77,7 @@ int load_conf_vector(config_t *cfg, const char *name, struct vec3d *v)
   return 1;
 
 failure:
+  error("Failed to load domain! ");
   return 0;
 }
 
@@ -133,6 +134,7 @@ int setup_external_velocity(config_setting_t *v_conf_setting, struct v_conf_t *v
 
   config_setting_lookup_string(v_conf_setting, "type", &str);
 
+  //v_confs declared in external_velocity.h
   struct v_conf_t *test = &v_confs[0];
   for(;strlen(test->name) > 0; test++)
     {
@@ -152,8 +154,12 @@ int setup_external_velocity(config_setting_t *v_conf_setting, struct v_conf_t *v
       switch((v_conf)->v_params[k].type)
       {
 	case scalar_param:
-	  config_setting_lookup_float(v_conf_setting, (v_conf)->v_params[k].name, &dval);
-	  (v_conf)->v_params[k].value.scalar = dval;
+	  if(config_setting_lookup_float(v_conf_setting, (v_conf)->v_params[k].name, &dval))
+	    (v_conf)->v_params[k].value.scalar = dval;
+	  else
+	    {
+	      error("Could not find parameter %s.", v_conf->v_params[k].name);
+	    }
 	  break;
 	case vector_param:
 	  vec_cfg = config_setting_lookup(v_conf_setting, (v_conf)->v_params[k].name);
@@ -421,7 +427,7 @@ void print_ev_config(struct v_conf_t *v_conf)
     }
 }
 
-void print_config()
+void print_config(const struct tangle_state *tangle)
 {
   printf("###########     Normal fluid setup     ###########\n");
   print_ev_config(&vn_conf);
@@ -443,7 +449,8 @@ void print_config()
       "steps per frame            = %d\n"
       "number of threads          = %d\n"
       "loop removal near origin   = %s\n"
-      "loop removal cutoff        = %g cm\n",
+      "loop removal cutoff        = %g cm\n"
+      "domain = (%g, %g, %g), (%g, %g, %g)\n",
       global_dt,
       global_dl_min,
       global_dl_max,
@@ -454,5 +461,11 @@ void print_config()
       frame_shot,
       global_num_threads,
       eliminate_origin_loops ? "On" : "Off",
-      eliminate_loops_origin_cutoff);
+      eliminate_loops_origin_cutoff,
+      tangle->box.bottom_left_back.p[0],
+      tangle->box.bottom_left_back.p[1],
+      tangle->box.bottom_left_back.p[2],
+      tangle->box.top_right_front.p[0],
+      tangle->box.top_right_front.p[1],
+      tangle->box.top_right_front.p[2]);
 }

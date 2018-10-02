@@ -29,15 +29,32 @@ from glob import glob
 from draw_vortices import draw_vortices
 import sys
 
-if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        print('provide data dir as the command line argument')
-    data_dir = path.abspath(sys.argv[1])
+import argparse
 
-    slow=False
-    if len(sys.argv) > 2:
-        if sys.argv[2] == "slow":
-            slow = True
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="Draws the individual frames.")
+    parser.add_argument("data_dir", help="Directory with the frames.")
+    parser.add_argument("--slow", help="Plot segment-by-segment. Very slow, but right now needed for periodic boxes.",
+                        action = "store_true");
+    parser.add_argument("-D", help="Size of the plot box. The box will be interval [-D,D]^3. If the box is assymetric, use also -D1",
+                       type = float)
+    parser.add_argument("-D1", help="For assymetric plot boxes. The interval will be [D1, D]^3.",
+                       type = float)
+
+    args = parser.parse_args()
+
+    data_dir = args.data_dir
+    slow = args.slow
+
+    if args.D:
+        D = args.D
+    else:
+        D = 1
+
+    if args.D1:
+        D1 = args.D1
+    else:
+        D1 = -D
 
     files = glob(path.join(data_dir, 'frame*.dat'))
     files.sort()
@@ -55,9 +72,9 @@ if __name__ == '__main__':
         ax.clear()
         ax.auto_scale_xyz(1, 1, 1)
         draw_vortices(fn, ax, slow=slow)
-        ax.set_xlim(-0.25, 0.25)
-        ax.set_ylim(-0.25, 0.25)
-        ax.set_zlim(-0.25, 0.25)
+        ax.set_xlim(D1, D)
+        ax.set_ylim(D1, D)
+        ax.set_zlim(D1, D)
         ax.set_aspect('equal')
         ax.set_xlabel("x")
         ax.set_ylabel("y")

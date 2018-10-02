@@ -54,5 +54,5 @@ if __name__ == '__main__':
     from mpl_toolkits.mplot3d import Axes3D
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    draw_vortices('../data_cylinder/frame0054.dat',
+    draw_vortices('../data/frame0101.dat',
                   ax, slow=True)

@@ -37,6 +37,7 @@ typedef enum _wt {WALL_OPEN, WALL_PERIODIC, WALL_MIRROR} wall_type;
  * the ordering of this enum.
  */
 typedef enum _fc {
+  NOT_A_FACE = -1,
   X_L, X_H,
   Y_L, Y_H,
   Z_L, Z_H

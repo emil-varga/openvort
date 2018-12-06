@@ -133,73 +133,62 @@ void clip_at_wall(struct tangle_state *tangle)
   /*
    * Clips the tangle at the lower z-wall
    */
-  double limit = tangle->box.bottom_left_back.p[2];
+  const double limit = tangle->box.bottom_left_back.p[2];
+
+  //recalculate is used as a tag for points to be clipped
   for(int k=0; k<tangle->N; ++k)
     tangle->recalculate[k] = 0;
+  enum POINT_STATES {
+      OK=0,
+      KILL,         //point to be clipped
+      EDGE_FORWARD, //last point above the wall
+      EDGE_REVERSE  //first point above the wall
+    };
 
+  //first find all the points to be clipped
   for(int kk=0; kk<tangle->N; ++kk)
     {
-      if(tangle->status[kk].status == EMPTY ||
-	  tangle->recalculate[kk] > 0)
+      if(tangle->status[kk].status == EMPTY)
 	continue;
 
-      int here = kk;
-      int next = tangle->connections[kk].forward;
-      int tmp;
-
-#define lchk(z) (tangle->vnodes[z].p[2] > limit)
-      int seek_under = lchk(here);
-
-      while(next != kk)
+      if(tangle->vnodes[kk].p[2] <= limit)
 	{
-	  if(seek_under) //we are above and are looking for the crossing point
-	    {
-	      if(!lchk(next)) //the next is below
-		{
-		  seek_under = !seek_under;
-		  tangle->vnodes[next].p[2] = limit;
-		  tangle->recalculate[here]++;
-		  tangle->recalculate[next]++;
-		  tmp = tangle->connections[next].forward;
+	  tangle->recalculate[kk] = KILL;
+	  const int forward = tangle->connections[kk].forward;
+	  const int reverse = tangle->connections[kk].reverse;
 
-		  tangle->connections[next].forward = -1;
-		  tangle->status[next].status = PINNED;
-		  tangle->status[next].pin_wall = Z_L;
-
-		  here = tmp;
-		  next = tangle->connections[here].forward;
-		  continue;
-		}
-	      tangle->recalculate[here]++;
-	      tangle->recalculate[next]++;
-	      here = next;
-	      next = tangle->connections[here].forward;
-	    }
-	  else //we are bellow and looking for the crossing point
-	    {
-	      if(lchk(next)) //the next is above
-		{
-		  seek_under = !seek_under;
-		  tangle->vnodes[here].p[2] = limit;
-		  tangle->recalculate[here]++;
-		  tangle->recalculate[next]++;
-		  tangle->connections[here].reverse = -1;
-		  tangle->status[here].status = PINNED;
-		  tangle->status[here].pin_wall = Z_L;
-		  here = next;
-		  next = tangle->connections[here].forward;
-		  continue;
-		}
-	      tangle->recalculate[here]++;
-	      tangle->recalculate[next]++;
-	      tangle->status[here].status = EMPTY;
-	      tangle->status[next].status = EMPTY;
-	      here = next;
-	      next = tangle->connections[here].forward;
-	    }
+	  if(tangle->vnodes[forward].p[2] > limit)
+	    tangle->recalculate[forward] = EDGE_REVERSE;
+	  if(tangle->vnodes[reverse].p[2] > limit)
+	    tangle->recalculate[reverse] = EDGE_FORWARD;
 	}
     }
-#undef lchk
+
+  //next handle edge points by projecting them on the wall
+  //and pinning them on the lower Z-wall
+  for(int kk=0; kk < tangle->N; ++kk)
+    {
+      switch(tangle->recalculate[kk])
+      {
+	case EDGE_REVERSE:
+	  tangle->connections[kk].reverse = -1;
+	  tangle->vnodes[kk].p[2] = limit;
+	  tangle->status[kk].status = PINNED;
+	  tangle->status[kk].pin_wall = Z_L;
+	  break;
+	case EDGE_FORWARD:
+	  tangle->connections[kk].forward = -1;
+	  tangle->vnodes[kk].p[2] = limit;
+	  tangle->status[kk].status = PINNED;
+	  tangle->status[kk].pin_wall = Z_L;
+	  break;
+	case KILL:
+	  tangle->status[kk].status = EMPTY;
+	  break;
+	default:
+	  break;
+      }
+    }
 }
 
 void write_vector(FILE *stream, struct vec3d *v)

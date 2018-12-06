@@ -35,7 +35,7 @@ typedef enum _ns_e {
 //status of the node and on which wall it is pinned
 typedef struct _ns {
   node_status_t status;
-  int pin_wall;
+  boundary_faces pin_wall;
 } node_status;
 
 #define PERIODIC_X 1
@@ -95,7 +95,7 @@ struct tangle_state {
 
   //flags that the properties of the points
   //need to be recalculated
-  //currently used for not reconnecting a twice in a single pass
+  //currently used for not reconnecting twice in a single pass
   int *recalculate;
 
   uint64_t *bsp_id; //for binary space partitioning -- id of the box

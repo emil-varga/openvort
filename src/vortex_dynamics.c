@@ -19,6 +19,7 @@
 
 #include "vortex_dynamics.h"
 #include "vec3_maths.h"
+#include "util.h"
 #include <math.h> //for cos()
 #include <stdint.h>
 #include <stdio.h>
@@ -352,7 +353,7 @@ int check_wall(struct tangle_state *tangle, int k, int wall, double rdist)
   return 0;
 }
 
-double wall_dist(struct tangle_state *tangle, int k, int wall)
+double wall_dist(struct tangle_state *tangle, int k, boundary_faces wall)
 {
   /*
    * Checks whether a node k is closer than rdist to the wall.
@@ -366,17 +367,17 @@ double wall_dist(struct tangle_state *tangle, int k, int wall)
     case X_L:
     case Y_L:
     case Z_L:
-      return abs(tangle->vnodes[k].p[idx[wall]] - tangle->box.bottom_left_back.p[idx[wall]]);
+      return fabs(tangle->vnodes[k].p[idx[wall]] - tangle->box.bottom_left_back.p[idx[wall]]);
 
     case X_H:
     case Y_H:
     case Z_H:
-      return abs(tangle->vnodes[k].p[idx[wall]] - tangle->box.top_right_front.p[idx[wall]]);
+      return fabs(tangle->vnodes[k].p[idx[wall]] - tangle->box.top_right_front.p[idx[wall]]);
 
     default:
-      break;
+      error("wall_dist: unknwon wall index %d\n", wall);
   }
-  return 0;
+  return -1;
 }
 
 int connect_to_wall(struct tangle_state *tangle, int k, int wall, double rdist,
@@ -391,7 +392,7 @@ int connect_to_wall(struct tangle_state *tangle, int k, int wall, double rdist,
   int prev = tangle->connections[k].reverse;
   double d0 = wall_dist(tangle, k, wall);
   double d1 = wall_dist(tangle, next, wall);
-  double dm1 = wall_dist(tangle, next, wall);
+  double dm1 = wall_dist(tangle, prev, wall);
 
   struct segment s1 = seg_pwrap(&tangle->vnodes[k], &tangle->vnodes[next], &tangle->box);
   struct segment sm1 = seg_pwrap(&tangle->vnodes[k], &tangle->vnodes[prev], &tangle->box);
@@ -401,6 +402,8 @@ int connect_to_wall(struct tangle_state *tangle, int k, int wall, double rdist,
   //check that the total length does not increase
   if(vd1 < d0 + d1 && vdm1 < d0 + dm1)
     return 0;
+
+  //printf("Pinning %d %d %d\n", prev, k, next);
 
   struct vec3d tmp;
 
@@ -413,14 +416,16 @@ int connect_to_wall(struct tangle_state *tangle, int k, int wall, double rdist,
   int new_pt2 = get_tangle_next_free(tangle);
   tangle->status[new_pt2].status = pin_mode;
   tangle->status[new_pt2].pin_wall = wall;
+  //printf("New points: %d %d\n", new_pt, new_pt2);
 
   vec3_mul(&tmp, &boundary_normals[wall], d0);
-  vec3_sub(&tangle->vnodes[new_pt], &tangle->vnodes[k], &tmp);
+  vec3_add(&tangle->vnodes[new_pt], &tangle->vnodes[k], &tmp);
 
   if(d1 < dm1)
     {
       vec3_mul(&tmp, &boundary_normals[wall], d1);
-      vec3_sub(&tangle->vnodes[new_pt2], &tangle->vnodes[next], &tmp);
+      vec3_add(&tangle->vnodes[new_pt2], &tangle->vnodes[next], &tmp);
+
       tangle->connections[k].forward = new_pt;
       tangle->connections[new_pt].forward = -1;
       tangle->connections[new_pt].reverse = k;
@@ -431,7 +436,7 @@ int connect_to_wall(struct tangle_state *tangle, int k, int wall, double rdist,
   else
     {
       vec3_mul(&tmp, &boundary_normals[wall], dm1);
-      vec3_sub(&tangle->vnodes[new_pt2], &tangle->vnodes[prev], &tmp);
+      vec3_add(&tangle->vnodes[new_pt2], &tangle->vnodes[prev], &tmp);
 
       tangle->connections[k].reverse = new_pt;
       tangle->connections[new_pt].forward = k;

@@ -647,7 +647,7 @@ void eliminate_small_loops(struct tangle_state *tangle, int loop_length)
 	      //'here' now points to a node with its back to the wall
 	      break;//exit the outer loop,
 	    }
-	  tangle->recalculate[next]++;
+	  tangle->recalculate[here]++;
 	  here = next;
 	  next = tangle->connections[next].forward;
 	  loop++;
@@ -665,10 +665,11 @@ void eliminate_small_loops(struct tangle_state *tangle, int loop_length)
 	    {
 	      int tmp = next;
 	      next = tangle->connections[next].forward;
+	      //printf("deleting %d\n", tmp);
 	      tangle->connections[tmp].forward = -1;
 	      tangle->connections[tmp].reverse = -1;
 	      tangle->status[tmp].status = EMPTY;
-	      if(next == here)
+	      if(next == here || next < 0)
 		break;
 	    }
 	}

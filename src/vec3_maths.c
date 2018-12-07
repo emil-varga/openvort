@@ -32,12 +32,12 @@ const struct vec3d DIRS[3] = {{{1, 0, 0}}, {{0, 1, 0}}, {{0, 0, 1}}};
  */
 
 const struct vec3d boundary_normals[] = {
-    {{1, 0, 0}},
-    {{-1, 0, 0}},
-    {{0, 1, 0}},
-    {{0, -1, 0}},
-    {{0, 0, 1}},
-    {{0, 0, -1}}
+    {{1, 0, 0}},  // X_L
+    {{-1, 0, 0}}, // X_H
+    {{0, 1, 0}},  // Y_L
+    {{0, -1, 0}}, // Y_H
+    {{0, 0, 1}},  // Z_L
+    {{0, 0, -1}}  // Z_H
 };
 
 struct segment seg_pwrap(const struct vec3d *r1, const struct vec3d *r2,

@@ -234,6 +234,18 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
   if(config_lookup_float(&cfg, "eliminate_loops_zaxis_cutoff", &dval))
     eliminate_loops_zaxis_cutoff = dval;
 
+  if(config_lookup_bool(&cfg, "loop_injection", &ival))
+    {
+      loop_injection = ival;
+      if(loop_injection)
+	{
+	  if(config_lookup_float(&cfg, "loop_injection_frequency", &dval))
+	    loop_injection_frequency = dval;
+	  else
+	    error("Specify loop_injection_frequency in the config.");
+	}
+    }
+
   //external velocity configuration
   config_setting_t *vel_conf;
   vel_conf = config_lookup(&cfg, "vn_conf");

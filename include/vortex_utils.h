@@ -43,4 +43,7 @@ int load_tangle(const char *filename, struct tangle_state *tangle);
 int check_integrity(const struct tangle_state *tangle);
 int is_empty(const struct tangle_state *tangle, int k);
 
+extern int loop_injection;
+extern double loop_injection_frequency;
+void inject_loop(struct tangle_state *tangle, double t, double frequency);
 #endif

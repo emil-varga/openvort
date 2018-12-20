@@ -29,6 +29,8 @@ from glob import glob
 from draw_vortices import draw_vortices
 import sys
 
+import io, libconf
+
 import argparse
 
 if __name__ == '__main__':
@@ -40,6 +42,7 @@ if __name__ == '__main__':
                        type = float)
     parser.add_argument("-D1", help="For assymetric plot boxes. The interval will be [D1, D]^3.",
                        type = float)
+    parser.add_argument("--config", help="Path to the config file of the simulation. This will override D, D1 and slow.")
 
     args = parser.parse_args()
 
@@ -55,6 +58,24 @@ if __name__ == '__main__':
         D1 = args.D1
     else:
         D1 = -D
+
+    Dxl = D1; Dyl = D1; Dzl = D1
+    Dxh = D; Dyh = D; Dzh = D
+
+    if args.config:
+        with io.open(args.config) as f:
+            config = libconf.load(f)
+        domain = config['domain']
+        LBB = domain[0]
+        RFT = domain[1]
+
+        Dxl = LBB[0]
+        Dxh = RFT[0]
+        Dyl = LBB[1]
+        Dyh = RFT[1]
+        Dzl = LBB[2]
+        Dzh = RFT[2]
+
 
     files = glob(path.join(data_dir, 'frame*.dat'))
     files.sort()
@@ -72,9 +93,9 @@ if __name__ == '__main__':
         ax.clear()
         ax.auto_scale_xyz(1, 1, 1)
         draw_vortices(fn, ax, slow=slow)
-        ax.set_xlim(D1, D)
-        ax.set_ylim(D1, D)
-        ax.set_zlim(D1, D)
+        ax.set_xlim(Dxl, Dxh)
+        ax.set_ylim(Dyl, Dyh)
+        ax.set_zlim(Dzl, Dzh)
         ax.set_aspect('equal')
         ax.set_xlabel("x")
         ax.set_ylabel("y")

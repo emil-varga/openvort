@@ -49,12 +49,13 @@ void add_circle(struct tangle_state *tangle,
 		struct vec3d *center, struct vec3d *dir, double r,
 		int Npoints)
 {
+  if(Npoints == 0)
+      return;
+
   if(num_free_points(tangle) < Npoints)
     {
-      return;
+      expand_tangle(tangle, tangle->N + Npoints);
     }
-  if(!Npoints)
-    return;
 
   struct vec3d u, v, p, ptmp;
   int curr_point, last_point, first_point;
@@ -98,6 +99,45 @@ void add_circle(struct tangle_state *tangle,
   tangle->connections[first_point].reverse = curr_point;
 }
 
+int loop_injection = 0;
+double loop_injection_frequency = 1;
+void inject_loop(struct tangle_state *tangle, double t, double frequency)
+{
+  static double last_injection = 0;
+
+  //ranges where to place the loop in the xy plane
+  double XL, XH, YL, YH;
+
+  //direction and center of the injected loop
+  struct vec3d dir = vec3(0, 0, -1);
+  struct vec3d cent;
+
+  //is it time yet to inject a loop?
+  if(t - last_injection < 1/frequency)
+      return;
+  last_injection = t;
+
+  XL = tangle->box.bottom_left_back.p[0];
+  XH = tangle->box.top_right_front.p[0];
+
+  YL = tangle->box.bottom_left_back.p[1];
+  YH = tangle->box.top_right_front.p[1];
+
+  //the injected loop is placed randomly in the top plane
+  //of the domain box
+  cent.p[2] = tangle->box.top_right_front.p[2];
+  cent.p[0] = XL + (XH - XL)*drand48();
+  cent.p[1] = YL + (YH - YL)*drand48();
+
+  double D = fabs(XH - XL);
+  double rmin = 0.05*D;
+  double rmax = 0.25*D;
+
+  double r = rmin + (rmax - rmin)*drand48();
+
+  add_circle(tangle, &cent, &dir, r, 128);
+}
+
 void insert_random_loops(struct tangle_state *tangle, int N)
 {
   //TODO: configurable range of loop radii?, number of points?
@@ -111,7 +151,7 @@ void insert_random_loops(struct tangle_state *tangle, int N)
     }
 
   const double rmin = 0.05*D;
-  const double rmax = D;
+  const double rmax = 0.25*D;
 
   for(int k = 0; k<N; ++k)
     {

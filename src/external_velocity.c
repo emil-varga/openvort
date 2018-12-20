@@ -128,6 +128,16 @@ struct v_conf_t v_confs[] = {
 	}
     },
     {
+	.name = "coscos",
+	.fun = get_v_coscos,
+	.n_params = 3,
+	.v_params = {
+	    {"k", scalar_param, {.scalar = 0}},
+	    {"v0", scalar_param, {.scalar = 0}},
+	    {"l", scalar_param, {.scalar = 0}}
+	}
+    },
+    {
       .name = "",
       .fun = NULL,
       .n_params = 0,
@@ -182,7 +192,16 @@ int get_v_spherical(const struct vec3d *where, double t __attribute__((unused)),
 
 int get_v_spherical_and_simple(const struct vec3d *where, double t __attribute__((unused)), struct vec3d *res, struct v_conf_t *vconf)
 {
-  //TODO
+  struct vec3d v_spherical, v_simple;
+
+  int err;
+  err = get_v_spherical(where, t, &v_spherical, vconf);
+  if(err) return err;
+
+  err = get_v_simple(where, t, &v_simple, vconf);
+  if(err) return err;
+
+  vec3_add(res, &v_spherical, &v_simple);
   return 0;
 }
 
@@ -236,5 +255,27 @@ int get_v_oscillating(const struct vec3d *where, double t, struct vec3d *res, st
   double T = cos(2*M_PI*freq*t);
 
   vec3_mul(res, &pol, strength*X*T);
+  return 0;
+}
+
+int get_v_coscos(const struct vec3d *where, double t __attribute__((unused)), struct vec3d *res, struct v_conf_t *vconf)
+{
+  double k, v0, l;
+
+  double x = where->p[0];
+  double y = where->p[1];
+  double z = where->p[2];
+
+  int err;
+  if(!(err = get_v_param_scalar(vconf, "k", &k)))
+    return err;
+  if(!(err = get_v_param_scalar(vconf, "v0", &v0)))
+    return err;
+  if(!(err = get_v_param_scalar(vconf, "l", &l)))
+    return err;
+
+  *res = vec3(0,0,0);
+  res->p[2] = v0*(1 + cos(k*x)*cos(k*y)*exp(-z/l));
+
   return 0;
 }

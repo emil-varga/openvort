@@ -100,6 +100,10 @@ int main(int argc, char **argv)
 	  frame++;
 	  shot = frame_shot;
 	}
+
+      if(loop_injection) //loop injection defined in vortex_utils
+	inject_loop(tangle, time, loop_injection_frequency);
+
       update_tangle(tangle, time);
       rk4_step(tangle, time, global_dt);
       remesh(tangle, global_dl_min, global_dl_max);

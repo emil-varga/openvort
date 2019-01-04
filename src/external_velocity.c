@@ -154,7 +154,7 @@ int get_v_noflow(const struct vec3d *where __attribute__((unused)), double t __a
 
 int get_v_simple(const struct vec3d *where __attribute__((unused)), double t __attribute__((unused)), struct vec3d *res,  struct v_conf_t *vconf)
 {
-  return get_v_param_vector(vconf, "simple", res);
+  return get_v_param_vector(vconf, "external_v", res);
 }
 
 /*

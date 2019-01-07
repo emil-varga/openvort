@@ -52,7 +52,15 @@ def draw_vortices(fn, plot_axes, slow=False, max_len=0.05):
 
 if __name__ == '__main__':
     from mpl_toolkits.mplot3d import Axes3D
+    import argparse
+    parser = argparse.ArgumentParser('Utility to plot the vortex tangle.')
+    parser.add_argument('filename', help='Filename of the .dat file with the vortices.')
+    parser.add_argument('--dl_max', help='Maximum length between vortex points.', default=0.05,
+                        type=float)
+
+    args = parser.parse_args()
+
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    draw_vortices('../data/frame0101.dat',
-                  ax, slow=True)
+    draw_vortices(args.filename, ax, slow=True, max_len=args.dl_max)
+    plt.show()

@@ -61,6 +61,7 @@ if __name__ == '__main__':
 
     Dxl = D1; Dyl = D1; Dzl = D1
     Dxh = D; Dyh = D; Dzh = D
+    dl_max = 0.05
 
     if args.config:
         with io.open(args.config) as f:
@@ -75,6 +76,7 @@ if __name__ == '__main__':
         Dyh = RFT[1]
         Dzl = LBB[2]
         Dzh = RFT[2]
+        dl_max = config.dl_max
 
 
     files = glob(path.join(data_dir, 'frame*.dat'))
@@ -92,7 +94,7 @@ if __name__ == '__main__':
 
         ax.clear()
         ax.auto_scale_xyz(1, 1, 1)
-        draw_vortices(fn, ax, slow=slow)
+        draw_vortices(fn, ax, slow=slow, max_len=dl_max)
         ax.set_xlim(Dxl, Dxh)
         ax.set_ylim(Dyl, Dyh)
         ax.set_zlim(Dzl, Dzh)

@@ -68,7 +68,7 @@ if __name__ == '__main__':
     for file in args.filenames:
         file_out = path.join(path.dirname(file), 'XY_dist'+path.split(file)[1])+'.npz'
         print(file_out)
-        if path.isfile(file_out):
+        if args.no_overwrite and path.isfile(file_out):
             print('Skipping ' + file_out)
             continue;
         data = np.loadtxt(file)

@@ -34,12 +34,18 @@ def draw_vortices(fn, plot_axes, slow=False, max_len=0.05):
         ix = vix == vortex_idx
         if slow:
             rs = np.column_stack((x[ix], y[ix], z[ix]))
+            xs = []
+            ys = []
+            zs = []
             for r, rn in zip(rs[:-1,:], rs[1:,:]):
                 if np.linalg.norm(r - rn) < max_len:
-                    plot_axes.plot([r[0], rn[0]],
-                                   [r[1], rn[1]],
-                                   [r[2], rn[2]],
-                                   '-', color='red', lw=0.5)
+                    xs.append(r[0])
+                    ys.append(r[1])
+                    zs.append(r[2])
+                else:
+                    plot_axes.plot(xs, ys, zs, '-', color='red', lw=0.5)
+                    xs, ys, zs = [], [], []
+            plot_axes.plot(xs, ys, zs, '-', color='red', lw=0.5)
             if np.linalg.norm(rs[0,:] - rs[-1,:]) < max_len:
                 plot_axes.plot([rs[0,0], rs[-1,0]],
                                [rs[0,1], rs[-1,1]],

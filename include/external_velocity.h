@@ -61,5 +61,6 @@ int get_v_spherical_and_simple(const struct vec3d *where, double t, struct vec3d
 int get_v_cylindrical(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf);
 int get_v_oscillating(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf);
 int get_v_coscos(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf);
+int get_v_coscos_divfree(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf);
 
 #endif /* EXTERNAL_VELOCITY_H */

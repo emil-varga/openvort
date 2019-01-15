@@ -138,6 +138,16 @@ struct v_conf_t v_confs[] = {
 	}
     },
     {
+    	.name = "coscos-divfree",
+    	.fun = get_v_coscos_divfree,
+    	.n_params = 3,
+    	.v_params = {
+    	    {"k", scalar_param, {.scalar = 0}},
+    	    {"v0", scalar_param, {.scalar = 0}},
+    	    {"l", scalar_param, {.scalar = 0}}
+    	}
+        },
+    {
       .name = "",
       .fun = NULL,
       .n_params = 0,
@@ -275,6 +285,31 @@ int get_v_coscos(const struct vec3d *where, double t __attribute__((unused)), st
     return err;
 
   *res = vec3(0,0,0);
+  res->p[2] = v0*(1 + cos(k*x)*cos(k*y)*exp(-z/l));
+
+  return 0;
+}
+
+/*divergence-free coscos flow field*/
+int get_v_coscos_divfree(const struct vec3d *where, double t __attribute__((unused)), struct vec3d *res, struct v_conf_t *vconf)
+{
+  double k, v0, l;
+
+  double x = where->p[0];
+  double y = where->p[1];
+  double z = where->p[2];
+
+  int err;
+  if(!(err = get_v_param_scalar(vconf, "k", &k)))
+    return err;
+  if(!(err = get_v_param_scalar(vconf, "v0", &v0)))
+    return err;
+  if(!(err = get_v_param_scalar(vconf, "l", &l)))
+    return err;
+
+  *res = vec3(0,0,0);
+  res->p[0] = v0/2/l/k*sin(k*x)*cos(k*y);
+  res->p[1] = v0/2/l/k*cos(k*x)*sin(k*y);
   res->p[2] = v0*(1 + cos(k*x)*cos(k*y)*exp(-z/l));
 
   return 0;

@@ -59,7 +59,8 @@ if __name__ == '__main__':
     if args.plot:
         f, ax = plt.subplots(1,1)
 #        ax.contourf(XX, YY, LS, 200)
-        ax.imshow(LS, interpolation='bilinear', origin='lower',
+        c = ax.imshow(LS, interpolation='bilinear', origin='lower',
                   extent=(XX.min(), XX.max(), YY.min(), YY.max()))
+        plt.colorbar(c)
         ax.set_aspect('equal')
         plt.show()

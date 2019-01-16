@@ -53,6 +53,7 @@ if __name__ == '__main__':
     parser.add_argument('--zmax', help='Highest layer.', type=float, default = 0.1)
     parser.add_argument('--dl_max', help='Maximum discretisation length.', type=float, default = 0.002)
     parser.add_argument('--plot', help='Plot the density profile.', action='store_true')
+    parser.add_argument('--no-overwrite', help='Do not overwrite existing files.', action='store_true')
 
     args = parser.parse_args()
 
@@ -60,11 +61,15 @@ if __name__ == '__main__':
     LS_avg = 0
 
     for file in args.filenames:
-        print(file)
+        dirname, basename = path.split(file)
+        output_fn = path.join(dirname, 'Lprof_'+basename)
+        if args.no_overwrite and path.exists(output_fn):
+            continue
+        print(output_fn)
         data = np.loadtxt(file)
         ZS, LS = density_profile(data, args.dL, args.zmin, args.zmax, args.dl_max)
         out = np.column_stack((ZS, LS))
-        np.savetxt('Lprof_'+file, out)
+        np.savetxt(output_fn, out)
         ZS_avg += ZS
         LS_avg += LS
 

@@ -308,8 +308,8 @@ int get_v_coscos_divfree(const struct vec3d *where, double t __attribute__((unus
     return err;
 
   *res = vec3(0,0,0);
-  res->p[0] = v0/2/l/k*sin(k*x)*cos(k*y);
-  res->p[1] = v0/2/l/k*cos(k*x)*sin(k*y);
+  res->p[0] = v0/2/l/k*sin(k*x)*cos(k*y)*exp(-z/l);
+  res->p[1] = v0/2/l/k*cos(k*x)*sin(k*y)*exp(-z/l);
   res->p[2] = v0*(1 + cos(k*x)*cos(k*y)*exp(-z/l));
 
   return 0;

@@ -110,7 +110,7 @@ void inject_loop(struct tangle_state *tangle, double t, double frequency)
 
   //direction and center of the injected loop
   //inject in random direction pointing down-ish
-  struct vec3d dir = vec3(drand48(), drand48(), -1);
+  struct vec3d dir = vec3(2*(drand48() - 0.5), 2*(drand48()-0.5), -drand48());
   vec3_normalize(&dir);
   struct vec3d cent;
 

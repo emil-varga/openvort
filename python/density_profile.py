@@ -14,7 +14,7 @@ import os.path as path
 
 from glob import glob
 
-def density_profile(data, layer_height, z_min, z_max, dl_max):
+def density_profile(data, layer_height, z_min, z_max, dl_max, window=None):
     vidx = 0
 
     ZS = np.arange(z_min, z_max, layer_height)
@@ -37,6 +37,15 @@ def density_profile(data, layer_height, z_min, z_max, dl_max):
         cents = cents[valid_ix,:]
         lens = lens[valid_ix]
 
+        if window is not None:
+            wx, wy, D = window
+            cents_x = cents[:,0]
+            cents_y = cents[:,1]
+            valid_ix = np.logical_and(np.abs(cents_x - wx) < D/2,
+                                      np.abs(cents_y - wy) < D/2)
+            cents = cents[valid_ix,:]
+            lens = lens[valid_ix]
+
 
         for (cz, ls) in zip(cents_z, lens):
             LS[np.argmin(np.abs(ZS - cz))] += ls
@@ -54,6 +63,8 @@ if __name__ == '__main__':
     parser.add_argument('--dl_max', help='Maximum discretisation length.', type=float, default = 0.002)
     parser.add_argument('--plot', help='Plot the density profile.', action='store_true')
     parser.add_argument('--no-overwrite', help='Do not overwrite existing files.', action='store_true')
+    parser.add_argument('--window', nargs=3, type=float,
+                        help="Calculate the profile only in a square window in the xy coordinates.")
 
     args = parser.parse_args()
 
@@ -62,12 +73,15 @@ if __name__ == '__main__':
 
     for file in args.filenames:
         dirname, basename = path.split(file)
-        output_fn = path.join(dirname, 'Lprof_'+basename)
+        if args.window is not None:
+            output_fn = path.join(dirname, 'WLprof_'+str(args.window)+'_'+basename)
+        else:
+            output_fn = path.join(dirname, 'Lprof_'+basename)
         if args.no_overwrite and path.exists(output_fn):
             continue
         print(output_fn)
         data = np.loadtxt(file)
-        ZS, LS = density_profile(data, args.dL, args.zmin, args.zmax, args.dl_max)
+        ZS, LS = density_profile(data, args.dL, args.zmin, args.zmax, args.dl_max, window=args.window)
         out = np.column_stack((ZS, LS))
         np.savetxt(output_fn, out)
         ZS_avg += ZS

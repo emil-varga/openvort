@@ -31,6 +31,7 @@ if __name__ == '__main__':
     parser.add_argument('--start_ix', help='Starting index for averaging.', type=int, default=0)
     parser.add_argument('--end_ix', help='Last index for averaging. -1 for last', type=int, default=-1)
     parser.add_argument('--plot', help='Plot the result.', action='store_true')
+    parser.add_argument('--output', '-o', help='Output file basename.', default='Lprof')
 
     args = parser.parse_args()
 
@@ -61,7 +62,7 @@ if __name__ == '__main__':
     LS2 = np.sqrt(LS2/m - LS**2)
 
     dirname = path.dirname(args.filenames[0])
-    file_out = 'Lprof_avg_{}_{}.dat'.format(args.start_ix, args.end_ix)
+    file_out = '{}_avg_{}_{}.dat'.format(args.output, args.start_ix, args.end_ix)
     np.savetxt(path.join(dirname, file_out),
                np.column_stack((ZS, LS, LS2)))
 

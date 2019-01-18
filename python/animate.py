@@ -19,7 +19,7 @@ You should have received a copy of the GNU General Public License
 along with OpenVort.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-
+import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
@@ -67,15 +67,18 @@ if __name__ == '__main__':
         with io.open(args.config) as f:
             config = libconf.load(f)
         domain = config['domain']
-        LBB = domain[0]
-        RFT = domain[1]
+        LBB = np.array(domain[0])
+        RFT = np.array(domain[1])
 
-        Dxl = LBB[0]
-        Dxh = RFT[0]
-        Dyl = LBB[1]
-        Dyh = RFT[1]
-        Dzl = LBB[2]
-        Dzh = RFT[2]
+        Lmax = np.abs(LBB - RFT).max()
+
+        mids = 0.5*(LBB + RFT)
+        Dxl = mids[0] - Lmax/2
+        Dxh = mids[0] + Lmax/2
+        Dyl = mids[1] - Lmax/2
+        Dyh = mids[1] + Lmax/2
+        Dzl = mids[2] - Lmax/2
+        Dzh = mids[2] + Lmax/2
         dl_max = config.dl_max
 
 

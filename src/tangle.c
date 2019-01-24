@@ -443,6 +443,7 @@ void update_velocity(struct tangle_state *tangle, int k, double t)
 
   if(tangle->status[k].status == PINNED_SLIP)
     {
+      error("Sorry! PINNED_SLIP is not supported yet.");
       //TODO:remove the component of velocity normal to the wall
     }
 }
@@ -506,7 +507,7 @@ int num_free_points(struct tangle_state *tangle)
 {
   int sum=0;
   for(int k=0; k<tangle->N; ++k)
-    if(tangle->connections[k].forward < 0)
+    if(tangle->status[k].status == EMPTY)
       sum++;
   return sum;
 }

@@ -69,6 +69,8 @@ int main(int argc, char **argv)
       return EXIT_FAILURE;
     }
 
+  print_config(tangle);
+
   eliminate_small_loops(tangle, small_loop_cutoff);
   enforce_boundaries(tangle);
   remesh(tangle, global_dl_min, global_dl_max);
@@ -81,7 +83,6 @@ int main(int argc, char **argv)
 
   struct timespec t0, ti;
   clockid_t clock = CLOCK_MONOTONIC;
-  print_config(tangle);
   clock_gettime(clock, &t0);
   int Np = tangle_total_points(tangle);
   double time = 0;

@@ -103,5 +103,6 @@ int get_v_oscillating(const struct vec3d *where, double t, struct vec3d *res, st
 int get_v_coscos(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf);
 int get_v_coscos_divfree(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf);
 int get_v_cos_divfree(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf);
+int get_v_simple_shear(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf);
 
 #endif /* EXTERNAL_VELOCITY_H */

@@ -158,6 +158,15 @@ struct v_conf_t v_confs[] = {
       	}
     },
     {
+	.name = "simple-shear",
+	.fun = get_v_simple_shear,
+	.n_params = 2,
+	.v_params = {
+	    {"rate", scalar_param, {.scalar=0}},
+	    {"v0", scalar_param, {.scalar=0}}
+	}
+    },
+    {
       .name = "",
       .fun = NULL,
       .n_params = 0,
@@ -344,6 +353,24 @@ int get_v_cos_divfree(const struct vec3d *where, double t __attribute__((unused)
   res->p[0] = v0/l/k*sin(k*x)*exp(-z/l);
   res->p[1] = 0;
   res->p[2] = v0*(1 + cos(k*x)*exp(-z/l));
+
+  return 0;
+}
+
+int get_v_simple_shear(const struct vec3d *where, double t __attribute__((unused)), struct vec3d *res, struct v_conf_t *vconf)
+{
+  double rate;
+  double v0;
+  double x = where->p[0];
+
+  int err;
+  if(!(err = get_v_param_scalar(vconf, "rate", &rate)))
+    return err;
+  if(!(err = get_v_param_scalar(vconf, "v0", &v0)))
+      return err;
+
+  *res = vec3(0,0,0);
+  res->p[2] = v0 + rate*x;
 
   return 0;
 }

@@ -250,6 +250,11 @@ void save_point(FILE *stream, int vort_idx,
   write_vector(stream, tangle->tangents + i);
   fprintf(stream, "\t");
   write_vector(stream, tangle->normals + i);
+  fprintf(stream, "%d\t%d\t%d\t%d\t%d", i,
+	  tangle->connections[i].reverse,
+	  tangle->connections[i].forward,
+	  tangle->status[i].status,
+	  tangle->status[i].pin_wall);
   fprintf(stream, "\n");
 }
 

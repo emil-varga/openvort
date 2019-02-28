@@ -42,6 +42,7 @@
 
 int get_vn(const struct vec3d *where, double t, struct vec3d *res);
 int get_vs(const struct vec3d *where, double t, struct vec3d *res);
+int get_vb(const struct vec3d *where, double t, struct vec3d *res);
 
 /*
  * struct v_param_t holds information about a single parameter of the flow.
@@ -86,6 +87,7 @@ struct v_conf_t {
 extern struct v_conf_t v_confs[];   //all flow confs
 extern struct v_conf_t vn_conf;     //normal fluid conf, will be taken from v_confs[] during configuration
 extern struct v_conf_t vs_conf;     //superfluid conf, will be taken from v_confs[] during configuration
+extern struct v_conf_t vb_conf; //the moving boundary only works for the bottom z-wall
 
 //helper functions to look up scalar or vector parameters in the v_conf_t* parameter arrays
 int get_v_param_scalar(const struct v_conf_t *vconf, const char *name, double *res);
@@ -104,5 +106,10 @@ int get_v_coscos(const struct vec3d *where, double t, struct vec3d *res, struct 
 int get_v_coscos_divfree(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf);
 int get_v_cos_divfree(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf);
 int get_v_simple_shear(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf);
+
+//oscillatory rotation, with attenuation and the boundary version with viscous penetratio depth
+//the boundary version requires that the boundary is at 0
+int get_v_rotosc(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf);
+int get_v_rotosc_boundary(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf);
 
 #endif /* EXTERNAL_VELOCITY_H */

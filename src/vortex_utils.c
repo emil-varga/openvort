@@ -310,7 +310,7 @@ void save_tangle(const char *filename, struct tangle_state *tangle)
 	      if(curr < 0)
 		{
 		  curr = tangle->connections[first].reverse;
-		  while(tangle->connections[curr].reverse > 0)
+		  while(curr > 0 && tangle->connections[curr].reverse > 0)
 		    {
 		      save_point(stream, vortex_idx, tangle, curr);
 		      visited[curr] = 1;

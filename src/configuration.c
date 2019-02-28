@@ -256,6 +256,12 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
   if(vel_conf && config_setting_type(vel_conf) == CONFIG_TYPE_GROUP)
     setup_external_velocity(vel_conf, &vs_conf);
 
+  vel_conf = config_lookup(&cfg, "vb_conf");
+  if(vel_conf && config_setting_type(vel_conf) == CONFIG_TYPE_GROUP)
+    setup_external_velocity(vel_conf, &vb_conf);
+  else
+    vb_conf = v_confs[0];
+
   //setup the domain box size
 
   config_setting_t *domain;
@@ -447,6 +453,10 @@ void print_config(const struct tangle_state *tangle)
 
   printf("###########     Superfluid setup       ###########\n");
   print_ev_config(&vs_conf);
+  printf("##################################################\n\n");
+
+  printf("###########     Boundary setup       ###########\n");
+  print_ev_config(&vb_conf);
   printf("##################################################\n\n");
 
   printf("###########     Simulation parameters  ###########\n");

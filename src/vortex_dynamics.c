@@ -99,8 +99,9 @@ void rk4_step2(struct tangle_state *result,
 
   for(int k=0; k < N; ++k)
     {
-      if(tangle->connections[k].forward == -1)
+      if(tangle->status[k].status == EMPTY)
 	continue;
+
       //move contains the full step, a are partial steps
       struct vec3d move, a;
       vec3_mul(&move, &tangle->vels[k], dt/6); //k1

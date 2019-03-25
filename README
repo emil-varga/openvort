@@ -4,3 +4,6 @@ OpenMP for parallelisation and Glibc for floating point exception handling (fena
 Docomentation is a "work-in-progress." See the configuration .cfg files for a rough idea on how to use it.
 
 OpenVort is Free Software. Feel free to use it for whatever you want.
+
+
+Development of this code was supported by the Charles University.

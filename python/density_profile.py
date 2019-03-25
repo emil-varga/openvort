@@ -51,11 +51,11 @@ def density_profile(data, layer_height, z_min, z_max, dl_max, window=None):
         lens = lens[valid_ix]
 
         if window is not None:
-            wx, wy, D = window
+            wx, wy, Dx, Dy = window
             cents_x = cents[:,0]
             cents_y = cents[:,1]
-            valid_ix = np.logical_and(np.abs(cents_x - wx) < D/2,
-                                      np.abs(cents_y - wy) < D/2)
+            valid_ix = np.logical_and(np.abs(cents_x - wx) < Dx/2,
+                                      np.abs(cents_y - wy) < Dy/2)
             cents = cents[valid_ix,:]
             lens = lens[valid_ix]
 
@@ -76,7 +76,7 @@ if __name__ == '__main__':
     parser.add_argument('--dl_max', help='Maximum discretisation length.', type=float, default = 0.002)
     parser.add_argument('--plot', help='Plot the density profile.', action='store_true')
     parser.add_argument('--no-overwrite', help='Do not overwrite existing files.', action='store_true')
-    parser.add_argument('--window', nargs=3, type=float,
+    parser.add_argument('--window', nargs=4, type=float,
                         help="Calculate the profile only in a square window in the xy coordinates.")
 
     args = parser.parse_args()

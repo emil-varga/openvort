@@ -47,13 +47,13 @@ struct neighbour_t {
   int reverse;
 };
 
-#define X_BSP_ID 0x00000000000FFFFF
-#define Y_BSP_ID 0x000000FFFFF00000
-#define Z_BSP_ID 0x0FFFFF0000000000
+#define X_OCT_ID 0x00000000000FFFFF
+#define Y_OCT_ID 0x000000FFFFF00000
+#define Z_OCT_ID 0x0FFFFF0000000000
 
-#define X_BSP_ID_OFFSET 0
-#define Y_BSP_ID_OFFSET 20
-#define Z_BSP_ID_OFFSET 40
+#define X_OCT_ID_OFFSET 0
+#define Y_OCT_ID_OFFSET 20
+#define Z_OCT_ID_OFFSET 40
 
 /*
  * Structures describing the virtual tangles used for implementation of boundary conditions

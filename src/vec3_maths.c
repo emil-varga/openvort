@@ -40,6 +40,23 @@ const struct vec3d boundary_normals[] = {
     {{0, 0, -1}}  // Z_H
 };
 
+/*
+ * Is the given vector vec inside the box?
+ */
+int in_box(const struct domain_box *box, const struct vec3d *vec)
+{
+  double vx = vec->p[0];
+  double vy = vec->p[1];
+  double vz = vec->p[2];
+
+  int in_box;
+  in_box =
+      vx > box->bottom_left_back->p[0] && vx < box->top_right_front->p[0] &&
+      vy > box->bottom_left_back->p[1] && vy < box->top_right_front->p[1] &&
+      vz > box->bottom_left_back->p[2] && vz < box->top_right_front->p[2];
+  return in_box;
+}
+
 struct segment seg_pwrap(const struct vec3d *r1, const struct vec3d *r2,
 			 const struct domain_box *box)
 {

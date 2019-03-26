@@ -67,6 +67,7 @@ struct domain_box make_box(struct vec3d bottom_left_front,
 			   struct vec3d top_right_back,
 			   wall_type wall[6]);
 
+int in_box(const struct domain_box *box, const struct vec3d *vec);
 /*
  * open-space geometry
  */

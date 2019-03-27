@@ -51,9 +51,9 @@ int in_box(const struct domain_box *box, const struct vec3d *vec)
 
   int in_box;
   in_box =
-      vx > box->bottom_left_back->p[0] && vx < box->top_right_front->p[0] &&
-      vy > box->bottom_left_back->p[1] && vy < box->top_right_front->p[1] &&
-      vz > box->bottom_left_back->p[2] && vz < box->top_right_front->p[2];
+      vx > box->bottom_left_back.p[0] && vx < box->top_right_front.p[0] &&
+      vy > box->bottom_left_back.p[1] && vy < box->top_right_front.p[1] &&
+      vz > box->bottom_left_back.p[2] && vz < box->top_right_front.p[2];
   return in_box;
 }
 

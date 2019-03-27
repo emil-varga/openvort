@@ -9,16 +9,19 @@
 #define INCLUDE_OCTREE_H_
 
 #include "vec3_maths.h"
+#include "tangle.h"
 
 typedef enum _octree_child_idx {
-  BLF, BRF, BRB, BLB, //Bottom {Left/Right} {Front/Back}
-  TLF, TRF, TRB, TLB  //Top {Left/Right} {Front/Back}
+  NA=-1,
+  BLF, BLB, BRF, BRB, //Bottom {Left/Right} {Front/Back}
+  TLF, TLB, TRF, TRB, //Top {Left/Right} {Front/Back}
+  OCTREE_CHILDREN_N
 } octree_child_idx;
 
 struct octree {
   int N_total;
   int N;
-  struct vec3d *elements;
+  int *node_ids;
   struct vec3d centre_of_mass;
   struct vec3d total_circulation;
   struct domain_box box;
@@ -29,9 +32,11 @@ struct octree* octree_init(int Ninit, int depth);
 void octree_destroy(struct octree *tree);
 
 int octree_add(struct octree *tree, const struct vec3d *v);
-struct octree *octree_build(int N, const struct vec3d *vs);
+struct octree *octree_build(const struct tangle_state *tangle);
 
 /*helper functions*/
+octree_child_idx octree_find_child_index(const struct domain_box *box, const struct vec3d *r);
+void octree_make_child_boxes(struct octree *tree);
 void octree_update_means(struct octree *tree);
 void octree_create_children(struct octree *tree);
 

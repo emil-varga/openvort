@@ -47,14 +47,6 @@ struct neighbour_t {
   int reverse;
 };
 
-#define X_OCT_ID 0x00000000000FFFFF
-#define Y_OCT_ID 0x000000FFFFF00000
-#define Z_OCT_ID 0x0FFFFF0000000000
-
-#define X_OCT_ID_OFFSET 0
-#define Y_OCT_ID_OFFSET 20
-#define Z_OCT_ID_OFFSET 40
-
 /*
  * Structures describing the virtual tangles used for implementation of boundary conditions
  */
@@ -81,7 +73,6 @@ extern const struct boundary_images wall_1_6;
 extern const struct boundary_images wall_1_18;
 extern const struct boundary_images wall_1_26;
 
-
 /*
  * The structure that holds all the tangle information
  */
@@ -97,8 +88,6 @@ struct tangle_state {
   //need to be recalculated
   //currently used for not reconnecting twice in a single pass
   int *recalculate;
-
-  uint64_t *bsp_id; //for binary space partitioning -- id of the box
 
   struct neighbour_t *connections;
 

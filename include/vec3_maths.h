@@ -52,6 +52,9 @@ typedef enum _fc {
 extern const struct vec3d boundary_normals[6];
 
 struct domain_box {
+  // Bottom/top refers to z (increasing from top to bottom)
+  // Left/right refers to y (increasing from left to right)
+  // Back/front refers to x (increasing from back to front)
   struct vec3d bottom_left_back;
   struct vec3d top_right_front;
   wall_type wall[6];

@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include "octree.h"
 #include "util.h"
+#include "vec3_maths.h"
 
 struct octree* octree_init(int Ninit, int depth)
 {
@@ -22,6 +23,77 @@ struct octree* octree_init(int Ninit, int depth)
 	tree->children[k] = octree_init(Ninit, depth-1);
     }
   return tree;
+}
+
+void octree_destroy(struct octree *tree)
+{
+  if(!tree)
+    return;
+
+  //we need to destroy it from the bottom up
+  for(octree_child_idx child = 0; child < OCTREE_CHILDREN_N; child++)
+    {
+      if(tree->children[child])
+	octree_destroy(tree->children[child]);
+	free(tree->children[child]);
+    }
+  free(tree);
+}
+
+struct octree *octree_add_node(struct octree *tree, int node_id)
+{
+  if(tree->N < tree->N_total)
+    {
+      tree->node_ids[tree->N++] = node_id;
+      return tree;
+    }
+
+  tree->node_ids = realloc(tree->node_ids, 2*tree->N_total);
+  if(tree->node_ids)
+    {
+      tree->N_total *= 2;
+      tree->node_ids[tree->N] = node_id;
+      return tree;
+    }
+  else
+    return NULL;
+}
+
+void octree_inner_sort(struct octree *tree, const struct tangle_state *tangle);
+struct octree *octree_build(const struct tangle_state *tangle)
+{
+  struct octree *tree = octree_init(tangle->N, 1);
+  //load up all the non-empty points
+  for(int k=0; k < tangle->N; ++k)
+    {
+      if(tangle->status[k].status == EMPTY)
+	continue;
+      tree->node_ids[tree->N++] = k;
+    }
+  tree->box = tangle->box;
+  //sort the points in a recursive function
+  octree_inner_sort(tree, tangle);
+  return tree;
+}
+void octree_inner_sort(struct octree *tree, const struct tangle_state *tangle)
+{
+  if(tree->N <= 1) //there is only one node, we do not need to split further
+    return;
+
+  octree_make_child_boxes(tree);
+  for(int k=0; k < tree->N; ++k)
+    {
+      for(octree_child_idx child=0; child < OCTREE_CHILDREN_N; child++)
+	{
+	  if(in_box(&tree->box, &tangle->vnodes[tree->node_ids[k]]))
+	    {
+	      octree_add_node(tree->children[child], tree->node_ids[k]);
+	      continue;
+	    }
+	}
+    }
+  for(octree_child_idx child=0; child < OCTREE_CHILDREN_N; child++)
+    octree_inner_sort(tree->children[child], tangle);
 }
 
 struct domain_box make_child_box(const struct domain_box *parent_box, octree_child_idx child_idx);
@@ -40,6 +112,10 @@ void octree_make_child_boxes(struct octree *tree)
 }
 struct domain_box make_child_box(const struct domain_box *parent_box, octree_child_idx child_idx)
 {
+  /*
+   * Helper for creating a child box. Gets the base dimensions from parent_box and returns the box
+   * corresponding to the child_idx.
+   */
   //box center and lengths
   struct vec3d c;
   struct vec3d L;
@@ -83,17 +159,17 @@ struct domain_box make_child_box(const struct domain_box *parent_box, octree_chi
       child_box.top_right_front = parent_box->top_right_front;
       child_box.top_right_front.p[1] -= L.p[1]/2;
       break;
-    case TLB:
+    case TLB: //top-left-back
       child_box.bottom_left_back = parent_box->bottom_left_back;
       child_box.bottom_left_back.p[2] += L.p[2]/2;
       child_box.top_right_front = c;
       child_box.top_right_front.p[2] += L.p[2]/2;
       break;
-    case TRF:
+    case TRF: //top-right-front
       child_box.bottom_left_back = c;
       child_box.top_right_front = parent_box->top_right_front;
       break;
-    case TRB:
+    case TRB: //top-right-back
       child_box.bottom_left_back = c;
       child_box.bottom_left_back.p[0] -= L.p[0]/2;
       child_box.top_right_front = parent_box->top_right_front;

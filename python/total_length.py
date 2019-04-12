@@ -24,14 +24,17 @@ import matplotlib.pyplot as plt
 from glob import glob
 import os.path as path
 
-import sys
+import argparse
+
 import libconf
 
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        print('provide data dir as the command line argument')
-    data_dir = path.abspath(sys.argv[1])
-    cfg_filename = glob(path.join(data_dir, '*.cfg'))[0]
+    parser = argparse.ArgumentParser('Calculates the total lengt of the vortices.')
+    parser.add_argument('data_dir', help='Directory with the frames.')
+    parser.add_argument('--config', help='Config figle.')
+    args = parser.parse_args()
+    data_dir = args.data_dir
+    cfg_filename = args.config
 
     with open(path.join(data_dir, cfg_filename)) as cfg_file:
         config = libconf.load(cfg_file);
@@ -47,7 +50,14 @@ if __name__ == '__main__':
     times = []
     lengths = []
 
-    for fn in files:
+    starti = 0
+    output_file = path.join(data_dir, 'L_t.txt')
+    if path.isfile(output_file):
+        Lt = np.loadtxt(output_file)
+        starti = Lt.shape[0] #1 line per file
+        time = (starti+1)*dt
+
+    for fn in files[starti:]:
         print(fn)
         d = np.loadtxt(fn)
         vidx = 0
@@ -65,11 +75,13 @@ if __name__ == '__main__':
         times.append(time)
         time += dt
 
+    out = np.column_stack((times, lengths))
+    out = np.row_stack((Lt, out))
+
     f, ax = plt.subplots(1,1)
-    ax.plot(times, lengths)
+    ax.plot(out[:,0], out[:,1])
     ax.set_xlabel('time (s)')
     ax.set_ylabel('total length (cm)')
     plt.show()
 
-    out = np.column_stack((times, lengths))
     np.savetxt(path.join(data_dir, 'L_t.txt'), out, header = 'time(s)\ttotal length(cm)')

@@ -24,6 +24,7 @@ struct octree {
   int *node_ids;
   struct vec3d centre_of_mass;
   struct vec3d total_circulation;
+  struct mat3d circ_tensor;
   struct domain_box box;
   struct octree *children[8];
 };
@@ -37,7 +38,7 @@ struct octree *octree_build(const struct tangle_state *tangle);
 /*helper functions*/
 octree_child_idx octree_find_child_index(const struct domain_box *box, const struct vec3d *r);
 void octree_make_child_boxes(struct octree *tree);
-void octree_update_means(struct octree *tree);
+void octree_update_means(struct octree *tree, const struct tangle_state *tangle);
 void octree_create_children(struct octree *tree);
 
 #endif /* INCLUDE_OCTREE_H_ */

@@ -314,3 +314,50 @@ struct vec3d segment_to_vec(const struct segment *seg)
 
   return v;
 }
+
+void mat3_dmul(struct mat3d *res, const struct mat3d *M, double m)
+{
+  for(int i=0; i<3; ++i)
+    for(int j=0; j<3; ++j)
+      res->m[i][j] = m*M->m[i][j];
+}
+struct mat3d mat3_null()
+{
+  struct mat3d m;
+  for(int i=0; i<3; ++i)
+    for(int j=0; j<3; ++j)
+      m.m[i][j] = 0;
+  return m;
+}
+void mat3_add(struct mat3d *res, const struct mat3d *a, const struct mat3d *b)
+{
+  for(int i=0; i<3; ++i)
+    for(int j=0; j<3; ++j)
+      res->m[i][j] = a->m[i][j] + b->m[i][j];
+}
+void mat3_sub(struct mat3d *res, const struct mat3d *a, const struct mat3d *b)
+{
+  for(int i=0; i<3; ++i)
+    for(int j=0; j<3; ++j)
+      res->m[i][j] = a->m[i][j] - b->m[i][j];
+}
+void mat3_mul(struct mat3d *res, const struct mat3d *a, const struct mat3d *b)
+{
+  for(int i=0; i<3; ++i)
+    for(int j=0; j<3; ++j)
+      for(int k=0; k<3; ++k)
+	res->m[i][j] = a->m[i][k]*b->m[k][j];
+}
+void mat3_vmul(struct vec3d *res, const struct mat3d *a, const struct vec3d *v)
+{
+  for(int i=0; i<3; ++i)
+    for(int j=0; j<3; ++j)
+	res->p[i] = a->m[i][j]*v->p[j];
+}
+void vec3_outer(struct mat3d *res, const struct vec3d *u, const struct vec3d *v)
+{
+  //outer product
+  for(int i=0; i<3; ++i)
+      for(int j=0; j<3; ++j)
+	  res->m[i][j] = u->p[i]*v->p[j];
+}

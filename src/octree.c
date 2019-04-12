@@ -42,6 +42,8 @@ void octree_destroy(struct octree *tree)
 
 struct octree *octree_add_node(struct octree *tree, int node_id)
 {
+  //adds a node to the root of the tree
+  //this DOES NOT add the node recursively
   if(tree->N < tree->N_total)
     {
       tree->node_ids[tree->N++] = node_id;
@@ -68,16 +70,18 @@ struct octree *octree_build(const struct tangle_state *tangle)
     {
       if(tangle->status[k].status == EMPTY)
 	continue;
-      tree->node_ids[tree->N++] = k;
+      if(!octree_add_node(tree, k))
+	error("failed to add node");
     }
   tree->box = tangle->box;
   //sort the points in a recursive function
   octree_inner_sort(tree, tangle);
+  octree_update_means(tree, tangle);
   return tree;
 }
 void octree_inner_sort(struct octree *tree, const struct tangle_state *tangle)
 {
-  if(tree->N <= 1) //there is only one node, we do not need to split further
+  if(!tree || tree->N <= 1) //there is only one node, we do not need to split further
     return;
 
   octree_make_child_boxes(tree);
@@ -87,7 +91,8 @@ void octree_inner_sort(struct octree *tree, const struct tangle_state *tangle)
 	{
 	  if(in_box(&tree->box, &tangle->vnodes[tree->node_ids[k]]))
 	    {
-	      octree_add_node(tree->children[child], tree->node_ids[k]);
+	      if(!octree_add_node(tree->children[child], tree->node_ids[k]))
+		error("failed to add node");
 	      continue;
 	    }
 	}
@@ -181,4 +186,35 @@ struct domain_box make_child_box(const struct domain_box *parent_box, octree_chi
   }
 
   return child_box;
+}
+
+void octree_update_means(struct octree *tree, const struct tangle_state *tangle)
+{
+  if(!tree || tree->N == 0)
+    return;
+
+  tree->centre_of_mass = vec3(0,0,0);
+  for(int k=0; k < tree->N; k++)
+    {
+      vec3_add(&tree->centre_of_mass, &tree->centre_of_mass, &tangle->vnodes[tree->node_ids[k]]);
+    }
+  vec3_mul(&tree->centre_of_mass, &tree->centre_of_mass, 1.0/tree->N);
+
+  tree->total_circulation = vec3(0,0,0);
+  for(int k=0; k < tree->N; k++)
+    {
+      int idx = tree->node_ids[k];
+      int forward = tangle->connections[idx].forward;
+      struct segment seg = seg_pwrap(&tangle->vnodes[idx], &tangle->vnodes[forward],
+				     &tangle->box);
+      struct vec3d ds = segment_to_vec(&seg);
+      vec3_add(&tree->total_circulation, &tree->total_circulation,
+	       &ds);
+
+      struct vec3d sloc;
+      vec3_sub(&sloc, &tangle->vnodes[idx], &tree->centre_of_mass);
+    }
+
+  for(octree_child_idx child=0; child < OCTREE_CHILDREN_N; child++)
+    octree_update_means(tree->children[child], tangle);
 }

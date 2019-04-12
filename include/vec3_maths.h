@@ -24,6 +24,13 @@ struct vec3d {
   double p[3];
 };
 
+struct mat3d {
+  double m[3][3];
+};
+
+extern struct mat3d mat_epsilon;
+extern struct mat3d mat_identity;
+
 struct segment {
   struct vec3d r1, r2;
 };
@@ -121,5 +128,17 @@ struct vec3d mirror_dir_reflect(const struct vec3d *v, boundary_faces wall);
 
 struct vec3d periodic_shift(const struct vec3d *v, const struct domain_box *box,
 			    boundary_faces wall);
+
+/*
+ * Matrix operations
+ */
+
+void mat3_dmul(struct mat3d *res, const struct mat3d *M, double m);
+struct mat3d mat3_null();
+void mat3_add(struct mat3d *res, const struct mat3d *a, const struct mat3d *b);
+void mat3_sub(struct mat3d *res, const struct mat3d *a, const struct mat3d *b);
+void mat3_mul(struct mat3d *res, const struct mat3d *a, const struct mat3d *b);
+void mat3_vmul(struct vec3d *res, const struct mat3d *a, const struct vec3d *v);
+void vec3_outer(struct mat3d *res, const struct vec3d *u, const struct vec3d *v);//outer product
 
 #endif//VEC3_MATHS_H

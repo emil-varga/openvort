@@ -341,12 +341,15 @@ void mat3_sub(struct mat3d *res, const struct mat3d *a, const struct mat3d *b)
     for(int j=0; j<3; ++j)
       res->m[i][j] = a->m[i][j] - b->m[i][j];
 }
-void mat3_mul(struct mat3d *res, const struct mat3d *a, const struct mat3d *b)
+void mat3_mul(struct mat3d *res, const struct mat3d *_a, const struct mat3d *_b)
 {
+  //we need copies in case res points to the same as _a or _b
+  struct mat3d a = *_a;
+  struct mat3d b = *_b;
   for(int i=0; i<3; ++i)
     for(int j=0; j<3; ++j)
       for(int k=0; k<3; ++k)
-	res->m[i][j] = a->m[i][k]*b->m[k][j];
+	res->m[i][j] = a.m[i][k]*b.m[k][j];
 }
 void mat3_vmul(struct vec3d *res, const struct mat3d *a, const struct vec3d *v)
 {

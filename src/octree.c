@@ -201,6 +201,7 @@ void octree_update_means(struct octree *tree, const struct tangle_state *tangle)
   vec3_mul(&tree->centre_of_mass, &tree->centre_of_mass, 1.0/tree->N);
 
   tree->total_circulation = vec3(0,0,0);
+  tree->circ_tensor = mat3_null();
   for(int k=0; k < tree->N; k++)
     {
       int idx = tree->node_ids[k];
@@ -213,6 +214,9 @@ void octree_update_means(struct octree *tree, const struct tangle_state *tangle)
 
       struct vec3d sloc;
       vec3_sub(&sloc, &tangle->vnodes[idx], &tree->centre_of_mass);
+      struct mat3d dM;
+      vec3_outer(&dM, &ds, &sloc);
+      mat3_add(&tree->circ_tensor, &tree->circ_tensor, dM);
     }
 
   for(octree_child_idx child=0; child < OCTREE_CHILDREN_N; child++)

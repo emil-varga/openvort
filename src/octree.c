@@ -216,7 +216,7 @@ void octree_update_means(struct octree *tree, const struct tangle_state *tangle)
       vec3_sub(&sloc, &tangle->vnodes[idx], &tree->centre_of_mass);
       struct mat3d dM;
       vec3_outer(&dM, &ds, &sloc);
-      mat3_add(&tree->circ_tensor, &tree->circ_tensor, dM);
+      mat3_add(&tree->circ_tensor, &tree->circ_tensor, &dM);
     }
 
   for(octree_child_idx child=0; child < OCTREE_CHILDREN_N; child++)

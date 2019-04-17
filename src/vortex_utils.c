@@ -169,6 +169,31 @@ void insert_random_loops(struct tangle_state *tangle, int N)
     }
 }
 
+void make_big_ring(struct tangle_state *tangle, double ring_r, int ring_N)
+{
+  /*
+   * Creates a big vortex ring at [0,0,0] with thickness of 10% of radius
+   */
+
+  struct vec3d dir = vec3(0, 0, 1);
+
+
+  for(int k=0; k<ring_N; ++k)
+    {
+      //get some randomness in [-1, 1]
+      double sx = (drand48() - 0.5)*2;
+      double sy = (drand48() - 0.5)*2;
+      double sz = (drand48() - 0.5)*2;
+
+      struct vec3d cent = vec3(sx,sy,sz);
+      vec3_mul(&cent, &cent, 0.1*ring_r);
+
+      double sr = (drand48() - 0.5)*2;
+      double r = (1 + sr/10)*ring_r;
+
+      add_circle(tangle, &cent, &dir, r, 64);
+    }
+}
 
 void clip_at_wall(struct tangle_state *tangle)
 {

@@ -401,6 +401,16 @@ int setup_init(const char *conf_file, struct tangle_state *tangle)
 	  strncpy(restart_path, path, PATH_LEN);
 	  load_tangle(restart_path, tangle);
 	}
+      else if(strcmp(str, "big ring") == 0)
+	{
+	  double ring_r;
+	  int ring_N;
+	  if(!config_lookup_float(&cfg, "ring_r", &ring_r))
+	    goto failure;
+	  if(!config_lookup_int(&cfg, "ring_N", &ring_N))
+	    goto failure;
+	  make_big_ring(tangle, ring_r, ring_N);
+	}
       else//TODO: add more init modes
 	{
 	  fprintf(stderr, "Error: unknown initialization mode: %s\n", str);

@@ -82,6 +82,15 @@ const struct image_tangle periodic_26_img[] = {
     {{1, 1, 1}, -1}
 };
 
+const struct image_tangle wall_2_4_img[] = {
+    {{-1, 0, 0}, -1}, //periodic in x
+    {{1, 0, 0}, -1},
+    {{0, -1, 0}, -1}, //periodic in y
+    {{0, 1, 0}, -1},
+    {{0, 0, -1}, Z_L}, //lower z-wall
+    {{0, 0, 1}, Z_H} //upper z-wall
+};
+
 const struct image_tangle wall_1_open_img[] = {
     {{0, 0, -1}, Z_L}
 };
@@ -182,4 +191,9 @@ const struct boundary_images wall_1_18 = {
 const struct boundary_images wall_1_26 = {
    .images = wall_1_26_img,
    .n = 26
+};
+
+const struct boundary_images wall_2_4 = {
+    .images = wall_2_4_img,
+    .n = 6
 };

@@ -20,6 +20,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include "vortex_utils.h"
 #include "util.h"
@@ -173,9 +174,16 @@ void insert_random_loops(struct tangle_state *tangle, int N)
 void clip_at_wall(struct tangle_state *tangle)
 {
   /*
-   * Clips the tangle at the lower z-wall
+   * Clips the tangle at the z-walls
    */
-  const double limit = tangle->box.bottom_left_back.p[2];
+  //limits for unconstrained walls
+  double llimit = -INFINITY;
+  double ulimit = INFINITY;
+
+  if(tangle->box.wall[Z_L] == WALL_MIRROR)
+    llimit = tangle->box.bottom_left_back.p[2];
+  if(tangle->box.wall[Z_H] == WALL_MIRROR)
+    ulimit = tangle->box.top_right_front.p[2];
 
   //recalculate is used as a tag for points to be clipped
   for(int k=0; k<tangle->N; ++k)
@@ -183,8 +191,10 @@ void clip_at_wall(struct tangle_state *tangle)
   enum POINT_STATES {
       OK=0,
       KILL,         //point to be clipped
-      EDGE_FORWARD, //last point above the wall
-      EDGE_REVERSE  //first point above the wall
+      EDGE_FORWARD_L, //last point above the lower wall
+      EDGE_REVERSE_L,  //first point above the lower wall
+      EDGE_FORWARD_H, //last point below the upper wall
+      EDGE_REVERSE_H  //first point below the upper wall
     };
 
   //first find all the points to be clipped
@@ -193,16 +203,30 @@ void clip_at_wall(struct tangle_state *tangle)
       if(tangle->status[kk].status == EMPTY)
 	continue;
 
-      if(tangle->vnodes[kk].p[2] <= limit)
+      double zkk = tangle->vnodes[kk].p[2];
+      if(zkk <= llimit || zkk >= ulimit)
 	{
 	  tangle->recalculate[kk] = KILL;
 	  const int forward = tangle->connections[kk].forward;
 	  const int reverse = tangle->connections[kk].reverse;
 
-	  if(tangle->vnodes[forward].p[2] > limit)
-	    tangle->recalculate[forward] = EDGE_REVERSE;
-	  if(tangle->vnodes[reverse].p[2] > limit)
-	    tangle->recalculate[reverse] = EDGE_FORWARD;
+	  double zf = tangle->vnodes[forward].p[2];
+	  double zr = tangle->vnodes[forward].p[2];
+
+	  if(zkk > ulimit)
+	    {
+	      if(zf < ulimit)
+		tangle->recalculate[forward] = EDGE_REVERSE_H;
+	      if(zr < ulimit)
+		tangle->recalculate[reverse] = EDGE_FORWARD_H;
+	    }
+	  if(zkk < llimit)
+	    {
+	      if(zf > llimit)
+		tangle->recalculate[forward] = EDGE_REVERSE_L;
+	      if(zr > llimit)
+		tangle->recalculate[reverse] = EDGE_FORWARD_L;
+	    }
 	}
     }
 
@@ -212,17 +236,29 @@ void clip_at_wall(struct tangle_state *tangle)
     {
       switch(tangle->recalculate[kk])
       {
-	case EDGE_REVERSE:
+	case EDGE_REVERSE_L:
 	  tangle->connections[kk].reverse = -1;
-	  tangle->vnodes[kk].p[2] = limit;
+	  tangle->vnodes[kk].p[2] = llimit;
 	  tangle->status[kk].status = PINNED;
 	  tangle->status[kk].pin_wall = Z_L;
 	  break;
-	case EDGE_FORWARD:
+	case EDGE_FORWARD_L:
 	  tangle->connections[kk].forward = -1;
-	  tangle->vnodes[kk].p[2] = limit;
+	  tangle->vnodes[kk].p[2] = llimit;
 	  tangle->status[kk].status = PINNED;
 	  tangle->status[kk].pin_wall = Z_L;
+	  break;
+	case EDGE_REVERSE_H:
+	  tangle->connections[kk].reverse = -1;
+	  tangle->vnodes[kk].p[2] = ulimit;
+	  tangle->status[kk].status = PINNED;
+	  tangle->status[kk].pin_wall = Z_H;
+	  break;
+	case EDGE_FORWARD_H:
+	  tangle->connections[kk].forward = -1;
+	  tangle->vnodes[kk].p[2] = ulimit;
+	  tangle->status[kk].status = PINNED;
+	  tangle->status[kk].pin_wall = Z_H;
 	  break;
 	case KILL:
 	  tangle->status[kk].status = EMPTY;

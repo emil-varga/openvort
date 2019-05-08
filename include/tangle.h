@@ -124,6 +124,7 @@ int tangle_total_points(struct tangle_state *tangle);
 struct vec3d shifted(const struct image_tangle *shift, const struct tangle_state *tangle,
 		     const struct vec3d *r);
 void enforce_boundaries(struct tangle_state *tangle);
+void update_tangent_normal(struct tangle_state *tangle, size_t k);
 void update_tangents_normals(struct tangle_state *tangle);
 void update_velocities(struct tangle_state *tangle, double t);
 void update_velocity(struct tangle_state *tangle, int k, double t);

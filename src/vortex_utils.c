@@ -211,7 +211,7 @@ void clip_at_wall(struct tangle_state *tangle)
 	  const int reverse = tangle->connections[kk].reverse;
 
 	  double zf = tangle->vnodes[forward].p[2];
-	  double zr = tangle->vnodes[forward].p[2];
+	  double zr = tangle->vnodes[reverse].p[2];
 
 	  if(zkk >= ulimit)
 	    {
@@ -262,6 +262,9 @@ void clip_at_wall(struct tangle_state *tangle)
 	  break;
 	case KILL:
 	  tangle->status[kk].status = EMPTY;
+	  tangle->status[kk].pin_wall = NOT_A_FACE;
+	  tangle->connections[kk].forward = -1;
+	  tangle->connections[kk].reverse = -1;
 	  break;
 	default:
 	  break;
@@ -346,7 +349,7 @@ void save_tangle(const char *filename, struct tangle_state *tangle)
 	      if(curr < 0)
 		{
 		  curr = tangle->connections[first].reverse;
-		  while(tangle->connections[curr].reverse > 0)
+		  while(curr > 0 && tangle->connections[curr].reverse > 0)
 		    {
 		      save_point(stream, vortex_idx, tangle, curr);
 		      visited[curr] = 1;

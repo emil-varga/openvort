@@ -20,6 +20,7 @@
 #include "vortex_dynamics.h"
 #include "vec3_maths.h"
 #include "util.h"
+#include "vortex_constants.h"
 #include <math.h> //for cos()
 #include <stdint.h>
 #include <stdio.h>
@@ -135,7 +136,7 @@ int do_reconnection(struct tangle_state *tangle, size_t k, size_t l);
 //helper for wall-reconnections
 int check_wall(struct tangle_state *tangle, int k, int wall, double rdist);
 int connect_to_wall(struct tangle_state *tangle, int k, int wall, double rdist,
-		   node_status_t pin_mode);
+		   node_status_t pin_mode, double time);
 
 /*
   Run through all the pairs of nodes and check their distance if they are not
@@ -178,9 +179,11 @@ int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec
 	  //it needs to find two ends that should be attached to
 	  //the wall
 	  if(check_wall(tangle, k, wall, rec_dist))
-	    Nrecs += connect_to_wall(tangle, k, wall, rec_dist, PINNED);
+	    Nrecs += connect_to_wall(tangle, k, wall, rec_dist, PINNED, t);
 	}
     }
+  if(Nrecs > 0)
+    eliminate_small_loops(tangle, small_loop_cutoff);
 
   /*
    * Now do standard vortex-vortex reconnections
@@ -214,6 +217,9 @@ int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec
 	    continue;
 	  //the nodes are close and they are not neighbors
 	  //now check the angle
+
+	  update_tangent_normal(tangle, k);
+	  update_tangent_normal(tangle, l);
 
 	  d1 = tangle->tangents[k];
 	  d2 = tangle->tangents[l];
@@ -380,16 +386,18 @@ double wall_dist(struct tangle_state *tangle, int k, boundary_faces wall)
 }
 
 int connect_to_wall(struct tangle_state *tangle, int k, int wall, double rdist,
-		   node_status_t pin_mode)
+		   node_status_t pin_mode, double time)
 {
+  update_tangent_normal(tangle, k);
+  update_velocity(tangle, k, time);
+  double d0 = wall_dist(tangle, k, wall);
   //check that the node is actually getting closer to the wall
   //boundary_normals are inward-facing unit normals
-  if(vec3_dot(&tangle->vels[k], &boundary_normals[wall]) > 0)
+  if(d0 > 0 && vec3_dot(&tangle->vels[k], &boundary_normals[wall]) > 0)
     return 0;
 
   int next = tangle->connections[k].forward;
   int prev = tangle->connections[k].reverse;
-  double d0 = wall_dist(tangle, k, wall);
   double d1 = wall_dist(tangle, next, wall);
   double dm1 = wall_dist(tangle, prev, wall);
 
@@ -399,7 +407,7 @@ int connect_to_wall(struct tangle_state *tangle, int k, int wall, double rdist,
   double vdm1 = segment_len(&sm1);
 
   //check that the total length does not increase
-  if(vd1 < d0 + d1 && vdm1 < d0 + dm1)
+  if(d0 > 0 && vd1 < d0 + d1 && vdm1 < d0 + dm1)
     return 0;
 
   //printf("Pinning %d %d %d\n", prev, k, next);

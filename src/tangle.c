@@ -632,25 +632,22 @@ void eliminate_small_loops(struct tangle_state *tangle, int loop_length)
   for(int k=0; k < tangle->N; ++k)
     {
       if(tangle->status[k].status == EMPTY ||
-	 tangle->status[k].status == PINNED ||
 	 tangle->recalculate[k])
-	continue; //empty, pinned or already visited point
+	continue; //empty or already visited point
 
       tangle->recalculate[k]++;
 
       int loop = 0;
       int here = k;
       int next = tangle->connections[here].forward;
-      if(next < 0)
-	error("what?");
       while(next != k)
 	{
-	  if(tangle->status[next].status == PINNED)
+	  if(tangle->status[here].status == PINNED && next < 0)
 	    {
 	      //we hit a wall, turn back from k
 	      here = k;
 	      next = tangle->connections[here].reverse;
-	      while(tangle->status[next].status == PINNED)
+	      while(next > 0)
 		{
 		  tangle->recalculate[here]++;
 		  here = next;

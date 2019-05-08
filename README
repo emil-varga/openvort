@@ -1,6 +1,33 @@
 This code, called OpenVort, calculates the movement of quantized vortices in He II using the vortex filament model of K. W. Schwarz. The code requires libconfig for reading of config files,
 OpenMP for parallelisation and Glibc for floating point exception handling (fenableexcept).
 
-Docomentation is a "work-in-progress." See the configuration .cfg files for a rough idea on how to use it.
+OpenVort is Free Software (GNU GPLv3), see COPYING.txt. Feel free to use it for whatever you want.
 
-OpenVort is Free Software. Feel free to use it for whatever you want.
+Development of this code was supported by the Charles University.
+
+Bug reports welcome at varga(dot)emil(at)gmail(dot)com.
+
+COMPILATION AND RUNNING:
+
+Compile the code by running 'make' in the root directory.
+
+Documentation is a "work in progress". See example_config.cfg for a rough idea on how to use it. With the executable 'vortices' in the working directory start the simulation using
+./vortices -c <path to config file> -o <output directory>
+
+Tools to process the simulation are in the python/ subdirectory. To plot the images of the tangle use
+python3 animate.py --config <path to config file> <path to simulation output dir> [--slow]
+Use the --slow option if you have periodic boundary conditions.
+
+This program will create a png file for every frame*.dat in the <simulation output dir>.
+
+KNOWN ISSUES:
+
+* Problems with Windows.
+The code can be compiled (but the GCC sanitization options need to be turned off in the Makefile) and ran under Cygwin (note though that the Cygwin supplied version
+of libconfig is too old and you need to compile it yourself), but relatively quickly runs into as-yet unresolved floating point exceptions. It either crashes with SIGFPE
+in random parts of the code or starts spewing out nonsense.
+
+* Restarting the simulation is not properly implemented yet and will have to change quite a bit. The tangle state is saved fully in the frame*.dat files, but the loading routine is rather 
+rudimentary right now. Also, the frame*.dat files do not contain the time of the frame which is a problem for time varying external velocities.
+
+* This code has only really been tested on Linux Mint 18.1 and GCC 5.4.0.

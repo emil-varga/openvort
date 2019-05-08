@@ -42,6 +42,12 @@ int get_vs(const struct vec3d *where, double t, struct vec3d *res)
   return 1;
 }
 
+int get_vb(const struct vec3d *where, double t, struct vec3d *res)
+{
+  vb_conf.fun(where, t, res, &vb_conf);
+  return 1;
+}
+
 int get_v_param_scalar(const struct v_conf_t *vconf, const char *name, double *res)
 {
   for(int k=0; k<vconf->n_params; ++k)
@@ -72,6 +78,14 @@ int get_v_param_vector(const struct v_conf_t *vconf, const char *name, struct ve
 
 struct v_conf_t vn_conf;
 struct v_conf_t vs_conf;
+struct v_conf_t vb_conf;
+
+const struct v_conf_t v_conf_noflow = {
+    .name = "no flow",
+    .fun = get_v_noflow,
+    .n_params = 0,
+    .v_params = {{0,0,{.scalar=0}}}
+};
 
 struct v_conf_t v_confs[] = {
     {
@@ -164,6 +178,25 @@ struct v_conf_t v_confs[] = {
 	.v_params = {
 	    {"rate", scalar_param, {.scalar=0}},
 	    {"v0", scalar_param, {.scalar=0}}
+	}
+    },
+    {
+    	.name = "rotosc",
+    	.fun = get_v_rotosc,
+    	.n_params = 2,
+    	.v_params = {
+    	    {"freq", scalar_param, {.scalar=0}},
+    	    {"amp", scalar_param, {.scalar=0}}
+    	}
+    },
+    {
+	.name = "rotosc-boundary",
+	.fun = get_v_rotosc,
+	.n_params = 2,
+	.v_params = {
+	    {"freq", scalar_param, {.scalar=0}},
+	    {"amp", scalar_param, {.scalar=0}},
+	    {"delta", scalar_param, {.scalar=0}}
 	}
     },
     {
@@ -372,5 +405,49 @@ int get_v_simple_shear(const struct vec3d *where, double t __attribute__((unused
   *res = vec3(0,0,0);
   res->p[2] = v0 + rate*x;
 
+  return 0;
+}
+
+int get_v_rotosc(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf)
+{
+  double freq;
+  double amp;
+
+  int err;
+  if(!(err = get_v_param_scalar(vconf, "freq", &freq)))
+    return err;
+  if(!(err = get_v_param_scalar(vconf, "amp", &amp)))
+    return err;
+
+  const struct vec3d axis = vec3(0, 0, 1);
+  struct vec3d v;
+  vec3_cross(&v, &axis, where);
+  vec3_mul(&v, &v, amp*cos(freq*t));
+
+  *res = v;
+  return 0;
+}
+
+int get_v_rotosc_boundary(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf)
+{
+  double freq;
+  double amp;
+  double delta;
+
+  int err;
+  if(!(err = get_v_param_scalar(vconf, "freq", &freq)))
+    return err;
+  if(!(err = get_v_param_scalar(vconf, "amp", &amp)))
+    return err;
+  if(!(err = get_v_param_scalar(vconf, "delta", &delta)))
+      return err;
+
+  const struct vec3d axis = vec3(0, 0, 1);
+  struct vec3d v;
+  vec3_cross(&v, &axis, where);
+  double z = where->p[2];
+  vec3_mul(&v, &v, amp*exp(-z/delta)*cos(freq*t - z/delta));
+
+  *res = v;
   return 0;
 }

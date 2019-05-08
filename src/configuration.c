@@ -256,6 +256,12 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
   if(vel_conf && config_setting_type(vel_conf) == CONFIG_TYPE_GROUP)
     setup_external_velocity(vel_conf, &vs_conf);
 
+  vel_conf = config_lookup(&cfg, "vb_conf");
+  if(vel_conf && config_setting_type(vel_conf) == CONFIG_TYPE_GROUP)
+    setup_external_velocity(vel_conf, &vb_conf);
+  else
+    vb_conf = v_confs[0];
+
   //setup the domain box size
 
   config_setting_t *domain;
@@ -408,6 +414,16 @@ int setup_init(const char *conf_file, struct tangle_state *tangle)
 	  strncpy(restart_path, path, PATH_LEN);
 	  load_tangle(restart_path, tangle);
 	}
+      else if(strcmp(str, "big ring") == 0)
+	{
+	  double ring_r;
+	  int ring_N;
+	  if(!config_lookup_float(&cfg, "ring_r", &ring_r))
+	    goto failure;
+	  if(!config_lookup_int(&cfg, "ring_N", &ring_N))
+	    goto failure;
+	  make_big_ring(tangle, ring_r, ring_N);
+	}
       else//TODO: add more init modes
 	{
 	  fprintf(stderr, "Error: unknown initialization mode: %s\n", str);
@@ -461,6 +477,10 @@ void print_config(const struct tangle_state *tangle)
 
   printf("###########     Superfluid setup       ###########\n");
   print_ev_config(&vs_conf);
+  printf("##################################################\n\n");
+
+  printf("###########     Boundary setup       ###########\n");
+  print_ev_config(&vb_conf);
   printf("##################################################\n\n");
 
   printf("###########     Simulation parameters  ###########\n");

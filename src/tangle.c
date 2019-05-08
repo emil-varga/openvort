@@ -383,6 +383,8 @@ void update_velocity(struct tangle_state *tangle, int k, double t)
   if(tangle->status[k].status == PINNED)
     {
       tangle->vs[k] = vec3(0,0,0);
+      //get the boundary velocity, by default non-moving
+      get_vb(&tangle->vnodes[k], t, &tangle->vels[k]);
       return;
     }
 

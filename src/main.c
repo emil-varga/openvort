@@ -61,9 +61,11 @@ int main(int argc, char **argv)
 
   create_tangle(tangle, 512);
 
+  printf("Reading config from %s.\n", conf_file);
   char filename[128];
   if(!load_conf(conf_file, tangle))
     {
+      printf("Can't initialize! Existing.\n");
       free_tangle(tangle);
       free(tangle);
       return EXIT_FAILURE;
@@ -71,9 +73,9 @@ int main(int argc, char **argv)
 
   print_config(tangle);
 
-  eliminate_small_loops(tangle, small_loop_cutoff);
   enforce_boundaries(tangle);
   remesh(tangle, global_dl_min, global_dl_max);
+  eliminate_small_loops(tangle, small_loop_cutoff);
   update_tangle(tangle, 0);
 
   int shot = frame_shot - 1;

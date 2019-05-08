@@ -178,8 +178,7 @@ int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec
 	  //it needs to find two ends that should be attached to
 	  //the wall
 	  if(check_wall(tangle, k, wall, rec_dist))
-	    connect_to_wall(tangle, k, wall, rec_dist,
-			   PINNED);
+	    Nrecs += connect_to_wall(tangle, k, wall, rec_dist, PINNED);
 	}
     }
 

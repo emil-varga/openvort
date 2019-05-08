@@ -278,7 +278,14 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
       fprintf(stderr, "Error: specify boundaries\n");
       goto failure;
     }
-  if(strcmp(str, "periodic-6") == 0)
+  if(strcmp(str, "wall-2-4") == 0)
+    {
+      tangle->bimg = wall_2_4;
+      set_walls_full(tangle, WALL_PERIODIC);
+      tangle->box.wall[Z_L] = WALL_MIRROR;
+      tangle->box.wall[Z_H] = WALL_MIRROR;
+    }
+  else if(strcmp(str, "periodic-6") == 0)
     {
       tangle->bimg = periodic_6;
       set_walls_full(tangle, WALL_PERIODIC);
@@ -340,6 +347,7 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
   return 1;
 failure:
   config_destroy(&cfg);
+  error("Failed reading configuration.");
   return 0;
 }
 
@@ -369,8 +377,8 @@ int setup_init(const char *conf_file, struct tangle_state *tangle)
 	      fprintf(stderr, "Error: set the number of loops in config_file\n");
 	      goto failure;
 	    }
-	  if(tangle->box.wall[Z_L] == WALL_MIRROR)
-	    clip_at_wall(tangle);
+
+	  clip_at_wall(tangle);
 	}
       else if(strcmp(str, "one loop") == 0)
 	{
@@ -381,13 +389,18 @@ int setup_init(const char *conf_file, struct tangle_state *tangle)
 	  load_conf_vector(&cfg, "loop_center", &c);
 	  load_conf_vector(&cfg, "loop_dir", &d);
 	  if(!config_lookup_float(&cfg, "loop_r", &r))
-	    goto failure;
+	    {
+	      fprintf(stderr, "Please specify loop radius with loop_r.");
+	      goto failure;
+	    }
 	  if(!config_lookup_int(&cfg, "loop_N", &N))
-	    goto failure;
+	    {
+	      fprintf(stderr, "Please specify number of discretisation points with loop_N.");
+	      goto failure;
+	    }
 	  add_circle(tangle, &c, &d, r, N);
 
-	  if(tangle->box.wall[Z_L] == WALL_MIRROR)
-	    clip_at_wall(tangle);
+	  clip_at_wall(tangle);
 	}
       else if(strcmp(str, "restart") == 0)
 	{
@@ -412,6 +425,7 @@ int setup_init(const char *conf_file, struct tangle_state *tangle)
 
 failure:
   config_destroy(&cfg);
+  error("Failed to setup initial condition.");
   return 0;
 }
 

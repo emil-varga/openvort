@@ -575,28 +575,37 @@ void remesh(struct tangle_state *tangle, double min_dist, double max_dist)
   int added = 0;
   for(int k=0; k<tangle->N; ++k)
     {
-      if(tangle->status[k].status == EMPTY  || tangle->status[k].status == PINNED || tangle->status[k].status == PINNED_SLIP ||
-	 tangle->connections[k].forward < 0 ||
-	 tangle->connections[k].reverse < 0) //empty or pinned point
+      if(tangle->status[k].status == EMPTY)
 	continue;
+
 
       int next = tangle->connections[k].forward;
       int prev = tangle->connections[k].reverse;
 
-      struct segment sf = seg_pwrap(&tangle->vnodes[k], &tangle->vnodes[next], &tangle->box);
-      struct segment sr = seg_pwrap(&tangle->vnodes[k], &tangle->vnodes[prev], &tangle->box);
-  
-      double lf = segment_len(&sf);
-      double lr = segment_len(&sr);
+      struct segment sf;
+      struct segment sr;
+      double lf;
+      double lr;
+
+      if(next > 0)
+	{
+	  sf = seg_pwrap(&tangle->vnodes[k], &tangle->vnodes[next], &tangle->box);
+	  lf = segment_len(&sf);
+	}
+      if(prev > 0)
+	{
+	  sr = seg_pwrap(&tangle->vnodes[k], &tangle->vnodes[prev], &tangle->box);
+	  lr = segment_len(&sr);
+	}
 
       //can we remove point k?
-      if( (lf < min_dist || lr < min_dist) && (lf + lr) < max_dist )
+      if(next > 0 && prev > 0 && ((lf < min_dist || lr < min_dist) && (lf + lr) < max_dist ))
 	{
 	  remove_point(tangle, k);
 	}
 
       //do we need an extra point?
-      if( lf > max_dist ) //since we are adding between k and next, check only lf
+      if(next > 0 && (lf > max_dist)) //since we are adding between k and next, check only lf
 	{
 	  added++;
 	  int new_pt = add_point(tangle, k);
@@ -623,22 +632,25 @@ void eliminate_small_loops(struct tangle_state *tangle, int loop_length)
   for(int k=0; k < tangle->N; ++k)
     {
       if(tangle->status[k].status == EMPTY ||
+	 tangle->status[k].status == PINNED ||
 	 tangle->recalculate[k])
-	continue; //empty or visited point
+	continue; //empty, pinned or already visited point
 
       tangle->recalculate[k]++;
 
       int loop = 0;
       int here = k;
       int next = tangle->connections[here].forward;
+      if(next < 0)
+	error("what?");
       while(next != k)
 	{
-	  if(next == -1 && tangle->status[here].status != EMPTY)
+	  if(tangle->status[next].status == PINNED)
 	    {
 	      //we hit a wall, turn back from k
 	      here = k;
 	      next = tangle->connections[here].reverse;
-	      while(next != -1)
+	      while(tangle->status[next].status == PINNED)
 		{
 		  tangle->recalculate[here]++;
 		  here = next;
@@ -772,7 +784,7 @@ int add_point(struct tangle_state *tangle, int p)
   int next = tangle->connections[p].forward;
   int new_pt = get_tangle_next_free(tangle);
   tangle->status[new_pt].status = FREE;
-  tangle->status[new_pt].pin_wall = -1;
+  tangle->status[new_pt].pin_wall = NOT_A_FACE;
 
   update_tangent_normal(tangle, p);
   update_tangent_normal(tangle, next);

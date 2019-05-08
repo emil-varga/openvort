@@ -166,7 +166,7 @@ void insert_random_loops(struct tangle_state *tangle, int N)
 	c.p[j] = tangle->box.bottom_left_back.p[j] + drand48()*Ls[j];
 
       double r =  rmin + drand48()*(rmax - rmin);
-      add_circle(tangle, &c, &dir, r, 64);
+      add_circle(tangle, &c, &dir, r, 256);
     }
 }
 
@@ -213,14 +213,14 @@ void clip_at_wall(struct tangle_state *tangle)
 	  double zf = tangle->vnodes[forward].p[2];
 	  double zr = tangle->vnodes[forward].p[2];
 
-	  if(zkk > ulimit)
+	  if(zkk >= ulimit)
 	    {
 	      if(zf < ulimit)
 		tangle->recalculate[forward] = EDGE_REVERSE_H;
 	      if(zr < ulimit)
 		tangle->recalculate[reverse] = EDGE_FORWARD_H;
 	    }
-	  if(zkk < llimit)
+	  if(zkk <= llimit)
 	    {
 	      if(zf > llimit)
 		tangle->recalculate[forward] = EDGE_REVERSE_L;

@@ -298,6 +298,11 @@ static inline struct vec3d segment_field1(struct segment *seg, struct vec3d r)
   double denom = lR*lRp1*(lR*lRp1 + vec3_dot(&R, &Rp1));
   double f = KAPPA/4/M_PI;
 
+  //if R and Rp1 are colinear, the result is 0
+  //but code below would try to calculate 0/0
+  if(vec3_dot(&R, &Rp1) < 1e-8)
+    return vec3(0,0,0);
+
   //this can happen in periodic boundary conditions
   //TODO: the logic should be moved higher
   if(lR < 1e-8 || lRp1 < 1e-8)
@@ -649,7 +654,7 @@ void eliminate_small_loops(struct tangle_state *tangle, int loop_length)
 	      //we hit a wall, turn back from k
 	      here = k;
 	      next = tangle->connections[here].reverse;
-	      while(next > 0)
+	      while(next >= 0)
 		{
 		  tangle->recalculate[here]++;
 		  here = next;
@@ -661,7 +666,7 @@ void eliminate_small_loops(struct tangle_state *tangle, int loop_length)
 	    }
 	  tangle->recalculate[here]++;
 	  here = next;
-	  next = tangle->connections[next].forward;
+	  next = tangle->connections[here].forward;
 	  loop++;
 	}
       if(loop < loop_length) //the loop is short, delete it
@@ -803,23 +808,31 @@ int add_point(struct tangle_state *tangle, int p)
   struct vec3d n;
   vec3_add(&n, &s0pp, &s1pp);
   vec3_mul(&n, &n, 0.5);
-  double R = 1/vec3_d(&n);
-  double dR = R*R - l*l/4;
-  //dR can become < 0 for sharp cusps
-  //simplest way to deal with it is to treat the s0 and s1 as sitting
-  //on opposite ends of a circle, for which dR = 0
-  //this does not preserve curvature, but this is below our resolution anyway
-  double delta = dR > 0 ? R - sqrt(dR) : R;
+  if(vec3_d(&n) > 1e-5) //n will be identically 0 for a straight vortex
+    {
+      double R = 1/vec3_d(&n);
+      double dR = R*R - l*l/4;
+      //dR can become < 0 for sharp cusps
+      //simplest way to deal with it is to treat the s0 and s1 as sitting
+      //on opposite ends of a circle, for which dR = 0
+      //this does not preserve curvature, but this is below our resolution anyway
+      double delta = dR > 0 ? R - sqrt(dR) : R;
 
-  vec3_normalize(&n);
-  vec3_mul(&n, &n, -1);
+      vec3_normalize(&n);
+      vec3_mul(&n, &n, -1);
 
-  vec3_add(&a, &s0, &s1);
-  vec3_mul(&a, &a, 0.5);
+      vec3_add(&a, &s0, &s1);
+      vec3_mul(&a, &a, 0.5);
 
-  vec3_mul(&b, &n, delta);
+      vec3_mul(&b, &n, delta);
 
-  vec3_add(&new, &a, &b);
+      vec3_add(&new, &a, &b);
+    }
+  else //we basically have a straight vortex, just average s0 and s1
+    {
+      vec3_add(&new, &s0, &s1);
+      vec3_mul(&new, &new, 0.5);
+    }
 
   tangle->vnodes[new_pt] = new;
   tangle->connections[new_pt].reverse = p;

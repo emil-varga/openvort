@@ -424,6 +424,17 @@ int setup_init(const char *conf_file, struct tangle_state *tangle)
 	    goto failure;
 	  make_big_ring(tangle, ring_r, ring_N);
 	}
+      else if(strcmp(str, "random straight lines") == 0)
+	{
+	  //this only works for the two-walls boundary condition
+	  int npairs;
+	  int points_per_line;
+	  if(!config_lookup_int(&cfg, "init_npairs", &npairs))
+	    goto failure;
+	  if(!config_lookup_int(&cfg, "init_line_points", &points_per_line))
+	    goto failure;
+	  random_straight_lines(tangle, npairs, points_per_line);
+	}
       else//TODO: add more init modes
 	{
 	  fprintf(stderr, "Error: unknown initialization mode: %s\n", str);

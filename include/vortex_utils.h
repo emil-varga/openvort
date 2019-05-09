@@ -38,6 +38,8 @@ void insert_random_loops(struct tangle_state *tangle, int N);
 void make_big_ring(struct tangle_state *tangle, double ring_r, int ring_N);
 void clip_at_wall(struct tangle_state *tangle);
 
+void random_straight_lines(struct tangle_state *tangle, int npairs, int points_per_line);
+
 void save_tangle(const char *filename, struct tangle_state *tangle);
 int load_tangle(const char *filename, struct tangle_state *tangle);
 

@@ -553,3 +553,74 @@ int is_empty(const struct tangle_state *tangle, int k)
   #endif
   return -1;
 }
+
+void add_line(struct tangle_state *tangle, double x, double y, int direction, int points)
+{
+  double zmin = tangle->box.bottom_left_back.p[2];
+  double zmax = tangle->box.top_right_front.p[2];
+  double dz = (zmax - zmin) / points;
+
+  double zstart = direction > 0 ? zmin : zmax;
+  double zend = direction > 0 ? zmax : zmin;
+
+  struct vec3d s = vec3(x, y, zstart);
+  struct vec3d sp = vec3(0, 0, direction); //tangent
+  struct vec3d spp = vec3(0, 0, 0); //normal
+
+  int new_pt = get_tangle_next_free(tangle);
+  int last_pt;
+  tangle->vnodes[new_pt] = s;
+  tangle->tangents[new_pt] = sp;
+  tangle->normals[new_pt] = spp;
+  tangle->status[new_pt].status = PINNED;
+  tangle->status[new_pt].pin_wall = direction > 0 ? Z_L : Z_H;
+  tangle->connections[new_pt].reverse = -1;
+
+  for(int k=1; k<points-1; ++k)
+    {
+      last_pt = new_pt;
+      new_pt = get_tangle_next_free(tangle);
+      s.p[2] = zstart + direction*k*dz;
+
+      tangle->vnodes[new_pt] = s;
+      tangle->tangents[new_pt] = sp;
+      tangle->normals[new_pt] = spp;
+      tangle->status[new_pt].status = FREE;
+      tangle->status[new_pt].pin_wall = NOT_A_FACE;
+      tangle->connections[new_pt].reverse = last_pt;
+      tangle->connections[last_pt].forward = new_pt;
+    }
+
+  s.p[2] = zend;
+  last_pt = new_pt;
+  new_pt = get_tangle_next_free(tangle);
+  tangle->vnodes[new_pt] = s;
+  tangle->tangents[new_pt] = sp;
+  tangle->normals[new_pt] = spp;
+  tangle->status[new_pt].status = PINNED;
+  tangle->status[new_pt].pin_wall = direction > 0 ? Z_H : Z_L;
+  tangle->connections[new_pt].reverse = last_pt;
+  tangle->connections[new_pt].forward = -1;
+  tangle->connections[last_pt].forward = new_pt;
+}
+
+void random_straight_lines(struct tangle_state *tangle, int npairs, int points_per_line)
+{
+  //for the slab geometry, populate the computational box with straight vortices
+  assert(tangle->box.wall[Z_L] == WALL_MIRROR && tangle->box.wall[Z_H] == WALL_MIRROR);
+
+  double xmin = tangle->box.bottom_left_back.p[0];
+  double xmax = tangle->box.top_right_front.p[0];
+  double ymin = tangle->box.bottom_left_back.p[1];
+  double ymax = tangle->box.top_right_front.p[1];
+
+  for(int k=0; k < npairs; ++k)
+    {
+      double x1 = xmin + (xmax - xmin)*drand48();
+      double y1 = ymin + (ymax - ymin)*drand48();
+      double x2 = xmin + (xmax - xmin)*drand48();
+      double y2 = ymin + (ymax - ymin)*drand48();
+      add_line(tangle, x1, y1, +1, points_per_line);
+      add_line(tangle, x2, y2, -1, points_per_line);
+    }
+}

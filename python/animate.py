@@ -43,6 +43,8 @@ if __name__ == '__main__':
     parser.add_argument("-D1", help="For assymetric plot boxes. The interval will be [D1, D]^3.",
                        type = float)
     parser.add_argument("--config", help="Path to the config file of the simulation. This will override D, D1 and slow.")
+    parser.add_argument("--fix-plot-box", help="Use a plot dimensions fixed by the computation box in the config fig.",
+                        action = "store_true")
 
     args = parser.parse_args()
 
@@ -70,15 +72,18 @@ if __name__ == '__main__':
         LBB = np.array(domain[0])
         RFT = np.array(domain[1])
 
-        Lmax = np.abs(LBB - RFT).max()
-
-        mids = 0.5*(LBB + RFT)
-        Dxl = mids[0] - Lmax/2
-        Dxh = mids[0] + Lmax/2
-        Dyl = mids[1] - Lmax/2
-        Dyh = mids[1] + Lmax/2
-        Dzl = mids[2] - Lmax/2
-        Dzh = mids[2] + Lmax/2
+        if args.fix_plot_box:
+            Dxl, Dyl, Dzl = LBB
+            Dxh, Dyh, Dzh = RFT
+        else:
+            Lmax = np.abs(LBB - RFT).max()
+            mids = 0.5*(LBB + RFT)
+            Dxl = mids[0] - Lmax/2
+            Dxh = mids[0] + Lmax/2
+            Dyl = mids[1] - Lmax/2
+            Dyh = mids[1] + Lmax/2
+            Dzl = mids[2] - Lmax/2
+            Dzh = mids[2] + Lmax/2
         dl_max = config.dl_max
 
 

@@ -210,17 +210,18 @@ void clip_at_wall(struct tangle_state *tangle)
   if(tangle->box.wall[Z_H] == WALL_MIRROR)
     ulimit = tangle->box.top_right_front.p[2];
 
+  enum POINT_STATES {
+        OK=0,
+        KILL,         //point to be clipped
+        EDGE_FORWARD_L, //last point above the lower wall
+        EDGE_REVERSE_L,  //first point above the lower wall
+        EDGE_FORWARD_H, //last point below the upper wall
+        EDGE_REVERSE_H  //first point below the upper wall
+      };
+
   //recalculate is used as a tag for points to be clipped
   for(int k=0; k<tangle->N; ++k)
-    tangle->recalculate[k] = 0;
-  enum POINT_STATES {
-      OK=0,
-      KILL,         //point to be clipped
-      EDGE_FORWARD_L, //last point above the lower wall
-      EDGE_REVERSE_L,  //first point above the lower wall
-      EDGE_FORWARD_H, //last point below the upper wall
-      EDGE_REVERSE_H  //first point below the upper wall
-    };
+    tangle->recalculate[k] = OK;
 
   //first find all the points to be clipped
   for(int kk=0; kk<tangle->N; ++kk)
@@ -256,7 +257,7 @@ void clip_at_wall(struct tangle_state *tangle)
     }
 
   //next handle edge points by projecting them on the wall
-  //and pinning them on the lower Z-wall
+  //and pinning them on the lower or upper Z-wall
   for(int kk=0; kk < tangle->N; ++kk)
     {
       switch(tangle->recalculate[kk])
@@ -314,7 +315,7 @@ void save_point(FILE *stream, int vort_idx,
   write_vector(stream, tangle->tangents + i);
   fprintf(stream, "\t");
   write_vector(stream, tangle->normals + i);
-  fprintf(stream, "%d\t%d\t%d\t%d\t%d", i,
+  fprintf(stream, "\t%d\t%d\t%d\t%d\t%d", i,
 	  tangle->connections[i].reverse,
 	  tangle->connections[i].forward,
 	  tangle->status[i].status,

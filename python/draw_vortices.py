@@ -22,6 +22,7 @@ along with OpenVort.  If not, see <http://www.gnu.org/licenses/>.
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 def draw_vortices(fn, plot_axes, slow=False, max_len=0.05):
     data = np.loadtxt(fn)
     x = data[:,1]
@@ -30,6 +31,7 @@ def draw_vortices(fn, plot_axes, slow=False, max_len=0.05):
 
     vix = np.round(data[:,0])
     vortex_idx = 0
+    plot_axes.set_proj_type('ortho')
     while np.any(vix == vortex_idx):
         ix = vix == vortex_idx
         if slow:
@@ -43,17 +45,18 @@ def draw_vortices(fn, plot_axes, slow=False, max_len=0.05):
                     ys.append(r[1])
                     zs.append(r[2])
                 else:
-                    plot_axes.plot(xs, ys, zs, '-', color='red', lw=0.5)
+                    plot_axes.plot(xs, ys, zs, '-o', color='red', lw=0.5)
                     xs, ys, zs = [], [], []
-            plot_axes.plot(xs, ys, zs, '-', color='red', lw=0.5)
+            plot_axes.plot(xs, ys, zs, '-o', color='red', lw=0.5)
             if np.linalg.norm(rs[0,:] - rs[-1,:]) < max_len:
                 plot_axes.plot([rs[0,0], rs[-1,0]],
                                [rs[0,1], rs[-1,1]],
                                [rs[0,2], rs[-1,2]],
                                '-', color='red', lw = 0.5)
         else:
-            plot_axes.plot(x[ix], y[ix], z[ix], '-', ms=2, lw=0.5,
-                           color = 'red')
+            plot_axes.plot(x[ix], y[ix], z[ix], '-o', ms=2, lw=0.5)#,
+                         #  color = 'red')
+            #plot_axes.plot(x[ix]+vx[ix], y[ix]+vy[ix], z[ix]+vz[ix], '-o', ms=2, lw=0.5)
         vortex_idx += 1
 
 if __name__ == '__main__':
@@ -68,5 +71,5 @@ if __name__ == '__main__':
 
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    draw_vortices(args.filename, ax, slow=True, max_len=args.dl_max)
+    draw_vortices(args.filename, ax, slow=False, max_len=args.dl_max)
     plt.show()

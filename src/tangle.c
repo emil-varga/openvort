@@ -300,7 +300,7 @@ static inline struct vec3d segment_field1(struct segment *seg, struct vec3d r)
 
   //if R and Rp1 are colinear, the result is 0
   //but code below would try to calculate 0/0
-  if(vec3_dot(&R, &Rp1) < 1e-8)
+  if(vec3_ndot(&R, &Rp1) < 1e-8)
     return vec3(0,0,0);
 
   //this can happen in periodic boundary conditions
@@ -393,8 +393,9 @@ void update_velocity(struct tangle_state *tangle, int k, double t)
       return;
     }
 
+
   tangle->vs[k] = lia_velocity(tangle, k);
-  
+
   struct vec3d evs;
   get_vs(&tangle->vnodes[k], t, &evs);
   vec3_add(&tangle->vs[k], &tangle->vs[k], &evs);
@@ -412,6 +413,7 @@ void update_velocity(struct tangle_state *tangle, int k, double t)
     }
 
   //calculate the velocity due to boundary images
+
   struct vec3d shift_r, v_shift;
   struct vec3d v_shift_total = vec3(0, 0, 0);
 
@@ -427,6 +429,7 @@ void update_velocity(struct tangle_state *tangle, int k, double t)
   vec3_add(&tangle->vs[k], &tangle->vs[k], &v_shift_total);
 
   tangle->vels[k] = tangle->vs[k];
+
 
   if(use_mutual_friction)
     {
@@ -447,6 +450,7 @@ void update_velocity(struct tangle_state *tangle, int k, double t)
       vec3_mul(&tmp, &tmp, -alpha_p);
       vec3_add(&tangle->vels[k], &tangle->vels[k], &tmp);
     }
+
 
   if(tangle->status[k].status == PINNED_SLIP)
     {
@@ -594,25 +598,25 @@ void remesh(struct tangle_state *tangle, double min_dist, double max_dist)
       double lf;
       double lr;
 
-      if(next > 0)
+      if(next >= 0)
 	{
 	  sf = seg_pwrap(&tangle->vnodes[k], &tangle->vnodes[next], &tangle->box);
 	  lf = segment_len(&sf);
 	}
-      if(prev > 0)
+      if(prev >= 0)
 	{
 	  sr = seg_pwrap(&tangle->vnodes[k], &tangle->vnodes[prev], &tangle->box);
 	  lr = segment_len(&sr);
 	}
 
       //can we remove point k?
-      if(next > 0 && prev > 0 && ((lf < min_dist || lr < min_dist) && (lf + lr) < max_dist ))
+      if(next >= 0 && prev >= 0 && ((lf < min_dist || lr < min_dist) && (lf + lr) < max_dist ))
 	{
 	  remove_point(tangle, k);
 	}
 
       //do we need an extra point?
-      if(next > 0 && (lf > max_dist)) //since we are adding between k and next, check only lf
+      if(next >= 0 && (lf > max_dist)) //since we are adding between k and next, check only lf
 	{
 	  added++;
 	  int new_pt = add_point(tangle, k);

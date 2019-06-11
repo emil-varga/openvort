@@ -8,7 +8,7 @@ Created on Tue Jun 11 11:29:48 2019
 
 import numpy as np
 
-def build_vortex(frame_data, vortex_idx):
+def build_vortex(frame_data, vortex_idx, max_l = None):
     vidx = frame_data[:,0]
     
     vortex_data = frame_data[vidx==vortex_idx,:]
@@ -42,5 +42,29 @@ def build_vortex(frame_data, vortex_idx):
                 else:
                     break
             break
+    vxs = np.array(vxs)
+    if max_l is not None:
+        return split_vortex(vxs, max_l)
+    return vxs
+
+def split_vortex(vxs, max_l):
+    xs = vxs[:,0]
+    ys = vxs[:,1]
+    zs = vxs[:,2]
+    dx = np.diff(xs)
+    dy = np.diff(ys)
+    dz = np.diff(zs)
     
-    return np.array(vxs)        
+    d = np.sqrt(dx**2 + dy**2 + dz**2)
+    jumps = np.nonzero(d > max_l)[0]
+    if len(jumps) == 0:
+        return [vxs]
+    
+    pieces = []
+    k0 = 0
+    for jump in jumps:
+        pieces.append(vxs[k0:jump])
+        k0 = jump+1
+    pieces.append(vxs[k0:])
+    
+    return pieces

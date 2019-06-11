@@ -31,9 +31,10 @@ def draw_vortices(fn, plot_axes, slow=False, max_len=0.05, scale=10, just_one=Fa
     plot_axes.set_proj_type('ortho')
     if just_one: vortex_idx = np.random.choice(int(vix.max()))
     while np.any(vix == vortex_idx):
-        vxs = util.build_vortex(data, vortex_idx)
-        vxs *= scale
-        plot_axes.plot(vxs[:,0], vxs[:,1], vxs[:,2], '-', color='r')        
+        vxs_pieces = util.build_vortex(data, vortex_idx, max_l=max_len)
+        for vxs in vxs_pieces:
+            vxs *= scale
+            plot_axes.plot(vxs[:,0], vxs[:,1], vxs[:,2], '-', color='r')        
         if just_one: break
         vortex_idx += 1
 

@@ -45,6 +45,8 @@ if __name__ == '__main__':
     parser.add_argument("--config", help="Path to the config file of the simulation. This will override D, D1 and slow.")
     parser.add_argument("--fix-plot-box", help="Use a plot dimensions fixed by the computation box in the config fig.",
                         action = "store_true")
+    parser.add_argument('--show-time', help="Show time on the plots.",
+                        action='store_true')
 
     args = parser.parse_args()
 
@@ -73,8 +75,8 @@ if __name__ == '__main__':
         RFT = np.array(domain[1])
 
         if args.fix_plot_box:
-            Dxl, Dyl, Dzl = LBB
-            Dxh, Dyh, Dzh = RFT
+            Dxl, Dyl, Dzl = LBB*10
+            Dxh, Dyh, Dzh = RFT*10
         else:
             Lmax = np.abs(LBB - RFT).max()
             mids = 0.5*(LBB + RFT)
@@ -85,6 +87,9 @@ if __name__ == '__main__':
             Dzl = mids[2] - Lmax/2
             Dzh = mids[2] + Lmax/2
         dl_max = config.dl_max
+        
+        dt = config.dt
+        nshots = config.frame_shots
 
 
     files = glob(path.join(data_dir, 'frame*.dat'))
@@ -99,6 +104,8 @@ if __name__ == '__main__':
         if path.isfile(fn.replace('.dat', '.png')):
             continue
         print("{}/{}".format(i, len(files)))
+        frame_index = int(path.split(fn)[1][5:-4])
+        time = frame_index*nshots*dt
 
         ax.clear()
         ax.auto_scale_xyz(1, 1, 1)
@@ -107,8 +114,12 @@ if __name__ == '__main__':
         ax.set_ylim(Dyl, Dyh)
         ax.set_zlim(Dzl, Dzh)
         ax.set_aspect('equal')
-        ax.set_xlabel("x")
-        ax.set_ylabel("y")
-        ax.set_zlabel("z")
+        ax.set_xlabel("$x$ (mm)")
+        ax.set_ylabel("$y$ (mm)")
+        ax.set_zlabel("$z$ (mm)")
+        if args.show_time:
+            txt = fig.text(0.05, 0.05, "$t$ = {:.06f} s".format(time), fontsize=18)
         fig.tight_layout()
         fig.savefig(fn.replace('.dat', '.png'), dpi=120)
+        if args.show_time:
+            txt.remove()

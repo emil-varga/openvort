@@ -298,15 +298,15 @@ static inline struct vec3d segment_field1(struct segment *seg, struct vec3d r)
   double denom = lR*lRp1*(lR*lRp1 + vec3_dot(&R, &Rp1));
   double f = KAPPA/4/M_PI;
 
-  //if R and Rp1 are colinear, the result is 0
-  //but code below would try to calculate 0/0
-  if(vec3_ndot(&R, &Rp1) < 1e-8)
-    return vec3(0,0,0);
-
   //this can happen in periodic boundary conditions
   //TODO: the logic should be moved higher
   if(lR < 1e-8 || lRp1 < 1e-8)
     return vec3(0, 0, 0);
+
+  //if R and Rp1 are colinear, the result is 0
+  //but code below would try to calculate 0/0
+  if(vec3_ndot(&R, &Rp1) < 1e-8)
+    return vec3(0,0,0);
 
   struct vec3d vv;
 

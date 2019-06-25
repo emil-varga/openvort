@@ -22,17 +22,20 @@ def build_vortex(frame_data, vortex_idx, max_l = None):
     node_i = vortex_data[:,-5]
     
     vxs = []
-    
+   
     k = 0
     initial_node_i = node_i[k]
     while True:
         vxs.append(xs[k,:])
         next_node_i = forward[k]
-        if next_node_i == initial_node_i:
-            break #we ran full circle
         if next_node_i >= 0:
             k = np.where(node_i == next_node_i)[0][0]
-        else:
+            
+        if next_node_i == initial_node_i:
+            vxs.append(xs[k,:])
+            break #we ran full circle
+            
+        if next_node_i < 0:
             k = 0
             while True:
                 next_node_i = reverse[k]
@@ -63,7 +66,7 @@ def split_vortex(vxs, max_l):
     pieces = []
     k0 = 0
     for jump in jumps:
-        pieces.append(vxs[k0:jump])
+        pieces.append(vxs[k0:jump+1])
         k0 = jump+1
     pieces.append(vxs[k0:])
     

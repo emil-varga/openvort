@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 import util
 
 def draw_vortices(fn, plot_axes, slow=False, max_len=0.05, scale=10, just_one=False,
-                  color=None):
+                  color=None, colorcode_z = True):
     data = np.loadtxt(fn)
 
     vix = np.round(data[:,0])
@@ -36,6 +36,15 @@ def draw_vortices(fn, plot_axes, slow=False, max_len=0.05, scale=10, just_one=Fa
         clr = color
         for vxs in vxs_pieces:
             vxs *= scale
+            dd = vxs.shape
+            if dd[0] < 2:
+                continue
+
+            if colorcode_z:
+                if vxs[dd[0]-1,2] > vxs[0,2]:
+                    clr = 'r'
+                else:
+                    clr = 'b'
             pl = plot_axes.plot(vxs[:,0], vxs[:,1], vxs[:,2], '-', color=clr)
             if clr is None:
                 clr = pl[-1].get_color()

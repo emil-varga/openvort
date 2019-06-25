@@ -88,7 +88,7 @@ if __name__ == '__main__':
             Dyh = mids[1] + Lmax/2
             Dzl = mids[2] - Lmax/2
             Dzh = mids[2] + Lmax/2
-        dl_max = config.dl_max
+        dl_max = 2*config.dl_max
         
         dt = config.dt
         nshots = config.frame_shots

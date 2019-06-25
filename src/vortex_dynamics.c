@@ -181,7 +181,7 @@ int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec
 	  //the wall
 	  if(check_wall(tangle, k, wall, rec_dist/2))
 	    {
-	      Nrecs += connect_to_wall(tangle, k, wall, rec_dist, PINNED, rec_angle, t);
+	      Nrecs += connect_to_wall(tangle, k, wall, rec_dist/2, PINNED, rec_angle, t);
 	    }
 	}
     }
@@ -191,6 +191,9 @@ int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec
   /*
    * Now do standard vortex-vortex reconnections
    */
+
+  for(k=0; k < tangle->N; ++k)
+    tangle->recalculate[k] = 0;
 
   for(k=0; k<tangle->N; ++k)
     {
@@ -414,7 +417,7 @@ int connect_to_wall(struct tangle_state *tangle, int k, int wall, double rdist,
   double vdm1 = segment_len(&sm1);
 
   //check that the total length does not increase
-  if(d0 > 0 && vd1 < d0 + d1 && vdm1 < d0 + dm1)
+  if(vd1 < d0 + d1 && vdm1 < d0 + dm1)
     {
       return 0;
     }

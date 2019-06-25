@@ -500,8 +500,6 @@ void print_config(const struct tangle_state *tangle)
       "minimum distance           = %g cm\n"
       "maximum distance           = %g cm\n"
       "minimum reconnection angle = %g rad\n"
-      "alpha                      = %g\n"
-      "alpha_p                    = %g\n"
       "small loop cutoff          = %d points\n"
       "steps per frame            = %d\n"
       "number of threads          = %d\n"
@@ -512,8 +510,6 @@ void print_config(const struct tangle_state *tangle)
       global_dl_min,
       global_dl_max,
       reconnection_angle_cutoff,
-      alpha,
-      alpha_p,
       small_loop_cutoff,
       frame_shot,
       global_num_threads,
@@ -525,4 +521,14 @@ void print_config(const struct tangle_state *tangle)
       tangle->box.top_right_front.p[0],
       tangle->box.top_right_front.p[1],
       tangle->box.top_right_front.p[2]);
+  printf("Mutual friction: \n");
+  if(use_mutual_friction)
+    {
+      printf(
+	  "\talpha                    = %g\n"
+	  "\talpha_p                  = %g\n",
+	  alpha, alpha_p);
+    }
+  else
+    printf("\tNot using mutual friction\n.");
 }

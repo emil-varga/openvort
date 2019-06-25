@@ -637,6 +637,8 @@ void eliminate_small_loops(struct tangle_state *tangle, int loop_length)
   if(eliminate_zaxis_loops)
     eliminate_loops_near_zaxis(tangle, eliminate_loops_zaxis_cutoff);
 
+  int killed = 0;
+
   for(int k=0; k < tangle->N; ++k)
     tangle->recalculate[k] = 0;
 
@@ -681,6 +683,7 @@ void eliminate_small_loops(struct tangle_state *tangle, int loop_length)
 	   * forward, so we have to start at the end facing away from
 	   * the wall
 	  */
+	  killed++;
 	  next = here;
 	  while(1)
 	    {
@@ -695,6 +698,7 @@ void eliminate_small_loops(struct tangle_state *tangle, int loop_length)
 	    }
 	}
     }
+  //printf("Killed %d loops.\n", killed);
 }
 
 void eliminate_loops_near_origin(struct tangle_state *tangle, double cutoff)
@@ -844,6 +848,30 @@ int add_point(struct tangle_state *tangle, int p)
   tangle->connections[p].forward = new_pt;
   tangle->connections[next].reverse = new_pt;
   return new_pt;
+}
+
+int curvature_smoothing(struct tangle_state *tangle, double max_spp, double damping)
+{
+  update_tangents_normals(tangle);
+
+  for(int i=0; i < tangle->N; ++i)
+    {
+      if(tangle->status[i].status == EMPTY ||
+	 tangle->status[i].status == PINNED)
+	continue;
+
+      struct vec3d c = tangle->normals[i];
+      double spp = vec3_d(&c);
+
+      if(spp > max_spp)
+	{
+	  struct vec3d n = c;
+	  vec3_normalize(&n);
+	  vec3_mul(&n, &n, damping*(spp - max_spp));
+	  vec3_add(&tangle->vnodes[i], &tangle->vnodes[i], &n);
+	}
+    }
+  return 0;
 }
 
 int tangle_total_points(struct tangle_state *tangle)

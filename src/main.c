@@ -118,6 +118,7 @@ int main(int argc, char **argv)
       remesh(tangle, global_dl_min, global_dl_max);
       eliminate_small_loops(tangle, small_loop_cutoff);
       enforce_boundaries(tangle);
+      //curvature_smoothing(tangle, 1/global_dl_max/global_dl_max, 1);
 
       /*if(check_integrity(tangle))
 	{

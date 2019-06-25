@@ -47,6 +47,8 @@ if __name__ == '__main__':
                         action = "store_true")
     parser.add_argument('--show-time', help="Show time on the plots.",
                         action='store_true')
+    parser.add_argument('--colorful', help='Plot vortices using many colors',
+                        action='store_true')
 
     args = parser.parse_args()
 
@@ -97,6 +99,11 @@ if __name__ == '__main__':
 
     fig = plt.figure(figsize=(16,9))
     ax = fig.add_subplot(111, projection='3d')
+    
+    if args.colorful:
+        color = None
+    else:
+        color = 'r'
 
     i=-1
     for fn in files:
@@ -109,7 +116,7 @@ if __name__ == '__main__':
 
         ax.clear()
         ax.auto_scale_xyz(1, 1, 1)
-        draw_vortices(fn, ax, slow=slow, max_len=dl_max)
+        draw_vortices(fn, ax, slow=slow, max_len=dl_max, color=color)
         ax.set_xlim(Dxl, Dxh)
         ax.set_ylim(Dyl, Dyh)
         ax.set_zlim(Dzl, Dzh)

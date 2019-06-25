@@ -23,7 +23,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import util
 
-def draw_vortices(fn, plot_axes, slow=False, max_len=0.05, scale=10, just_one=False):
+def draw_vortices(fn, plot_axes, slow=False, max_len=0.05, scale=10, just_one=False,
+                  color=None):
     data = np.loadtxt(fn)
 
     vix = np.round(data[:,0])
@@ -32,9 +33,12 @@ def draw_vortices(fn, plot_axes, slow=False, max_len=0.05, scale=10, just_one=Fa
     if just_one: vortex_idx = np.random.choice(int(vix.max()))
     while np.any(vix == vortex_idx):
         vxs_pieces = util.build_vortex(data, vortex_idx, max_l=max_len)
+        clr = color
         for vxs in vxs_pieces:
             vxs *= scale
-            plot_axes.plot(vxs[:,0], vxs[:,1], vxs[:,2], '-', color='r')        
+            pl = plot_axes.plot(vxs[:,0], vxs[:,1], vxs[:,2], '-', color=clr)
+            if clr is None:
+                clr = pl[-1].get_color()
         if just_one: break
         vortex_idx += 1
 

@@ -69,14 +69,18 @@ if __name__ == '__main__':
 
             rs = d[ix, 1:4]
             dr = np.diff(rs, axis=0)
-            l += np.sum(np.sqrt(dr**2))
+            dls = np.sqrt(np.sum(dr**2, axis=1))
+            
+            l += np.sum(dls[dls < 2*config['dl_max']])
             vidx += 1
         lengths.append(l)
         times.append(time)
         time += dt
 
     out = np.column_stack((times, lengths))
-    out = np.row_stack((Lt, out))
+    
+    if path.isfile(output_file):
+        out = np.row_stack((Lt, out))
 
     f, ax = plt.subplots(1,1)
     ax.plot(out[:,0], out[:,1])

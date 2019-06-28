@@ -28,6 +28,10 @@ import argparse
 
 import libconf
 
+def frame_id(fn):
+    fnb = path.split(fn)[-1]
+    return int(fnb[5:-4])
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('Calculates the total lengt of the vortices.')
     parser.add_argument('data_dir', help='Directory with the frames.')
@@ -44,7 +48,7 @@ if __name__ == '__main__':
     dt = frame_shots * dt0
 
     files = glob(path.join(data_dir, 'frame*.dat'))
-    files.sort()
+    files.sort(key=frame_id)
 
     time = dt
     times = []

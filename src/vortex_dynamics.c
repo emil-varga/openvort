@@ -21,6 +21,8 @@
 #include "vec3_maths.h"
 #include "util.h"
 #include "vortex_constants.h"
+#include "vortex_utils.h"
+#include "tangle.h"
 #include <math.h> //for cos()
 #include <stdint.h>
 #include <stdio.h>
@@ -176,22 +178,43 @@ int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec
 	     tangle->recalculate[k])
 	    continue;
 
-	  //coerce_to_wall affects more than just one point
-	  //it needs to find two ends that should be attached to
-	  //the wall
 	  if(check_wall(tangle, k, wall, rec_dist/2))
 	    {
-	      Nrecs += connect_to_wall(tangle, k, wall, rec_dist/2, PINNED, rec_angle, t);
+	      connect_to_wall(tangle, k, wall, rec_dist/2, PINNED, rec_angle, t);
 	    }
 	}
     }
   if(Nrecs > 0)
     eliminate_small_loops(tangle, small_loop_cutoff);
 
+  //Eliminate all points that are active and outside the walls. This can potentially happen
+  //if the time step is too long and more than one discretisation point gets outside the domain.
+  int domain_killed = 0;
+  for(int wall = 0; wall < 6; ++wall)
+    {
+      if(tangle->box.wall[wall] == WALL_OPEN ||
+	 tangle->box.wall[wall] == WALL_PERIODIC)
+	continue;
+
+      for(k=0; k<tangle->N; ++k)
+	{
+	  if(tangle->status[k].status == EMPTY)
+	    continue;
+
+	  if(wall_dist(tangle, k, wall) < 0)
+	    {
+	      remove_point(tangle, k);
+	      domain_killed++;
+	    }
+	}
+    }
+  if(domain_killed > 0)
+    printf("Killed %d points outside the domain.\n", domain_killed);
   /*
    * Now do standard vortex-vortex reconnections
    */
 
+  Nrecs = 0;
   for(k=0; k < tangle->N; ++k)
     tangle->recalculate[k] = 0;
 
@@ -362,33 +385,6 @@ int check_wall(struct tangle_state *tangle, int k, int wall, double rdist)
       break;
   }
   return 0;
-}
-
-double wall_dist(struct tangle_state *tangle, int k, boundary_faces wall)
-{
-  /*
-   * Checks whether a node k is closer than rdist to the wall.
-   */
-  int idx[6];
-  idx[X_L] = idx[X_H] = 0;
-  idx[Y_L] = idx[Y_H] = 1;
-  idx[Z_L] = idx[Z_H] = 2;
-  switch(wall)
-  {
-    case X_L:
-    case Y_L:
-    case Z_L:
-      return fabs(tangle->vnodes[k].p[idx[wall]] - tangle->box.bottom_left_back.p[idx[wall]]);
-
-    case X_H:
-    case Y_H:
-    case Z_H:
-      return fabs(tangle->vnodes[k].p[idx[wall]] - tangle->box.top_right_front.p[idx[wall]]);
-
-    default:
-      error("wall_dist: unknwon wall index %d\n", wall);
-  }
-  return -1;
 }
 
 int connect_to_wall(struct tangle_state *tangle, int k, int wall, double rdist,

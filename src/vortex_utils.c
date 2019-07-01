@@ -625,3 +625,30 @@ void random_straight_lines(struct tangle_state *tangle, int npairs, int points_p
       add_line(tangle, x2, y2, -1, points_per_line);
     }
 }
+
+double wall_dist(const struct tangle_state *tangle, int k, boundary_faces wall)
+{
+  /*
+   * Checks whether a node k is closer than rdist to the wall.
+   */
+  int idx[6];
+  idx[X_L] = idx[X_H] = 0;
+  idx[Y_L] = idx[Y_H] = 1;
+  idx[Z_L] = idx[Z_H] = 2;
+  switch(wall)
+  {
+    case X_L:
+    case Y_L:
+    case Z_L:
+      return tangle->vnodes[k].p[idx[wall]] - tangle->box.bottom_left_back.p[idx[wall]];
+
+    case X_H:
+    case Y_H:
+    case Z_H:
+      return tangle->box.top_right_front.p[idx[wall]] - tangle->vnodes[k].p[idx[wall]];
+
+    default:
+      error("wall_dist: unknown wall index %d\n", wall);
+  }
+  return -1;
+}

@@ -781,8 +781,11 @@ void remove_point(struct tangle_state *tangle, int point_idx)
   int prev = tangle->connections[point_idx].reverse;
   int next = tangle->connections[point_idx].forward;
 
-  tangle->connections[prev].forward = next;
-  tangle->connections[next].reverse = prev;
+  if(prev >= 0)
+    tangle->connections[prev].forward = next;
+  if(next >= 0)
+    tangle->connections[next].reverse = prev;
+
   tangle->connections[point_idx].reverse =
     tangle->connections[point_idx].forward = -1;
 

@@ -184,11 +184,11 @@ int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec
 	    }
 	}
     }
-  if(Nrecs > 0)
-    eliminate_small_loops(tangle, small_loop_cutoff);
 
-  //Eliminate all points that are active and outside the walls. This can potentially happen
-  //if the time step is too long and more than one discretisation point gets outside the domain.
+  /*
+   * Eliminate all points that are active and outside the walls. This can potentially happen
+   * if the time step is too long and more than one discretisation point gets outside the domain.
+   */
   int domain_killed = 0;
   for(int wall = 0; wall < 6; ++wall)
     {
@@ -210,10 +210,13 @@ int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec
     }
   if(domain_killed > 0)
     printf("Killed %d points outside the domain.\n", domain_killed);
+
+  if(Nrecs > 0 || domain_killed > 0)
+    eliminate_small_loops(tangle, small_loop_cutoff);
+
   /*
    * Now do standard vortex-vortex reconnections
    */
-
   Nrecs = 0;
   for(k=0; k < tangle->N; ++k)
     tangle->recalculate[k] = 0;

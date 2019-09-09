@@ -211,6 +211,10 @@ int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec
   if(domain_killed > 0)
     printf("Killed %d points outside the domain.\n", domain_killed);
 
+  /*
+   * Some small loops might have been created by the reconnections and removals above.
+   * These can confuse the tangent calculation so they should be removed.
+   */
   if(Nrecs > 0 || domain_killed > 0)
     eliminate_small_loops(tangle, small_loop_cutoff);
 
@@ -255,6 +259,14 @@ int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec
 
 	  d1 = tangle->tangents[k];
 	  d2 = tangle->tangents[l];
+
+	  //In some cases vortex-vortex reconnections can create tiny loops (n ~ 3)
+	  //pinned on the wall which have colinear points for which calculation of the tangents fails.
+	  //These result in tangents of 0 length. If the tangent (which should be 1) is small
+	  //we just ignore this point because this loop will be removed on the next sweep of eliminate_small_loops
+	  //The 0.5 threshold is arbitrary. It will always be roughly 1 or roughly 0.
+	  if(vec3_d(&d1) < 0.5 || vec3_d(&d2) < 0.5)
+	    continue;
 	  //normalized dot -- just the cosine of the angle between vectors
 	  calpha = vec3_ndot(&d1, &d2);
 

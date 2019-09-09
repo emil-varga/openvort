@@ -112,6 +112,8 @@ int main(int argc, char **argv)
 
       if(loop_injection) //loop injection defined in vortex_utils
 	inject_loop(tangle, time, loop_injection_frequency);
+      if(line_injection)
+	inject_line_pairs(tangle, time, line_injection_frequency);
 
       update_tangle(tangle, time);
       rk4_step(tangle, time, global_dt);

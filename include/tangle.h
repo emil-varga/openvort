@@ -82,6 +82,7 @@ extern const struct boundary_images wall_1_18;
 extern const struct boundary_images wall_1_26;
 
 extern const struct boundary_images wall_2_4;
+extern const struct boundary_images wall_2_2;
 
 /*
  * The structure that holds all the tangle information

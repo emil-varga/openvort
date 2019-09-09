@@ -102,12 +102,13 @@ int get_v_spherical(const struct vec3d *where, double t, struct vec3d *res, stru
 int get_v_spherical_and_simple(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf);
 int get_v_cylindrical(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf);
 int get_v_oscillating(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf);
+int get_v_oscillating_slit(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf);
 int get_v_coscos(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf);
 int get_v_coscos_divfree(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf);
 int get_v_cos_divfree(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf);
 int get_v_simple_shear(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf);
 
-//oscillatory rotation, with attenuation and the boundary version with viscous penetratio depth
+//oscillatory rotation, with attenuation and the boundary version with viscous penetration depth
 //the boundary version requires that the boundary is at 0
 int get_v_rotosc(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf);
 int get_v_rotosc_boundary(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf);

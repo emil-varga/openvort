@@ -24,23 +24,21 @@ import matplotlib.pyplot as plt
 from glob import glob
 import os.path as path
 
+from util import frame_id
+
 import argparse
 
 import libconf
 
-def frame_id(fn):
-    fnb = path.split(fn)[-1]
-    return int(fnb[5:-4])
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('Calculates the total lengt of the vortices.')
     parser.add_argument('data_dir', help='Directory with the frames.')
-    parser.add_argument('--config', help='Config figle.')
+    parser.add_argument('--config', help='Config file.')
     args = parser.parse_args()
     data_dir = args.data_dir
     cfg_filename = args.config
 
-    with open(path.join(data_dir, cfg_filename)) as cfg_file:
+    with open(cfg_filename) as cfg_file:
         config = libconf.load(cfg_file);
 
     dt0 = config['dt']

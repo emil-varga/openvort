@@ -1,15 +1,35 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Tue Jun 11 11:29:48 2019
+Copyright (C) 2018 Emil Varga <varga.emil@gmail.com>
 
-@author: emil
+This file is part of OpenVort.
+
+OpenVort is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+OpenVort is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with OpenVort.  If not, see <http://www.gnu.org/licenses/>.
+
+This file contains some basic utilities to work with the frame data.
 """
 
 import numpy as np
+import os.path as path
+
+def frame_id(fn):
+    fnb = path.split(fn)[-1]
+    return int(fnb[5:-4])
 
 def build_vortex(frame_data, vortex_idx, max_l = None):
-    vidx = frame_data[:,0]
+    vidx = frame_data[:,0].astype(int)
     
     vortex_data = frame_data[vidx==vortex_idx,:]
     
@@ -71,3 +91,19 @@ def split_vortex(vxs, max_l):
     pieces.append(vxs[k0:])
     
     return pieces
+
+def stitch_vortex(pieces, box_Ds):
+    """
+    move pieces[1:] so that they form a continuous vortex starting with pieces[0]
+    """
+    full_vortex = pieces[0]
+    for piece in pieces[1:]:
+        vortex_delta = piece[0,:] - full_vortex[-1,:]
+        
+        #constuct the shift
+        dir_flags = np.abs(vortex_delta) > box_Ds
+        shift = -np.sign(vortex_delta)*box_Ds
+        shift[np.logical_not(dir_flags)] = 0
+        np.row_stack((full_vortex, piece + shift))
+    
+    return full_vortex

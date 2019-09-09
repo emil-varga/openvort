@@ -246,6 +246,23 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
 	}
     }
 
+  if(config_lookup_bool(&cfg, "line_injection", &ival))
+    {
+      line_injection = ival;
+      if(line_injection)
+	{
+	  if(config_lookup_float(&cfg, "line_injection_frequency", &dval))
+	    line_injection_frequency = dval;
+	  else
+	    error("Specify line_injection_frequency in the config.");
+	  if(config_lookup_int(&cfg, "line_injection_n", &ival))
+	    line_injection_n = ival;
+	  else
+	    line_injection_n = 1;
+	}
+
+    }
+
   //external velocity configuration
   config_setting_t *vel_conf;
   vel_conf = config_lookup(&cfg, "vn_conf");
@@ -290,6 +307,14 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
       set_walls_full(tangle, WALL_PERIODIC);
       tangle->box.wall[Z_L] = WALL_MIRROR;
       tangle->box.wall[Z_H] = WALL_MIRROR;
+    }
+  else if(strcmp(str, "wall-2-2") == 0)
+    {
+      tangle->bimg = wall_2_2;
+      set_walls_full(tangle, WALL_MIRROR);
+      tangle->box.wall[X_L] = WALL_PERIODIC;
+      tangle->box.wall[X_H] = WALL_PERIODIC;
+
     }
   else if(strcmp(str, "periodic-6") == 0)
     {

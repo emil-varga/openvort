@@ -141,6 +141,41 @@ void inject_loop(struct tangle_state *tangle, double t, double frequency)
   add_circle(tangle, &cent, &dir, r, 128);
 }
 
+int line_injection = 0;
+int line_injection_n = 1;
+double line_injection_frequency;
+void inject_line_pairs(struct tangle_state *tangle, double t, double frequency)
+{
+  /*
+   * Injects a pair of straignt vortex lines of opposite circulations oriented along z-axis.
+   * Only makes sense for the 2-wall and periodic boundaries.
+   */
+
+  static double last_injection = 0;
+  //is it time yet to inject the lines?
+  if(t - last_injection < 1/frequency)
+      return;
+  last_injection = t;
+
+  for(int k = 0; k < line_injection_n; ++k)
+    {
+      double XL = tangle->box.bottom_left_back.p[0];
+      double XH = tangle->box.top_right_front.p[0];
+
+      double YL = tangle->box.bottom_left_back.p[1];
+      double YH = tangle->box.top_right_front.p[1];
+
+      //get random positions
+      double x1 = XL + drand48()*(XH-XL);
+      double y1 = YL + drand48()*(YH-YL);
+      double x2 = XL + drand48()*(XH-XL);
+      double y2 = YL + drand48()*(YH-YL);
+
+      add_line(tangle, x1, y1, +1, 20);
+      add_line(tangle, x2, y2, -1, 20);
+    }
+}
+
 void insert_random_loops(struct tangle_state *tangle, int N)
 {
   //TODO: configurable range of loop radii?, number of points?

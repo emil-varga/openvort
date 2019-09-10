@@ -54,5 +54,6 @@ extern double loop_injection_frequency; //injections per second
 extern int line_injection; //bool, inject or not
 extern int line_injection_n; //how many pairs to inject
 extern double line_injection_frequency; //injections per second
+extern int line_injection_polarized; //whether the injection is polarized
 
 #endif //VORTEX_CONSTANTS_H

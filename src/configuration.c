@@ -252,14 +252,23 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
       line_injection = ival;
       if(line_injection)
 	{
+	  //injection frequency
 	  if(config_lookup_float(&cfg, "line_injection_frequency", &dval))
 	    line_injection_frequency = dval;
 	  else
 	    error("Specify line_injection_frequency in the config.");
+
+	  //number of injected pairs
 	  if(config_lookup_int(&cfg, "line_injection_n", &ival))
 	    line_injection_n = ival;
 	  else
 	    line_injection_n = 1;
+
+	  //injection polarization
+	  if(config_lookup_bool(&cfg, "line_injection_polarized", &ival))
+	    line_injection_polarized = ival;
+	  else
+	    line_injection_polarized = 0;
 	}
 
     }

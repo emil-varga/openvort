@@ -53,3 +53,15 @@ double eliminate_loops_origin_cutoff = 3e-2;
 //similar to the spherical case, but for cylinder around zaxis
 int eliminate_zaxis_loops = 0;
 double eliminate_loops_zaxis_cutoff = 2e-2;
+
+/*
+ * configuration of vortex injection
+ */
+//injecting loops at upper z-plane
+int loop_injection = 0; //bool, inject or not
+double loop_injection_frequency = 1; //injections per second
+
+//line pair injection
+int line_injection = 0; //bool, inject or not
+int line_injection_n = 1; //how many pairs to inject
+double line_injection_frequency; //injections per second

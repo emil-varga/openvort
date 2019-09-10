@@ -148,4 +148,7 @@ static inline void update_tangle(struct tangle_state *tangle, double t)
   update_tangents_normals(tangle);
   update_velocities(tangle, t);
 }
+
+void remove_point(struct tangle_state *tangle, int point_idx);
+int add_point(struct tangle_state *tangle, int p);
 #endif //TANGLE_H

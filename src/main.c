@@ -33,6 +33,7 @@
 #include "vortex_constants.h"
 #include "util.h"
 #include "configuration.h"
+#include "vortex_injection.h"
 
 
 void vec3_print(const struct vec3d *v)
@@ -110,23 +111,13 @@ int main(int argc, char **argv)
 	  shot = frame_shot;
 	}
 
-      if(loop_injection) //loop injection defined in vortex_utils
-	inject_loop(tangle, time, loop_injection_frequency);
-      if(line_injection)
-	inject_line_pairs(tangle, time, line_injection_frequency);
-
+      inject_vortices(tangle, time);
       update_tangle(tangle, time);
       rk4_step(tangle, time, global_dt);
       remesh(tangle, global_dl_min, global_dl_max);
       eliminate_small_loops(tangle, small_loop_cutoff);
       enforce_boundaries(tangle);
-      //curvature_smoothing(tangle, 1/global_dl_max/global_dl_max, 1);
 
-      /*if(check_integrity(tangle))
-	{
-	  printf("Integrity error\n");
-	  return -1;
-	}*/
       Np = tangle_total_points(tangle);
       shot--;
       time += global_dt;

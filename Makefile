@@ -36,7 +36,7 @@ all: vortices
 vortices: $(obj)
 	$(COMPILE) $^ -o $@ $(LIBS)
 
-include $(dep)
+-include $(dep)
 
 %.d: %.c
 	$(CPP) $(CFLAGS) $< -I$(INCLUDE) -MM -MT $(@:.d=.o) >$@

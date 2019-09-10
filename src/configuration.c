@@ -30,6 +30,7 @@
 #include "vortex_utils.h"
 #include "util.h"
 #include "external_velocity.h"
+#include "initial_conditions.h"
 
 #define PATH_LEN 256
 

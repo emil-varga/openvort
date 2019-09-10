@@ -65,3 +65,4 @@ double loop_injection_frequency = 1; //injections per second
 int line_injection = 0; //bool, inject or not
 int line_injection_n = 1; //how many pairs to inject
 double line_injection_frequency; //injections per second
+int line_injection_polarized = 0; //whether to inject the vortices in a polarized way, off by default

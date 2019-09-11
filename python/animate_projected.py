@@ -111,7 +111,7 @@ if __name__ == '__main__':
     files = glob(path.join(data_dir, 'frame*.dat'))
     files.sort()
 
-    fig, ax = plt.subplots(1,1, figsize=(8,4.5))
+    fig, ax = plt.subplots(1,1, figsize=(8,4.5), tight_layout=True)
         
     if args.colorful:
         color = None
@@ -128,15 +128,14 @@ if __name__ == '__main__':
         time = frame_index*nshots*dt
 
         ax.clear()
+        if args.show_time:
+            txt = fig.text(0.05, 0.05, "$t$ = {:.06f} s".format(time), fontsize=18)
         draw_vortices(fn, ax, slow=slow, max_len=dl_max, color=color, projection=axids)
         ax.set_xlim(Dls[axids[0]], Dhs[axids[0]])
         ax.set_ylim(Dls[axids[1]], Dhs[axids[1]])
         ax.set_aspect('equal')
         ax.set_xlabel("$x$ (mm)")
         ax.set_ylabel("$y$ (mm)")
-        if args.show_time:
-            txt = fig.text(0.05, 0.05, "$t$ = {:.06f} s".format(time), fontsize=18)
-        fig.tight_layout()
         fig.savefig(fn.replace('.dat', '_2D.png'))
         if args.show_time:
             txt.remove()

@@ -23,13 +23,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import util
 
-import matplotlib
-font = {'family' : 'normal',
-        'weight' : 'normal',
-        'size'   : 20}
-
-matplotlib.rc('font', **font)
-
 def draw_vortices(fn, plot_axes, slow=False, max_len=0.05, scale=10, just_one=False,
                   color=None, colorcode_z = True, projection=None):
     data = np.loadtxt(fn)

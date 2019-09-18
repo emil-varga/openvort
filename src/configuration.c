@@ -30,6 +30,7 @@
 #include "vortex_utils.h"
 #include "util.h"
 #include "external_velocity.h"
+#include "initial_conditions.h"
 
 #define PATH_LEN 256
 
@@ -246,6 +247,32 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
 	}
     }
 
+  if(config_lookup_bool(&cfg, "line_injection", &ival))
+    {
+      line_injection = ival;
+      if(line_injection)
+	{
+	  //injection frequency
+	  if(config_lookup_float(&cfg, "line_injection_frequency", &dval))
+	    line_injection_frequency = dval;
+	  else
+	    error("Specify line_injection_frequency in the config.");
+
+	  //number of injected pairs
+	  if(config_lookup_int(&cfg, "line_injection_n", &ival))
+	    line_injection_n = ival;
+	  else
+	    line_injection_n = 1;
+
+	  //injection polarization
+	  if(config_lookup_bool(&cfg, "line_injection_polarized", &ival))
+	    line_injection_polarized = ival;
+	  else
+	    line_injection_polarized = 0;
+	}
+
+    }
+
   //external velocity configuration
   config_setting_t *vel_conf;
   vel_conf = config_lookup(&cfg, "vn_conf");
@@ -284,7 +311,22 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
       fprintf(stderr, "Error: specify boundaries\n");
       goto failure;
     }
-  if(strcmp(str, "periodic-6") == 0)
+  if(strcmp(str, "wall-2-4") == 0)
+    {
+      tangle->bimg = wall_2_4;
+      set_walls_full(tangle, WALL_PERIODIC);
+      tangle->box.wall[Z_L] = WALL_MIRROR;
+      tangle->box.wall[Z_H] = WALL_MIRROR;
+    }
+  else if(strcmp(str, "wall-2-2") == 0)
+    {
+      tangle->bimg = wall_2_2;
+      set_walls_full(tangle, WALL_MIRROR);
+      tangle->box.wall[X_L] = WALL_PERIODIC;
+      tangle->box.wall[X_H] = WALL_PERIODIC;
+
+    }
+  else if(strcmp(str, "periodic-6") == 0)
     {
       tangle->bimg = periodic_6;
       set_walls_full(tangle, WALL_PERIODIC);
@@ -346,6 +388,7 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
   return 1;
 failure:
   config_destroy(&cfg);
+  error("Failed reading configuration.");
   return 0;
 }
 
@@ -375,8 +418,8 @@ int setup_init(const char *conf_file, struct tangle_state *tangle)
 	      fprintf(stderr, "Error: set the number of loops in config_file\n");
 	      goto failure;
 	    }
-	  if(tangle->box.wall[Z_L] == WALL_MIRROR)
-	    clip_at_wall(tangle);
+
+	  clip_at_wall(tangle);
 	}
       else if(strcmp(str, "one loop") == 0)
 	{
@@ -387,19 +430,45 @@ int setup_init(const char *conf_file, struct tangle_state *tangle)
 	  load_conf_vector(&cfg, "loop_center", &c);
 	  load_conf_vector(&cfg, "loop_dir", &d);
 	  if(!config_lookup_float(&cfg, "loop_r", &r))
-	    goto failure;
+	    {
+	      fprintf(stderr, "Please specify loop radius with loop_r.");
+	      goto failure;
+	    }
 	  if(!config_lookup_int(&cfg, "loop_N", &N))
-	    goto failure;
+	    {
+	      fprintf(stderr, "Please specify number of discretisation points with loop_N.");
+	      goto failure;
+	    }
 	  add_circle(tangle, &c, &d, r, N);
 
-	  if(tangle->box.wall[Z_L] == WALL_MIRROR)
-	    clip_at_wall(tangle);
+	  clip_at_wall(tangle);
 	}
       else if(strcmp(str, "restart") == 0)
 	{
 	  config_lookup_string(&cfg, "init_file", &path);
 	  strncpy(restart_path, path, PATH_LEN);
 	  load_tangle(restart_path, tangle);
+	}
+      else if(strcmp(str, "big ring") == 0)
+	{
+	  double ring_r;
+	  int ring_N;
+	  if(!config_lookup_float(&cfg, "ring_r", &ring_r))
+	    goto failure;
+	  if(!config_lookup_int(&cfg, "ring_N", &ring_N))
+	    goto failure;
+	  make_big_ring(tangle, ring_r, ring_N);
+	}
+      else if(strcmp(str, "random straight lines") == 0)
+	{
+	  //this only works for the two-walls boundary condition
+	  int npairs;
+	  int points_per_line;
+	  if(!config_lookup_int(&cfg, "init_npairs", &npairs))
+	    goto failure;
+	  if(!config_lookup_int(&cfg, "init_line_points", &points_per_line))
+	    goto failure;
+	  random_straight_lines(tangle, npairs, points_per_line);
 	}
       else//TODO: add more init modes
 	{
@@ -418,6 +487,7 @@ int setup_init(const char *conf_file, struct tangle_state *tangle)
 
 failure:
   config_destroy(&cfg);
+  error("Failed to setup initial condition.");
   return 0;
 }
 
@@ -465,8 +535,6 @@ void print_config(const struct tangle_state *tangle)
       "minimum distance           = %g cm\n"
       "maximum distance           = %g cm\n"
       "minimum reconnection angle = %g rad\n"
-      "alpha                      = %g\n"
-      "alpha_p                    = %g\n"
       "small loop cutoff          = %d points\n"
       "steps per frame            = %d\n"
       "number of threads          = %d\n"
@@ -477,8 +545,6 @@ void print_config(const struct tangle_state *tangle)
       global_dl_min,
       global_dl_max,
       reconnection_angle_cutoff,
-      alpha,
-      alpha_p,
       small_loop_cutoff,
       frame_shot,
       global_num_threads,
@@ -490,4 +556,14 @@ void print_config(const struct tangle_state *tangle)
       tangle->box.top_right_front.p[0],
       tangle->box.top_right_front.p[1],
       tangle->box.top_right_front.p[2]);
+  printf("Mutual friction: \n");
+  if(use_mutual_friction)
+    {
+      printf(
+	  "\talpha                    = %g\n"
+	  "\talpha_p                  = %g\n",
+	  alpha, alpha_p);
+    }
+  else
+    printf("\tNot using mutual friction\n.");
 }

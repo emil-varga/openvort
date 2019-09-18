@@ -142,6 +142,16 @@ struct v_conf_t v_confs[] = {
 	}
     },
     {
+	.name = "oscillating slit",
+	.fun = get_v_oscillating_slit,
+	.n_params = 3,
+	.v_params = {
+	    {"strength", scalar_param, {.scalar = 0}},
+	    {"frequency", scalar_param, {.scalar = 0}},
+	    {"cutoff", scalar_param, {.scalar = 0}}
+	}
+    },
+    {
 	.name = "coscos",
 	.fun = get_v_coscos,
 	.n_params = 3,
@@ -317,6 +327,34 @@ int get_v_oscillating(const struct vec3d *where, double t, struct vec3d *res, st
   double T = cos(2*M_PI*freq*t);
 
   vec3_mul(res, &pol, strength*X*T);
+  return 0;
+}
+
+int get_v_oscillating_slit(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf)
+{
+  double freq;
+  double strength;
+  double cutoff;
+
+  int err;
+  if(!(err = get_v_param_scalar(vconf, "frequency", &freq)))
+    return err;
+  if(!(err = get_v_param_scalar(vconf, "strength", &strength)))
+    return err;
+  if(!(err = get_v_param_scalar(vconf, "cutoff", &cutoff)))
+      return err;
+
+  //slit is along y
+  double x = where->p[0];
+  double z = where->p[2];
+  double r = sqrt(x*x + z*z);
+  struct vec3d dir = vec3(x/r, 0, z/r);
+
+  double attn = exp(-cutoff*cutoff/r/r);
+  double osc = cos(2*M_PI*freq*t);
+
+  vec3_mul(res, &dir, osc*attn);
+
   return 0;
 }
 

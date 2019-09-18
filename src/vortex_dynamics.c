@@ -20,6 +20,9 @@
 #include "vortex_dynamics.h"
 #include "vec3_maths.h"
 #include "util.h"
+#include "vortex_constants.h"
+#include "vortex_utils.h"
+#include "tangle.h"
 #include <math.h> //for cos()
 #include <stdint.h>
 #include <stdio.h>
@@ -136,7 +139,7 @@ int do_reconnection(struct tangle_state *tangle, size_t k, size_t l);
 //helper for wall-reconnections
 int check_wall(struct tangle_state *tangle, int k, int wall, double rdist);
 int connect_to_wall(struct tangle_state *tangle, int k, int wall, double rdist,
-		   node_status_t pin_mode);
+		   node_status_t pin_mode, double rec_angle, double time);
 
 /*
   Run through all the pairs of nodes and check their distance if they are not
@@ -175,18 +178,52 @@ int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec
 	     tangle->recalculate[k])
 	    continue;
 
-	  //coerce_to_wall affects more than just one point
-	  //it needs to find two ends that should be attached to
-	  //the wall
-	  if(check_wall(tangle, k, wall, rec_dist))
-	    connect_to_wall(tangle, k, wall, rec_dist,
-			   PINNED);
+	  if(check_wall(tangle, k, wall, rec_dist/2))
+	    {
+	      connect_to_wall(tangle, k, wall, rec_dist/2, PINNED, rec_angle, t);
+	    }
 	}
     }
 
   /*
+   * Eliminate all points that are active and outside the walls. This can potentially happen
+   * if the time step is too long and more than one discretisation point gets outside the domain.
+   */
+  int domain_killed = 0;
+  for(int wall = 0; wall < 6; ++wall)
+    {
+      if(tangle->box.wall[wall] == WALL_OPEN ||
+	 tangle->box.wall[wall] == WALL_PERIODIC)
+	continue;
+
+      for(k=0; k<tangle->N; ++k)
+	{
+	  if(tangle->status[k].status == EMPTY)
+	    continue;
+
+	  if(wall_dist(tangle, k, wall) < 0)
+	    {
+	      remove_point(tangle, k);
+	      domain_killed++;
+	    }
+	}
+    }
+  if(domain_killed > 0)
+    printf("Killed %d points outside the domain.\n", domain_killed);
+
+  /*
+   * Some small loops might have been created by the reconnections and removals above.
+   * These can confuse the tangent calculation so they should be removed.
+   */
+  if(Nrecs > 0 || domain_killed > 0)
+    eliminate_small_loops(tangle, small_loop_cutoff);
+
+  /*
    * Now do standard vortex-vortex reconnections
    */
+  Nrecs = 0;
+  for(k=0; k < tangle->N; ++k)
+    tangle->recalculate[k] = 0;
 
   for(k=0; k<tangle->N; ++k)
     {
@@ -217,8 +254,19 @@ int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec
 	  //the nodes are close and they are not neighbors
 	  //now check the angle
 
+	  update_tangent_normal(tangle, k);
+	  update_tangent_normal(tangle, l);
+
 	  d1 = tangle->tangents[k];
 	  d2 = tangle->tangents[l];
+
+	  //In some cases vortex-vortex reconnections can create tiny loops (n ~ 3)
+	  //pinned on the wall which have colinear points for which calculation of the tangents fails.
+	  //These result in tangents of 0 length. If the tangent (which should be 1) is small
+	  //we just ignore this point because this loop will be removed on the next sweep of eliminate_small_loops
+	  //The 0.5 threshold is arbitrary. It will always be roughly 1 or roughly 0.
+	  if(vec3_d(&d1) < 0.5 || vec3_d(&d2) < 0.5)
+	    continue;
 	  //normalized dot -- just the cosine of the angle between vectors
 	  calpha = vec3_ndot(&d1, &d2);
 
@@ -354,44 +402,23 @@ int check_wall(struct tangle_state *tangle, int k, int wall, double rdist)
   return 0;
 }
 
-double wall_dist(struct tangle_state *tangle, int k, boundary_faces wall)
-{
-  /*
-   * Checks whether a node k is closer than rdist to the wall.
-   */
-  int idx[6];
-  idx[X_L] = idx[X_H] = 0;
-  idx[Y_L] = idx[Y_H] = 1;
-  idx[Z_L] = idx[Z_H] = 2;
-  switch(wall)
-  {
-    case X_L:
-    case Y_L:
-    case Z_L:
-      return fabs(tangle->vnodes[k].p[idx[wall]] - tangle->box.bottom_left_back.p[idx[wall]]);
-
-    case X_H:
-    case Y_H:
-    case Z_H:
-      return fabs(tangle->vnodes[k].p[idx[wall]] - tangle->box.top_right_front.p[idx[wall]]);
-
-    default:
-      error("wall_dist: unknwon wall index %d\n", wall);
-  }
-  return -1;
-}
-
 int connect_to_wall(struct tangle_state *tangle, int k, int wall, double rdist,
-		   node_status_t pin_mode)
+		   node_status_t pin_mode, double rec_angle, double time)
 {
+  update_tangent_normal(tangle, k);
+  update_velocity(tangle, k, time);
+  double d0 = wall_dist(tangle, k, wall);
   //check that the node is actually getting closer to the wall
   //boundary_normals are inward-facing unit normals
-  if(vec3_dot(&tangle->vels[k], &boundary_normals[wall]) > 0)
+  if(d0 > 0 && vec3_dot(&tangle->vels[k], &boundary_normals[wall]) > 0)
+    return 0;
+
+  //
+  if(vec3_dot(&tangle->tangents[k], &boundary_normals[wall]) > cos(rec_angle))
     return 0;
 
   int next = tangle->connections[k].forward;
   int prev = tangle->connections[k].reverse;
-  double d0 = wall_dist(tangle, k, wall);
   double d1 = wall_dist(tangle, next, wall);
   double dm1 = wall_dist(tangle, prev, wall);
 
@@ -402,7 +429,9 @@ int connect_to_wall(struct tangle_state *tangle, int k, int wall, double rdist,
 
   //check that the total length does not increase
   if(vd1 < d0 + d1 && vdm1 < d0 + dm1)
-    return 0;
+    {
+      return 0;
+    }
 
   //printf("Pinning %d %d %d\n", prev, k, next);
 
@@ -419,12 +448,19 @@ int connect_to_wall(struct tangle_state *tangle, int k, int wall, double rdist,
   tangle->status[new_pt2].pin_wall = wall;
   //printf("New points: %d %d\n", new_pt, new_pt2);
 
-  vec3_mul(&tmp, &boundary_normals[wall], d0);
+  vec3_mul(&tmp, &boundary_normals[wall], -d0);
   vec3_add(&tangle->vnodes[new_pt], &tangle->vnodes[k], &tmp);
+
+  //flag the changed points to avoid overcrowding reconnections
+  tangle->recalculate[k]++;
+  tangle->recalculate[new_pt]++;
+  tangle->recalculate[new_pt2]++;
+  tangle->recalculate[next]++;
+  tangle->recalculate[prev]++;
 
   if(d1 < dm1)
     {
-      vec3_mul(&tmp, &boundary_normals[wall], d1);
+      vec3_mul(&tmp, &boundary_normals[wall], -d1);
       vec3_add(&tangle->vnodes[new_pt2], &tangle->vnodes[next], &tmp);
 
       tangle->connections[k].forward = new_pt;
@@ -436,7 +472,7 @@ int connect_to_wall(struct tangle_state *tangle, int k, int wall, double rdist,
     }
   else
     {
-      vec3_mul(&tmp, &boundary_normals[wall], dm1);
+      vec3_mul(&tmp, &boundary_normals[wall], -dm1);
       vec3_add(&tangle->vnodes[new_pt2], &tangle->vnodes[prev], &tmp);
 
       tangle->connections[k].reverse = new_pt;

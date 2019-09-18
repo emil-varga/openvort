@@ -73,6 +73,9 @@ extern const struct boundary_images wall_1_6;
 extern const struct boundary_images wall_1_18;
 extern const struct boundary_images wall_1_26;
 
+extern const struct boundary_images wall_2_4;
+extern const struct boundary_images wall_2_2;
+
 /*
  * The structure that holds all the tangle information
  */
@@ -112,6 +115,7 @@ int tangle_total_points(struct tangle_state *tangle);
 struct vec3d shifted(const struct image_tangle *shift, const struct tangle_state *tangle,
 		     const struct vec3d *r);
 void enforce_boundaries(struct tangle_state *tangle);
+void update_tangent_normal(struct tangle_state *tangle, size_t k);
 void update_tangents_normals(struct tangle_state *tangle);
 void update_velocities(struct tangle_state *tangle, double t);
 void update_velocity(struct tangle_state *tangle, int k, double t);
@@ -134,4 +138,7 @@ static inline void update_tangle(struct tangle_state *tangle, double t)
   update_tangents_normals(tangle);
   update_velocities(tangle, t);
 }
+
+void remove_point(struct tangle_state *tangle, int point_idx);
+int add_point(struct tangle_state *tangle, int p);
 #endif //TANGLE_H

@@ -33,6 +33,7 @@
 #include "vortex_constants.h"
 #include "util.h"
 #include "configuration.h"
+#include "vortex_injection.h"
 
 
 void vec3_print(const struct vec3d *v)
@@ -61,9 +62,11 @@ int main(int argc, char **argv)
 
   create_tangle(tangle, 512);
 
+  printf("Reading config from %s.\n", conf_file);
   char filename[128];
   if(!load_conf(conf_file, tangle))
     {
+      printf("Can't initialize! Exiting.\n");
       free_tangle(tangle);
       free(tangle);
       return EXIT_FAILURE;
@@ -71,9 +74,12 @@ int main(int argc, char **argv)
 
   print_config(tangle);
 
-  eliminate_small_loops(tangle, small_loop_cutoff);
   enforce_boundaries(tangle);
+
   remesh(tangle, global_dl_min, global_dl_max);
+
+  eliminate_small_loops(tangle, small_loop_cutoff);
+
   update_tangle(tangle, 0);
 
   int shot = frame_shot - 1;
@@ -87,10 +93,13 @@ int main(int argc, char **argv)
   int Np = tangle_total_points(tangle);
   double time = 0;
   fflush(stdout);
+  sprintf(filename, "%s/init.dat", output_dir);
+  save_tangle(filename, tangle);
   for(int k=0; Np > 0; ++k)
     {
       printf("Step %d, time = %g, recs: %d, Np: %d\n", k, time, recs, Np);
       nrec = reconnect(tangle, time, rec_dist, reconnection_angle_cutoff);
+
       recs += nrec;
       eliminate_small_loops(tangle, small_loop_cutoff);
       if(!shot)
@@ -102,20 +111,13 @@ int main(int argc, char **argv)
 	  shot = frame_shot;
 	}
 
-      if(loop_injection) //loop injection defined in vortex_utils
-	inject_loop(tangle, time, loop_injection_frequency);
-
+      inject_vortices(tangle, time);
       update_tangle(tangle, time);
       rk4_step(tangle, time, global_dt);
       remesh(tangle, global_dl_min, global_dl_max);
       eliminate_small_loops(tangle, small_loop_cutoff);
       enforce_boundaries(tangle);
 
-      /*if(check_integrity(tangle))
-	{
-	  printf("Integrity error\n");
-	  return -1;
-	}*/
       Np = tangle_total_points(tangle);
       shot--;
       time += global_dt;

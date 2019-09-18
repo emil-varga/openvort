@@ -37,7 +37,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Draws the individual frames.")
     parser.add_argument("data_dir", help="Directory with the frames.")
     parser.add_argument("--slow", help="Plot segment-by-segment. Very slow, but right now needed for periodic boxes.",
-                        action = "store_true")
+                        action = "store_true");
     parser.add_argument("-D", help="Size of the plot box. The box will be interval [-D,D]^3. If the box is assymetric, use also -D1",
                        type = float)
     parser.add_argument("-D1", help="For assymetric plot boxes. The interval will be [D1, D]^3.",
@@ -49,6 +49,7 @@ if __name__ == '__main__':
                         action='store_true')
     parser.add_argument('--colorful', help='Plot vortices using many colors',
                         action='store_true')
+    parser.add_argument('--projection', help='Projection axis.', type=str, default='z')
 
     args = parser.parse_args()
 
@@ -77,8 +78,8 @@ if __name__ == '__main__':
         RFT = np.array(domain[1])
 
         if args.fix_plot_box:
-            Dxl, Dyl, Dzl = LBB*10000
-            Dxh, Dyh, Dzh = RFT*10000
+            Dxl, Dyl, Dzl = LBB*10
+            Dxh, Dyh, Dzh = RFT*10
         else:
             Lmax = np.abs(LBB - RFT).max()
             mids = 0.5*(LBB + RFT)
@@ -88,18 +89,30 @@ if __name__ == '__main__':
             Dyh = mids[1] + Lmax/2
             Dzl = mids[2] - Lmax/2
             Dzh = mids[2] + Lmax/2
+        
+        Dls = [Dxl, Dyl, Dzl]
+        Dhs = [Dxh, Dyh, Dzh]
         dl_max = 2*config.dl_max
         
         dt = config.dt
         nshots = config.frame_shots
+        
+    #pick the plot axes based on the projection axis
+    if args.projection == 'z':
+        axids = (0, 1)
+    elif args.projection == 'x':
+        axids = (1, 2)
+    elif args.projection == 'y':
+        axids = (0,2)
+    else:
+        raise RuntimeError('Only x, y, z projections are possible.')
 
 
     files = glob(path.join(data_dir, 'frame*.dat'))
     files.sort()
 
-    fig = plt.figure(figsize=(16,9))
-    ax = fig.add_subplot(111, projection='3d')
-    
+    fig, ax = plt.subplots(1,1, figsize=(8,4.5), tight_layout=True)
+        
     if args.colorful:
         color = None
     else:
@@ -108,25 +121,21 @@ if __name__ == '__main__':
     i=-1
     for fn in files:
         i = i+1
-        if path.isfile(fn.replace('.dat', '.png')):
+        if path.isfile(fn.replace('.dat', '_2D.png')):
             continue
         print("{}/{}".format(i, len(files)))
         frame_index = int(path.split(fn)[1][5:-4])
         time = frame_index*nshots*dt
 
         ax.clear()
-        ax.auto_scale_xyz(1, 1, 1)
-        draw_vortices(fn, ax, slow=slow, max_len=dl_max, color=color)
-        ax.set_xlim(Dxl, Dxh)
-        ax.set_ylim(Dyl, Dyh)
-        ax.set_zlim(Dzl, Dzh)
+        if args.show_time:
+            txt = fig.text(0.05, 0.05, "$t$ = {:.06f} s".format(time), fontsize=18)
+        draw_vortices(fn, ax, slow=slow, max_len=dl_max, color=color, projection=axids)
+        ax.set_xlim(Dls[axids[0]], Dhs[axids[0]])
+        ax.set_ylim(Dls[axids[1]], Dhs[axids[1]])
         ax.set_aspect('equal')
         ax.set_xlabel("$x$ (mm)")
         ax.set_ylabel("$y$ (mm)")
-        ax.set_zlabel("$z$ (mm)")
-        if args.show_time:
-            txt = fig.text(0.05, 0.05, "$t$ = {:.06f} s".format(time), fontsize=18)
-        fig.tight_layout()
-        fig.savefig(fn.replace('.dat', '.png'), dpi=120)
+        fig.savefig(fn.replace('.dat', '_2D.png'))
         if args.show_time:
             txt.remove()

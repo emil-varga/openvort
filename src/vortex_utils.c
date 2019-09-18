@@ -20,9 +20,12 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
+
 
 #include "vortex_utils.h"
 #include "util.h"
+#include "vortex_constants.h"
 
 struct vec3d perpendicular(const struct vec3d *dir)
 {
@@ -43,7 +46,11 @@ struct vec3d perpendicular(const struct vec3d *dir)
   vec3_add(&res, &res, &b);
   vec3_normalize(&res);
   return res;
-}  
+}
+
+/*
+ * Primitive shapes
+ */
 
 void add_circle(struct tangle_state *tangle,
 		struct vec3d *center, struct vec3d *dir, double r,
@@ -99,139 +106,59 @@ void add_circle(struct tangle_state *tangle,
   tangle->connections[first_point].reverse = curr_point;
 }
 
-int loop_injection = 0;
-double loop_injection_frequency = 1;
-void inject_loop(struct tangle_state *tangle, double t, double frequency)
+void add_line(struct tangle_state *tangle, double x, double y, int direction, int points)
 {
-  static double last_injection = 0;
+  double zmin = tangle->box.bottom_left_back.p[2];
+  double zmax = tangle->box.top_right_front.p[2];
+  double dz = (zmax - zmin) / points;
 
-  //ranges where to place the loop in the xy plane
-  double XL, XH, YL, YH;
+  double zstart = direction > 0 ? zmin : zmax;
+  double zend = direction > 0 ? zmax : zmin;
 
-  //direction and center of the injected loop
-  //inject in random direction pointing down-ish
-  struct vec3d dir = vec3(2*(drand48() - 0.5), 2*(drand48()-0.5), -drand48());
-  vec3_normalize(&dir);
-  struct vec3d cent;
+  struct vec3d s = vec3(x, y, zstart);
+  struct vec3d sp = vec3(0, 0, direction); //tangent
+  struct vec3d spp = vec3(0, 0, 0); //normal
 
-  //is it time yet to inject a loop?
-  if(t - last_injection < 1/frequency)
-      return;
-  last_injection = t;
+  int new_pt = get_tangle_next_free(tangle);
+  int last_pt;
+  tangle->vnodes[new_pt] = s;
+  tangle->tangents[new_pt] = sp;
+  tangle->normals[new_pt] = spp;
+  tangle->status[new_pt].status = PINNED;
+  tangle->status[new_pt].pin_wall = direction > 0 ? Z_L : Z_H;
+  tangle->connections[new_pt].reverse = -1;
 
-  XL = tangle->box.bottom_left_back.p[0];
-  XH = tangle->box.top_right_front.p[0];
+  for(int k=1; k<points-1; ++k)
+    {
+      last_pt = new_pt;
+      new_pt = get_tangle_next_free(tangle);
+      s.p[2] = zstart + direction*k*dz;
 
-  YL = tangle->box.bottom_left_back.p[1];
-  YH = tangle->box.top_right_front.p[1];
+      tangle->vnodes[new_pt] = s;
+      tangle->tangents[new_pt] = sp;
+      tangle->normals[new_pt] = spp;
+      tangle->status[new_pt].status = FREE;
+      tangle->status[new_pt].pin_wall = NOT_A_FACE;
+      tangle->connections[new_pt].reverse = last_pt;
+      tangle->connections[last_pt].forward = new_pt;
+    }
 
-  //the injected loop is placed randomly in the top plane
-  //of the domain box
-  cent.p[2] = tangle->box.top_right_front.p[2];
-  cent.p[0] = XL + (XH - XL)*drand48();
-  cent.p[1] = YL + (YH - YL)*drand48();
-
-  double D = fabs(XH - XL);
-  double rmin = 0.05*D;
-  double rmax = 0.25*D;
-
-  double r = rmin + (rmax - rmin)*drand48();
-
-  add_circle(tangle, &cent, &dir, r, 128);
+  s.p[2] = zend;
+  last_pt = new_pt;
+  new_pt = get_tangle_next_free(tangle);
+  tangle->vnodes[new_pt] = s;
+  tangle->tangents[new_pt] = sp;
+  tangle->normals[new_pt] = spp;
+  tangle->status[new_pt].status = PINNED;
+  tangle->status[new_pt].pin_wall = direction > 0 ? Z_H : Z_L;
+  tangle->connections[new_pt].reverse = last_pt;
+  tangle->connections[new_pt].forward = -1;
+  tangle->connections[last_pt].forward = new_pt;
 }
 
-void insert_random_loops(struct tangle_state *tangle, int N)
-{
-  //TODO: configurable range of loop radii?, number of points?
-  double D = 1;
-  double Ls[3];
-  for(int k = 0; k<3; ++k)
-    {
-	Ls[k] = tangle->box.top_right_front.p[k] - tangle->box.bottom_left_back.p[k];
-	if(Ls[k] < D)
-	  D = Ls[k];
-    }
-
-  const double rmin = 0.05*D;
-  const double rmax = 0.25*D;
-
-  for(int k = 0; k<N; ++k)
-    {
-      struct vec3d dir = vec3(drand48()-0.5, drand48()-0.5, drand48()-0.5);
-      vec3_normalize(&dir);
-
-      struct vec3d c;
-      for(int j=0; j<3; ++j)
-	c.p[j] = tangle->box.bottom_left_back.p[j] + drand48()*Ls[j];
-
-      double r =  rmin + drand48()*(rmax - rmin);
-      add_circle(tangle, &c, &dir, r, 64);
-    }
-}
-
-
-void clip_at_wall(struct tangle_state *tangle)
-{
-  /*
-   * Clips the tangle at the lower z-wall
-   */
-  const double limit = tangle->box.bottom_left_back.p[2];
-
-  //recalculate is used as a tag for points to be clipped
-  for(int k=0; k<tangle->N; ++k)
-    tangle->recalculate[k] = 0;
-  enum POINT_STATES {
-      OK=0,
-      KILL,         //point to be clipped
-      EDGE_FORWARD, //last point above the wall
-      EDGE_REVERSE  //first point above the wall
-    };
-
-  //first find all the points to be clipped
-  for(int kk=0; kk<tangle->N; ++kk)
-    {
-      if(tangle->status[kk].status == EMPTY)
-	continue;
-
-      if(tangle->vnodes[kk].p[2] <= limit)
-	{
-	  tangle->recalculate[kk] = KILL;
-	  const int forward = tangle->connections[kk].forward;
-	  const int reverse = tangle->connections[kk].reverse;
-
-	  if(tangle->vnodes[forward].p[2] > limit)
-	    tangle->recalculate[forward] = EDGE_REVERSE;
-	  if(tangle->vnodes[reverse].p[2] > limit)
-	    tangle->recalculate[reverse] = EDGE_FORWARD;
-	}
-    }
-
-  //next handle edge points by projecting them on the wall
-  //and pinning them on the lower Z-wall
-  for(int kk=0; kk < tangle->N; ++kk)
-    {
-      switch(tangle->recalculate[kk])
-      {
-	case EDGE_REVERSE:
-	  tangle->connections[kk].reverse = -1;
-	  tangle->vnodes[kk].p[2] = limit;
-	  tangle->status[kk].status = PINNED;
-	  tangle->status[kk].pin_wall = Z_L;
-	  break;
-	case EDGE_FORWARD:
-	  tangle->connections[kk].forward = -1;
-	  tangle->vnodes[kk].p[2] = limit;
-	  tangle->status[kk].status = PINNED;
-	  tangle->status[kk].pin_wall = Z_L;
-	  break;
-	case KILL:
-	  tangle->status[kk].status = EMPTY;
-	  break;
-	default:
-	  break;
-      }
-    }
-}
+/*
+ * File I/O
+ */
 
 void write_vector(FILE *stream, struct vec3d *v)
 {
@@ -250,7 +177,7 @@ void save_point(FILE *stream, int vort_idx,
   write_vector(stream, tangle->tangents + i);
   fprintf(stream, "\t");
   write_vector(stream, tangle->normals + i);
-  fprintf(stream, "%d\t%d\t%d\t%d\t%d", i,
+  fprintf(stream, "\t%d\t%d\t%d\t%d\t%d", i,
 	  tangle->connections[i].reverse,
 	  tangle->connections[i].forward,
 	  tangle->status[i].status,
@@ -332,10 +259,6 @@ void save_tangle(const char *filename, struct tangle_state *tangle)
   fclose(stream);
 }
 
-/*
- * Loads a tangle from a file.
- * TODO: does not support walls yet, only closed loops
- */
 int load_tangle(const char *filename, struct tangle_state *tangle)
 {
   FILE *file = fopen(filename, "r");
@@ -374,6 +297,10 @@ int load_tangle(const char *filename, struct tangle_state *tangle)
 
   return 0;
 }
+
+/*
+ * Debugging utilities
+ */
 
 int check_loop(const struct tangle_state *tangle, int *visited, int k);
 int check_integrity(const struct tangle_state *tangle)
@@ -488,4 +415,137 @@ int is_empty(const struct tangle_state *tangle, int k)
 	 tangle->connections[k].reverse);
   #endif
   return -1;
+}
+
+/*
+ * Wall-related stuff
+ */
+
+double wall_dist(const struct tangle_state *tangle, int k, boundary_faces wall)
+{
+  /*
+   * Returns the distance of point k to the specified wall.
+   */
+  int idx[6];
+  idx[X_L] = idx[X_H] = 0;
+  idx[Y_L] = idx[Y_H] = 1;
+  idx[Z_L] = idx[Z_H] = 2;
+  switch(wall)
+  {
+    case X_L:
+    case Y_L:
+    case Z_L:
+      return tangle->vnodes[k].p[idx[wall]] - tangle->box.bottom_left_back.p[idx[wall]];
+
+    case X_H:
+    case Y_H:
+    case Z_H:
+      return tangle->box.top_right_front.p[idx[wall]] - tangle->vnodes[k].p[idx[wall]];
+
+    default:
+      error("wall_dist: unknown wall index %d\n", wall);
+  }
+  return -1;
+}
+
+void clip_at_wall(struct tangle_state *tangle)
+{
+  /*
+   * Clips the tangle at the z-walls
+   */
+  //limits for unconstrained walls
+  double llimit = -INFINITY;
+  double ulimit = INFINITY;
+
+  if(tangle->box.wall[Z_L] == WALL_MIRROR)
+    llimit = tangle->box.bottom_left_back.p[2];
+  if(tangle->box.wall[Z_H] == WALL_MIRROR)
+    ulimit = tangle->box.top_right_front.p[2];
+
+  enum POINT_STATES {
+        OK=0,
+        KILL,         //point to be clipped
+        EDGE_FORWARD_L, //last point above the lower wall
+        EDGE_REVERSE_L,  //first point above the lower wall
+        EDGE_FORWARD_H, //last point below the upper wall
+        EDGE_REVERSE_H  //first point below the upper wall
+      };
+
+  //recalculate is used as a tag for points to be clipped
+  for(int k=0; k<tangle->N; ++k)
+    tangle->recalculate[k] = OK;
+
+  //first find all the points to be clipped
+  for(int kk=0; kk<tangle->N; ++kk)
+    {
+      if(tangle->status[kk].status == EMPTY)
+	continue;
+
+      double zkk = tangle->vnodes[kk].p[2];
+      if(zkk <= llimit || zkk >= ulimit)
+	{
+	  tangle->recalculate[kk] = KILL;
+	  const int forward = tangle->connections[kk].forward;
+	  const int reverse = tangle->connections[kk].reverse;
+
+	  double zf = tangle->vnodes[forward].p[2];
+	  double zr = tangle->vnodes[reverse].p[2];
+
+	  if(zkk >= ulimit)
+	    {
+	      if(zf < ulimit)
+		tangle->recalculate[forward] = EDGE_REVERSE_H;
+	      if(zr < ulimit)
+		tangle->recalculate[reverse] = EDGE_FORWARD_H;
+	    }
+	  if(zkk <= llimit)
+	    {
+	      if(zf > llimit)
+		tangle->recalculate[forward] = EDGE_REVERSE_L;
+	      if(zr > llimit)
+		tangle->recalculate[reverse] = EDGE_FORWARD_L;
+	    }
+	}
+    }
+
+  //next handle edge points by projecting them on the wall
+  //and pinning them on the lower or upper Z-wall
+  for(int kk=0; kk < tangle->N; ++kk)
+    {
+      switch(tangle->recalculate[kk])
+      {
+	case EDGE_REVERSE_L:
+	  tangle->connections[kk].reverse = -1;
+	  tangle->vnodes[kk].p[2] = llimit;
+	  tangle->status[kk].status = PINNED;
+	  tangle->status[kk].pin_wall = Z_L;
+	  break;
+	case EDGE_FORWARD_L:
+	  tangle->connections[kk].forward = -1;
+	  tangle->vnodes[kk].p[2] = llimit;
+	  tangle->status[kk].status = PINNED;
+	  tangle->status[kk].pin_wall = Z_L;
+	  break;
+	case EDGE_REVERSE_H:
+	  tangle->connections[kk].reverse = -1;
+	  tangle->vnodes[kk].p[2] = ulimit;
+	  tangle->status[kk].status = PINNED;
+	  tangle->status[kk].pin_wall = Z_H;
+	  break;
+	case EDGE_FORWARD_H:
+	  tangle->connections[kk].forward = -1;
+	  tangle->vnodes[kk].p[2] = ulimit;
+	  tangle->status[kk].status = PINNED;
+	  tangle->status[kk].pin_wall = Z_H;
+	  break;
+	case KILL:
+	  tangle->status[kk].status = EMPTY;
+	  tangle->status[kk].pin_wall = NOT_A_FACE;
+	  tangle->connections[kk].forward = -1;
+	  tangle->connections[kk].reverse = -1;
+	  break;
+	default:
+	  break;
+      }
+    }
 }

@@ -303,6 +303,11 @@ static inline struct vec3d segment_field1(struct segment *seg, struct vec3d r)
   if(lR < 1e-8 || lRp1 < 1e-8)
     return vec3(0, 0, 0);
 
+  //if R and Rp1 are colinear, the result is 0
+  //but code below would try to calculate 0/0
+  if(vec3_ndot(&R, &Rp1) < 1e-8)
+    return vec3(0,0,0);
+
   struct vec3d vv;
 
   vec3_cross(&vv, &R, &Rp1);
@@ -388,8 +393,9 @@ void update_velocity(struct tangle_state *tangle, int k, double t)
       return;
     }
 
+
   tangle->vs[k] = lia_velocity(tangle, k);
-  
+
   struct vec3d evs;
   get_vs(&tangle->vnodes[k], t, &evs);
   vec3_add(&tangle->vs[k], &tangle->vs[k], &evs);
@@ -407,6 +413,7 @@ void update_velocity(struct tangle_state *tangle, int k, double t)
     }
 
   //calculate the velocity due to boundary images
+
   struct vec3d shift_r, v_shift;
   struct vec3d v_shift_total = vec3(0, 0, 0);
 
@@ -422,6 +429,7 @@ void update_velocity(struct tangle_state *tangle, int k, double t)
   vec3_add(&tangle->vs[k], &tangle->vs[k], &v_shift_total);
 
   tangle->vels[k] = tangle->vs[k];
+
 
   if(use_mutual_friction)
     {
@@ -442,6 +450,7 @@ void update_velocity(struct tangle_state *tangle, int k, double t)
       vec3_mul(&tmp, &tmp, -alpha_p);
       vec3_add(&tangle->vels[k], &tangle->vels[k], &tmp);
     }
+
 
   if(tangle->status[k].status == PINNED_SLIP)
     {
@@ -577,28 +586,37 @@ void remesh(struct tangle_state *tangle, double min_dist, double max_dist)
   int added = 0;
   for(int k=0; k<tangle->N; ++k)
     {
-      if(tangle->status[k].status == EMPTY  || tangle->status[k].status == PINNED || tangle->status[k].status == PINNED_SLIP ||
-	 tangle->connections[k].forward < 0 ||
-	 tangle->connections[k].reverse < 0) //empty or pinned point
+      if(tangle->status[k].status == EMPTY)
 	continue;
+
 
       int next = tangle->connections[k].forward;
       int prev = tangle->connections[k].reverse;
 
-      struct segment sf = seg_pwrap(&tangle->vnodes[k], &tangle->vnodes[next], &tangle->box);
-      struct segment sr = seg_pwrap(&tangle->vnodes[k], &tangle->vnodes[prev], &tangle->box);
-  
-      double lf = segment_len(&sf);
-      double lr = segment_len(&sr);
+      struct segment sf;
+      struct segment sr;
+      double lf;
+      double lr;
+
+      if(next >= 0)
+	{
+	  sf = seg_pwrap(&tangle->vnodes[k], &tangle->vnodes[next], &tangle->box);
+	  lf = segment_len(&sf);
+	}
+      if(prev >= 0)
+	{
+	  sr = seg_pwrap(&tangle->vnodes[k], &tangle->vnodes[prev], &tangle->box);
+	  lr = segment_len(&sr);
+	}
 
       //can we remove point k?
-      if( (lf < min_dist || lr < min_dist) && (lf + lr) < max_dist )
+      if(next >= 0 && prev >= 0 && ((lf < min_dist || lr < min_dist) && (lf + lr) < max_dist ))
 	{
 	  remove_point(tangle, k);
 	}
 
       //do we need an extra point?
-      if( lf > max_dist ) //since we are adding between k and next, check only lf
+      if(next >= 0 && (lf > max_dist)) //since we are adding between k and next, check only lf
 	{
 	  added++;
 	  int new_pt = add_point(tangle, k);
@@ -619,6 +637,8 @@ void eliminate_small_loops(struct tangle_state *tangle, int loop_length)
   if(eliminate_zaxis_loops)
     eliminate_loops_near_zaxis(tangle, eliminate_loops_zaxis_cutoff);
 
+  int killed = 0;
+
   for(int k=0; k < tangle->N; ++k)
     tangle->recalculate[k] = 0;
 
@@ -626,7 +646,7 @@ void eliminate_small_loops(struct tangle_state *tangle, int loop_length)
     {
       if(tangle->status[k].status == EMPTY ||
 	 tangle->recalculate[k])
-	continue; //empty or visited point
+	continue; //empty or already visited point
 
       tangle->recalculate[k]++;
 
@@ -635,12 +655,12 @@ void eliminate_small_loops(struct tangle_state *tangle, int loop_length)
       int next = tangle->connections[here].forward;
       while(next != k)
 	{
-	  if(next == -1 && tangle->status[here].status != EMPTY)
+	  if(tangle->status[here].status == PINNED && next < 0)
 	    {
 	      //we hit a wall, turn back from k
 	      here = k;
 	      next = tangle->connections[here].reverse;
-	      while(next != -1)
+	      while(next >= 0)
 		{
 		  tangle->recalculate[here]++;
 		  here = next;
@@ -652,7 +672,7 @@ void eliminate_small_loops(struct tangle_state *tangle, int loop_length)
 	    }
 	  tangle->recalculate[here]++;
 	  here = next;
-	  next = tangle->connections[next].forward;
+	  next = tangle->connections[here].forward;
 	  loop++;
 	}
       if(loop < loop_length) //the loop is short, delete it
@@ -663,6 +683,7 @@ void eliminate_small_loops(struct tangle_state *tangle, int loop_length)
 	   * forward, so we have to start at the end facing away from
 	   * the wall
 	  */
+	  killed++;
 	  next = here;
 	  while(1)
 	    {
@@ -677,6 +698,7 @@ void eliminate_small_loops(struct tangle_state *tangle, int loop_length)
 	    }
 	}
     }
+  //printf("Killed %d loops.\n", killed);
 }
 
 void eliminate_loops_near_origin(struct tangle_state *tangle, double cutoff)
@@ -759,8 +781,11 @@ void remove_point(struct tangle_state *tangle, int point_idx)
   int prev = tangle->connections[point_idx].reverse;
   int next = tangle->connections[point_idx].forward;
 
-  tangle->connections[prev].forward = next;
-  tangle->connections[next].reverse = prev;
+  if(prev >= 0)
+    tangle->connections[prev].forward = next;
+  if(next >= 0)
+    tangle->connections[next].reverse = prev;
+
   tangle->connections[point_idx].reverse =
     tangle->connections[point_idx].forward = -1;
 
@@ -774,7 +799,7 @@ int add_point(struct tangle_state *tangle, int p)
   int next = tangle->connections[p].forward;
   int new_pt = get_tangle_next_free(tangle);
   tangle->status[new_pt].status = FREE;
-  tangle->status[new_pt].pin_wall = -1;
+  tangle->status[new_pt].pin_wall = NOT_A_FACE;
 
   update_tangent_normal(tangle, p);
   update_tangent_normal(tangle, next);
@@ -794,23 +819,31 @@ int add_point(struct tangle_state *tangle, int p)
   struct vec3d n;
   vec3_add(&n, &s0pp, &s1pp);
   vec3_mul(&n, &n, 0.5);
-  double R = 1/vec3_d(&n);
-  double dR = R*R - l*l/4;
-  //dR can become < 0 for sharp cusps
-  //simplest way to deal with it is to treat the s0 and s1 as sitting
-  //on opposite ends of a circle, for which dR = 0
-  //this does not preserve curvature, but this is below our resolution anyway
-  double delta = dR > 0 ? R - sqrt(dR) : R;
+  if(vec3_d(&n) > 1e-5) //n will be identically 0 for a straight vortex
+    {
+      double R = 1/vec3_d(&n);
+      double dR = R*R - l*l/4;
+      //dR can become < 0 for sharp cusps
+      //simplest way to deal with it is to treat the s0 and s1 as sitting
+      //on opposite ends of a circle, for which dR = 0
+      //this does not preserve curvature, but this is below our resolution anyway
+      double delta = dR > 0 ? R - sqrt(dR) : R;
 
-  vec3_normalize(&n);
-  vec3_mul(&n, &n, -1);
+      vec3_normalize(&n);
+      vec3_mul(&n, &n, -1);
 
-  vec3_add(&a, &s0, &s1);
-  vec3_mul(&a, &a, 0.5);
+      vec3_add(&a, &s0, &s1);
+      vec3_mul(&a, &a, 0.5);
 
-  vec3_mul(&b, &n, delta);
+      vec3_mul(&b, &n, delta);
 
-  vec3_add(&new, &a, &b);
+      vec3_add(&new, &a, &b);
+    }
+  else //we basically have a straight vortex, just average s0 and s1
+    {
+      vec3_add(&new, &s0, &s1);
+      vec3_mul(&new, &new, 0.5);
+    }
 
   tangle->vnodes[new_pt] = new;
   tangle->connections[new_pt].reverse = p;
@@ -818,6 +851,30 @@ int add_point(struct tangle_state *tangle, int p)
   tangle->connections[p].forward = new_pt;
   tangle->connections[next].reverse = new_pt;
   return new_pt;
+}
+
+int curvature_smoothing(struct tangle_state *tangle, double max_spp, double damping)
+{
+  update_tangents_normals(tangle);
+
+  for(int i=0; i < tangle->N; ++i)
+    {
+      if(tangle->status[i].status == EMPTY ||
+	 tangle->status[i].status == PINNED)
+	continue;
+
+      struct vec3d c = tangle->normals[i];
+      double spp = vec3_d(&c);
+
+      if(spp > max_spp)
+	{
+	  struct vec3d n = c;
+	  vec3_normalize(&n);
+	  vec3_mul(&n, &n, damping*(spp - max_spp));
+	  vec3_add(&tangle->vnodes[i], &tangle->vnodes[i], &n);
+	}
+    }
+  return 0;
 }
 
 int tangle_total_points(struct tangle_state *tangle)

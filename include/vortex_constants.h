@@ -45,4 +45,15 @@ extern double eliminate_loops_origin_cutoff;
 
 extern int eliminate_zaxis_loops;
 extern double eliminate_loops_zaxis_cutoff;
+
+//injecting loops at upper z-plane
+extern int loop_injection; //bool, inject or not
+extern double loop_injection_frequency; //injections per second
+
+//line pair injection
+extern int line_injection; //bool, inject or not
+extern int line_injection_n; //how many pairs to inject
+extern double line_injection_frequency; //injections per second
+extern int line_injection_polarized; //whether the injection is polarized
+
 #endif //VORTEX_CONSTANTS_H

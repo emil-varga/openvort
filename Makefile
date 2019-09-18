@@ -18,7 +18,7 @@
 #####################################################################
 
 CC=gcc -fopenmp
-CFLAGS=  -O2 `gsl-config --cflags` -fsanitize=undefined -fsanitize=float-divide-by-zero -fsanitize=leak\
+CFLAGS=  -O2 -fsanitize=undefined -fsanitize=float-divide-by-zero -fsanitize=leak\
          `pkg-config --cflags libconfig`
 #CFLAGS = -O2 `pkg-config --cflags libconfig` `gsl-config --cflags`
 DEBUG = -Wall -Wextra -pedantic -ggdb -D_DEBUG_
@@ -36,7 +36,7 @@ all: vortices
 vortices: $(obj)
 	$(COMPILE) $^ -o $@ $(LIBS)
 
-include $(dep)
+-include $(dep)
 
 %.d: %.c
 	$(CPP) $(CFLAGS) $< -I$(INCLUDE) -MM -MT $(@:.d=.o) >$@

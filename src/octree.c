@@ -73,6 +73,7 @@ struct octree *octree_build(const struct tangle_state *tangle)
       if(!octree_add_node(tree, k))
 	error("failed to add node");
     }
+  tree->tangle = tangle;
   tree->box = tangle->box;
   //sort the points in a recursive function
   octree_inner_sort(tree, tangle);
@@ -113,6 +114,7 @@ void octree_make_child_boxes(struct octree *tree)
       struct domain_box child_box = make_child_box(&tree->box, child);
       tree->children[child] = octree_init(Ninit, 1); //do not create any depth here
       tree->children[child]->box = child_box;
+      tree->children[child]->tangle = tree->tangle;
     }
 }
 struct domain_box make_child_box(const struct domain_box *parent_box, octree_child_idx child_idx)
@@ -221,4 +223,50 @@ void octree_update_means(struct octree *tree, const struct tangle_state *tangle)
 
   for(octree_child_idx child=0; child < OCTREE_CHILDREN_N; child++)
     octree_update_means(tree->children[child], tangle);
+}
+
+/*velocity calculation*/
+void octree_get_vs(const struct octree *tree, const struct vec3d *r, double resolution,
+		   struct vec3d *res)
+{
+  if(tree->N == 0) //empty leaf, exit
+    {
+      *res = vec3(0,0,0);
+      return;
+    }
+
+  //check the resolution
+  double Lx = tree->box.top_right_front.p[0] - tree->box.bottom_left_back.p[0];
+  double Ly = tree->box.top_right_front.p[1] - tree->box.bottom_left_back.p[1];
+  double Lz = tree->box.top_right_front.p[2] - tree->box.bottom_left_back.p[2];
+  double Lm = Lx > Ly ? (Lx > Lz ? Lx : Lz) : (Ly > Lz ? Ly : Lz); //maximum size
+
+  struct segment seg = seg_pwrap(r, &tree->centre_of_mass, &tree->tangle->box);
+  double d = segment_len(&seg);
+
+  /*
+   * leaf (i.e., only one node, bottom of the tree)
+   * that is also the point of interest itself
+   */
+  if(d < 1e-8)
+    {
+      *res = vec3(0,0,0);
+      return;
+    }
+
+  if(Lm/d < resolution)
+    {
+      //calculate the velocity using the approximation
+      *res = vec3(0,0,0); //TODO
+      return;
+    }
+
+  //resolution is not sufficient, we need to open the tree deeper
+  struct vec3d partial_vs, total_vs;
+  total_vs = vec3(0,0,0);
+  for(int k = 0; k < 8; ++k)
+    {
+      octree_get_vs(tree->children[k], r, resolution, &partial_vs);
+      vec3_add(&total_vs, &total_vs, &partial_vs);
+    }
 }

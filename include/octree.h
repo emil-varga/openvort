@@ -27,6 +27,7 @@ struct octree {
   struct mat3d circ_tensor;
   struct domain_box box;
   struct octree *children[8];
+  const struct tangle_state *tangle; //reference to the tangle used to build the tree
 };
 
 struct octree* octree_init(int Ninit, int depth);
@@ -40,5 +41,9 @@ octree_child_idx octree_find_child_index(const struct domain_box *box, const str
 void octree_make_child_boxes(struct octree *tree);
 void octree_update_means(struct octree *tree, const struct tangle_state *tangle);
 void octree_create_children(struct octree *tree);
+
+/*velocity calculation*/
+void octree_get_vs(const struct octree *tree, const struct vec3d *r, double resolution,
+		   struct vec3d *res);
 
 #endif /* INCLUDE_OCTREE_H_ */

@@ -6,6 +6,8 @@
  */
 
 #include <stdlib.h>
+#include <math.h>
+#include "vortex_constants.h"
 #include "octree.h"
 #include "util.h"
 #include "vec3_maths.h"
@@ -257,7 +259,46 @@ void octree_get_vs(const struct octree *tree, const struct vec3d *r, double reso
   if(Lm/d < resolution)
     {
       //calculate the velocity using the approximation
+      struct vec3d v1;
       *res = vec3(0,0,0); //TODO
+      struct vec3d R;
+      double Rm = vec3_d(&R);
+
+      /*
+       * 1st order
+       */
+      vec3_sub(&R, r, &tree->centre_of_mass);
+      vec3_cross(&v1, &tree->total_circulation, &R);
+      vec3_mul(&v1, &v1, 1/Rm/Rm/Rm);
+      vec3_add(res, res, &v1);
+
+      /*
+       * 2nd order, 1st term
+       */
+      v1 = vec3(0,0,0);
+      for(int i = 0; i<3; ++i)
+	{
+	  for(int j=i+1; j<3; ++j)
+	    {
+	      for(int k=j+1; k<3; ++k)
+		{
+		  v1.p[i] = tree->circ_tensor.m[k][j] - tree->circ_tensor.m[j][k];
+		}
+	    }
+	}
+      vec3_mul(&v1, &v1, 1/Rm/Rm/Rm);
+      vec3_add(res, res, &v1);
+
+      /*
+       * 2nd order, 2nd term
+       */
+      mat3_vmul(&v1, &tree->circ_tensor, &R);
+      vec3_cross(&v1, &v1, &R);
+      vec3_mul(&v1, &v1, 1/Rm/Rm/Rm/Rm/Rm);
+      vec3_add(res, res, &v1);
+
+      vec3_mul(res, res, KAPPA/4/M_PI);
+
       return;
     }
 

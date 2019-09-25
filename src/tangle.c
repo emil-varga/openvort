@@ -27,6 +27,7 @@
 #include "vortex_constants.h"
 #include "util.h"
 #include "vec3_maths.h"
+#include "octree.h"
 
 #ifdef _DEBUG_
 #include <stdio.h>
@@ -400,16 +401,28 @@ void update_velocity(struct tangle_state *tangle, int k, double t)
   get_vs(&tangle->vnodes[k], t, &evs);
   vec3_add(&tangle->vs[k], &tangle->vs[k], &evs);
 
-  for(m=0; m<tangle->N; ++m)
+  struct octree *tree = NULL;
+  if(use_BH)
     {
-      if(tangle->connections[m].forward == -1 ||
-  	 m == k                               ||
-  	 k == tangle->connections[m].forward)
-  	continue;
-      
-      struct vec3d segment_vel = segment_field(tangle, m, tangle->vnodes[k]);
-      for(i=0; i<3; ++i)
-  	tangle->vs[k].p[i] += segment_vel.p[i];
+      //use the tree approximation to the full Biot-Savart
+      tree = octree_build(tangle);
+      struct vec3d v_tree;
+      octree_get_vs(tree, &tangle->vnodes[k], BH_resolution, &v_tree);
+    }
+  else
+    {
+      //integrate Biot-Savart as usual
+      for(m=0; m<tangle->N; ++m)
+	{
+	  if(tangle->connections[m].forward == -1 ||
+	     m == k                               ||
+	     k == tangle->connections[m].forward)
+	    continue;
+
+	  struct vec3d segment_vel = segment_field(tangle, m, tangle->vnodes[k]);
+	  for(i=0; i<3; ++i)
+	    tangle->vs[k].p[i] += segment_vel.p[i];
+	}
     }
 
   //calculate the velocity due to boundary images

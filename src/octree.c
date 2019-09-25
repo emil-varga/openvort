@@ -256,7 +256,7 @@ void octree_get_vs(const struct octree *tree, const struct vec3d *r, double reso
       return;
     }
 
-  if(Lm/d < resolution)
+  if(Lm/d < resolution || tree->N == 1)
     {
       //calculate the velocity using the approximation
       struct vec3d v1;

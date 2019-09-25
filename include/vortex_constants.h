@@ -56,4 +56,8 @@ extern int line_injection_n; //how many pairs to inject
 extern double line_injection_frequency; //injections per second
 extern int line_injection_polarized; //whether the injection is polarized
 
+//Barnes-Hut ('tree') approximation
+extern int use_BH;
+extern double BH_resolution;
+
 #endif //VORTEX_CONSTANTS_H

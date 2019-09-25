@@ -25,7 +25,7 @@ DEBUG = -Wall -Wextra -pedantic -ggdb -D_DEBUG_
 INCLUDE = include
 
 COMPILE = $(CC) $(CFLAGS) $(DEBUG) -I$(INCLUDE)
-LIBS=-lm `gsl-config --libs` `pkg-config --libs libconfig`
+LIBS=-lm `pkg-config --libs libconfig`
 
 src = $(wildcard src/*.c)
 obj = $(src:.c=.o)

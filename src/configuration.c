@@ -199,6 +199,17 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
       KAPPA = dval;
   if(config_lookup_int(&cfg, "num_threads", &ival))
       global_num_threads = ival;
+  if(config_lookup_string(&cfg, "wall_type", &str))
+    {
+      if(strcmp(str, "pin") == 0)
+	pin_mode = PINNED;
+      else if(strcmp(str, "slip") == 0)
+	pin_mode = PINNED_SLIP;
+      else
+	error("Unknown wall type. Possible options are 'pin' or 'slip'.");
+
+      printf("Using pin mode %d\n", pin_mode);
+    }
 
   //mutual friction
   if(config_lookup_bool(&cfg, "use_mutual_friction", &ival))

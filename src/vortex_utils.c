@@ -124,7 +124,7 @@ void add_line(struct tangle_state *tangle, double x, double y, int direction, in
   tangle->vnodes[new_pt] = s;
   tangle->tangents[new_pt] = sp;
   tangle->normals[new_pt] = spp;
-  tangle->status[new_pt].status = PINNED;
+  tangle->status[new_pt].status = pin_mode;
   tangle->status[new_pt].pin_wall = direction > 0 ? Z_L : Z_H;
   tangle->connections[new_pt].reverse = -1;
 
@@ -149,7 +149,7 @@ void add_line(struct tangle_state *tangle, double x, double y, int direction, in
   tangle->vnodes[new_pt] = s;
   tangle->tangents[new_pt] = sp;
   tangle->normals[new_pt] = spp;
-  tangle->status[new_pt].status = PINNED;
+  tangle->status[new_pt].status = pin_mode;
   tangle->status[new_pt].pin_wall = direction > 0 ? Z_H : Z_L;
   tangle->connections[new_pt].reverse = last_pt;
   tangle->connections[new_pt].forward = -1;
@@ -517,25 +517,25 @@ void clip_at_wall(struct tangle_state *tangle)
 	case EDGE_REVERSE_L:
 	  tangle->connections[kk].reverse = -1;
 	  tangle->vnodes[kk].p[2] = llimit;
-	  tangle->status[kk].status = PINNED;
+	  tangle->status[kk].status = pin_mode;
 	  tangle->status[kk].pin_wall = Z_L;
 	  break;
 	case EDGE_FORWARD_L:
 	  tangle->connections[kk].forward = -1;
 	  tangle->vnodes[kk].p[2] = llimit;
-	  tangle->status[kk].status = PINNED;
+	  tangle->status[kk].status = pin_mode;
 	  tangle->status[kk].pin_wall = Z_L;
 	  break;
 	case EDGE_REVERSE_H:
 	  tangle->connections[kk].reverse = -1;
 	  tangle->vnodes[kk].p[2] = ulimit;
-	  tangle->status[kk].status = PINNED;
+	  tangle->status[kk].status = pin_mode;
 	  tangle->status[kk].pin_wall = Z_H;
 	  break;
 	case EDGE_FORWARD_H:
 	  tangle->connections[kk].forward = -1;
 	  tangle->vnodes[kk].p[2] = ulimit;
-	  tangle->status[kk].status = PINNED;
+	  tangle->status[kk].status = pin_mode;
 	  tangle->status[kk].pin_wall = Z_H;
 	  break;
 	case KILL:

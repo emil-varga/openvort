@@ -40,6 +40,8 @@ extern int global_num_threads;
 
 extern int use_mutual_friction;
 
+extern int pin_mode;
+
 extern int eliminate_origin_loops;
 extern double eliminate_loops_origin_cutoff;
 

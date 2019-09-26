@@ -18,6 +18,7 @@
  ******************************************************************************/
 
 #include "vortex_constants.h"
+#include "tangle.h"
 //declared as extern in vortex_constants.h
 
 double VORTEX_WIDTH = 1e-8; //cm
@@ -45,6 +46,11 @@ int global_num_threads = 4;
 
 //switch mutual friction on/off
 int use_mutual_friction = 1;
+
+/*
+ * Pinning mode
+ */
+int pin_mode = PINNED;
 
 //elimination of loops near the origin (for spherical flows)
 int eliminate_origin_loops = 0; //default off

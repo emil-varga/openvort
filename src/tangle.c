@@ -464,11 +464,12 @@ void update_velocity(struct tangle_state *tangle, int k, double t)
       vec3_add(&tangle->vels[k], &tangle->vels[k], &tmp);
     }
 
-
   if(tangle->status[k].status == PINNED_SLIP)
     {
-      error("Sorry! PINNED_SLIP is not supported yet.");
-      //TODO:remove the component of velocity normal to the wall
+      struct vec3d n = boundary_normals[tangle->status[k].pin_wall];
+      double normal_velocity = vec3_dot(&n, &tangle->vels[k]);
+      vec3_mul(&n, &n, normal_velocity);
+      vec3_sub(&tangle->vels[k], &tangle->vels[k], &n);
     }
 }
 
@@ -668,7 +669,8 @@ void eliminate_small_loops(struct tangle_state *tangle, int loop_length)
       int next = tangle->connections[here].forward;
       while(next != k)
 	{
-	  if(tangle->status[here].status == PINNED && next < 0)
+	  if((tangle->status[here].status == PINNED ||
+	      tangle->status[here].status == PINNED_SLIP) && next < 0)
 	    {
 	      //we hit a wall, turn back from k
 	      here = k;
@@ -873,7 +875,8 @@ int curvature_smoothing(struct tangle_state *tangle, double max_spp, double damp
   for(int i=0; i < tangle->N; ++i)
     {
       if(tangle->status[i].status == EMPTY ||
-	 tangle->status[i].status == PINNED)
+	 tangle->status[i].status == PINNED ||
+	 tangle->status[i].status == PINNED_SLIP)
 	continue;
 
       struct vec3d c = tangle->normals[i];

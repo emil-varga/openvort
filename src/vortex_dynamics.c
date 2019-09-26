@@ -180,7 +180,7 @@ int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec
 
 	  if(check_wall(tangle, k, wall, rec_dist/2))
 	    {
-	      connect_to_wall(tangle, k, wall, rec_dist/2, PINNED, rec_angle, t);
+	      connect_to_wall(tangle, k, wall, rec_dist/2, pin_mode, rec_angle, t);
 	    }
 	}
     }

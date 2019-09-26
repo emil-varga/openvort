@@ -47,7 +47,7 @@ def build_2d_projections(vortex_data, box_Ds = [1e-3, 1e-3, 1e-4]):
     yss    = []
     kappas = [] #direction of circulation, +/- 1
     for vid in vortex_ids:
-        vort_pieces = util.build_vortex(vortex_data, vid, max_l = 1e-5)
+        vort_pieces = util.build_vortex(vortex_data, vid, max_l = None)
         vortex = util.stitch_vortex(vort_pieces, box_Ds = box_Ds) #10um x 10um x 1 um
         
         if vortex.shape[0] < 2:
@@ -84,7 +84,7 @@ def calculate_2D_correlation_index(vortex_data, box_Ds, full_output=False):
     Ly = box_Ds[1]
     points = np.column_stack((xs + Lx/2, ys + Ly/2)) 
     #find the position of all 1st nearest neighbours
-    tree = spat.cKDTree(points, boxsize = (Lx, Ly))
+    tree = spat.cKDTree(points, boxsize = Lx)
     rs, ids = tree.query(points, k=2)
     ids = ids[:,1]
 #    print(rs.shape)
@@ -131,11 +131,13 @@ if __name__ == '__main__':
     #find and sort the frame files
     files = glob(path.join(directory, 'frame*.dat'))
     files.sort(key=util.frame_id)
+
+    output_file = path.join(directory, 'Ci_t.txt')
     
     #load the previous results, if needed
-    if args.append:
+    if args.append and path.isfile(output_file):
         ts_all = np.array([dt*util.frame_id(file) for file in files])
-        old_Cis = np.loadtxt(path.join(directory, 'Ci_t.txt'))
+        old_Cis = np.loadtxt(output_file)
         ts = list(old_Cis[:,0])
         Cis = list(old_Cis[:,1])
         idx0 = np.where(ts_all > ts[-1])[0][0]
@@ -175,7 +177,6 @@ if __name__ == '__main__':
     ax.axhline(0, color='k')
     if not args.no_save:
         out = np.column_stack((ts, Cis))
-        outfile = path.join(directory, "Ci_t.txt")
-        print(outfile)
-        np.savetxt(outfile, out, header='time(s)\tCi')
+        print(output_file)
+        np.savetxt(output_file, out, header='time(s)\tCi')
     plt.show()

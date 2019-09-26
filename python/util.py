@@ -32,9 +32,9 @@ def build_vortex(frame_data, vortex_idx, max_l = None):
     vidx = frame_data[:,0].astype(int)
     
     vortex_data = frame_data[vidx==vortex_idx,:]
+    #print(vortex_idx, sum(vidx == vortex_idx), frame_data.shape, vortex_data.shape)
     
     xs = vortex_data[:,1:4]
-    
 #    pin_wall = vortex_data[:,-1]
 #    status_flag = vortex_data[:,-2]
     forward = vortex_data[:,-3]
@@ -68,7 +68,7 @@ def build_vortex(frame_data, vortex_idx, max_l = None):
     vxs = np.array(vxs)
     if max_l is not None:
         return split_vortex(vxs, max_l)
-    return vxs
+    return [vxs]
 
 def split_vortex(vxs, max_l):
     xs = vxs[:,0]

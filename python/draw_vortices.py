@@ -27,7 +27,7 @@ def draw_vortices(fn, plot_axes, slow=False, max_len=0.05, scale=10, just_one=Fa
                   color=None, colorcode_z = True, projection=None):
     data = np.loadtxt(fn)
 
-    vix = np.round(data[:,0])
+    vix = data[:,0].astype(int)
     vortex_idx = 0
     if projection is None:
         plot_axes.set_proj_type('ortho')
@@ -40,7 +40,6 @@ def draw_vortices(fn, plot_axes, slow=False, max_len=0.05, scale=10, just_one=Fa
             dd = vxs.shape
             if dd[0] < 2:
                 continue
-
             if colorcode_z:
                 if vxs[dd[0]-1,2] > vxs[0,2]:
                     clr = 'r'
@@ -52,7 +51,8 @@ def draw_vortices(fn, plot_axes, slow=False, max_len=0.05, scale=10, just_one=Fa
                 pl = plot_axes.plot(1000*vxs[:,0], 1000*vxs[:,1], 1000*vxs[:,2], '-', color=clr, lw=1)
             else:
                 ax1, ax2 = projection
-                pl = plot_axes.plot(vxs[:,ax1], vxs[:,ax2], '-', color=clr, lw=3)
+                pl = plot_axes.plot(vxs[:,ax1], vxs[:,ax2], '-', color=clr, lw=2)
+                plot_axes.plot([vxs[:,ax1].mean()], [vxs[:,ax2].mean()], 'x', color=clr, ms=2)
             if clr is None:
                 clr = pl[-1].get_color()
         if just_one: break

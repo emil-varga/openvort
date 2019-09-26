@@ -93,6 +93,13 @@ def calculate_2D_correlation_index(vortex_data, box_Ds, full_output=False):
         return Ci, ids, kappas, xs, ys
     return Ci
 
+def calculate_2D_dipole(vortex_data, box_Ds):
+    kappas, xs, ys, xss, yss = build_2d_projections(vortex_data, box_Ds)
+    
+    dx = np.sum(kappas*xs)
+    dy = np.sum(kappas*ys)
+    return dx, dy
+
 if __name__ == '__main__':
     plt.close('all')
     
@@ -109,6 +116,8 @@ if __name__ == '__main__':
                         action = 'store_true')
     parser.add_argument('--no-save', help='Do not save the resulting Ci(t).',
                         action = 'store_true')
+    parser.add_argument('--dipole', help='Calculates the dipole moment instead of correlation index.',
+                        action='store_true')
     
     args = parser.parse_args()
     directory   = args.directory
@@ -131,17 +140,24 @@ if __name__ == '__main__':
     #find and sort the frame files
     files = glob(path.join(directory, 'frame*.dat'))
     files.sort(key=util.frame_id)
-
-    output_file = path.join(directory, 'Ci_t.txt')
+    
+    if args.dipole:
+        output_file = 'D_t.txt'
+    else:
+        output_file = 'Ci_t.txt'
+    output_path = path.join(directory, output_file)
     
     #load the previous results, if needed
-    if args.append and path.isfile(output_file):
+    if args.append and path.isfile(output_path):
         ts_all = np.array([dt*util.frame_id(file) for file in files])
-        old_Cis = np.loadtxt(output_file)
+        old_Cis = np.loadtxt(output_path)
         ts = list(old_Cis[:,0])
         Cis = list(old_Cis[:,1])
-        idx0 = np.where(ts_all > ts[-1])[0][0]
-        files = files[idx0+1:]
+        if ts_all.max() <= ts[-1]:
+            files = []
+        else:
+            idx0 = np.where(ts_all > ts[-1])[0][0]
+            files = files[idx0+1:]
     else:
         Cis = []
         ts = []
@@ -152,31 +168,36 @@ if __name__ == '__main__':
         print("Progress: {}/{} ({})".format(k, len(files), path.split(file)[1]))
         data = np.loadtxt(file)
         frame_id = util.frame_id(file)
-        ts.append(frame_id*dt)        
-        if args.plot_nn:
-            Ci, ids, kappas, xs, ys = calculate_2D_correlation_index(data, (Lx,Ly,Lz),
-                                                                     full_output=True)
+        ts.append(frame_id*dt)
+        if args.dipole:
+            dx, dy = calculate_2D_dipole(data, (Lx, Ly, Lz))
+            Cis.append([dx, dy])
         else:
-            Ci = calculate_2D_correlation_index(data, (Lx,Ly,Lz))
-        Cis.append(Ci)
-        
-        if args.plot_nn:
-            fig, ax = plt.subplots(1,1)
-            ax.plot(xs[kappas>0], ys[kappas>0], 'ro')
-            ax.plot(xs[kappas<0], ys[kappas<0], 'bo')
-            ax.set_aspect('equal')
+            if args.plot_nn:
+                Ci, ids, kappas, xs, ys = calculate_2D_correlation_index(data, (Lx,Ly,Lz),
+                                                                         full_output=True)
+            else:
+                Ci = calculate_2D_correlation_index(data, (Lx,Ly,Lz))
+            Cis.append(Ci)
             
-            for k, nk in enumerate(ids):
-                x0 = xs[k]
-                y0 = ys[k]
-                x1 = xs[nk]
-                y1 = ys[nk]
-                ax.annotate("", xy=(x1, y1), xytext=(x0,y0), arrowprops=dict(arrowstyle="->"))
+            if args.plot_nn:
+                fig, ax = plt.subplots(1,1)
+                ax.plot(xs[kappas>0], ys[kappas>0], 'ro')
+                ax.plot(xs[kappas<0], ys[kappas<0], 'bo')
+                ax.set_aspect('equal')
+                
+                for k, nk in enumerate(ids):
+                    x0 = xs[k]
+                    y0 = ys[k]
+                    x1 = xs[nk]
+                    y1 = ys[nk]
+                    ax.annotate("", xy=(x1, y1), xytext=(x0,y0), arrowprops=dict(arrowstyle="->"))
     fig, ax = plt.subplots(1,1)
+    Cis = np.array(Cis)
     ax.plot(ts, Cis, '-')
     ax.axhline(0, color='k')
     if not args.no_save:
         out = np.column_stack((ts, Cis))
-        print(output_file)
-        np.savetxt(output_file, out, header='time(s)\tCi')
+        print(output_path)
+        np.savetxt(output_path, out, header='time(s)\tCi')
     plt.show()

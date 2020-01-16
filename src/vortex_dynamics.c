@@ -180,10 +180,17 @@ int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec
 
 	  if(check_wall(tangle, k, wall, rec_dist/2))
 	    {
-	      connect_to_wall(tangle, k, wall, rec_dist/2, pin_mode, rec_angle, t);
+	      Nrecs += connect_to_wall(tangle, k, wall, rec_dist/2, pin_mode, rec_angle, t);
 	    }
 	}
     }
+
+  /*
+   * Wall reconnection can create small loops that could be broken by the domain killing below
+   * which can cause the simulation to crash. These loops need to be removed.
+   */
+  if(Nrecs > 0)
+      eliminate_small_loops(tangle, small_loop_cutoff);
 
   /*
    * Eliminate all points that are active and outside the walls. This can potentially happen
@@ -212,10 +219,10 @@ int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec
     printf("Killed %d points outside the domain.\n", domain_killed);
 
   /*
-   * Some small loops might have been created by the reconnections and removals above.
+   * Some small loops might have been created by the removals above.
    * These can confuse the tangent calculation so they should be removed.
    */
-  if(Nrecs > 0 || domain_killed > 0)
+  if(domain_killed > 0)
     eliminate_small_loops(tangle, small_loop_cutoff);
 
   /*
@@ -411,11 +418,7 @@ int connect_to_wall(struct tangle_state *tangle, int k, int wall, double rdist,
   //check that the node is actually getting closer to the wall
   //boundary_normals are inward-facing unit normals
   if(d0 > 0 && vec3_dot(&tangle->vels[k], &boundary_normals[wall]) > 0)
-    return 0;
-
-  //
-  if(vec3_dot(&tangle->tangents[k], &boundary_normals[wall]) > cos(rec_angle))
-    return 0;
+    return 0; //EXIT because we are getting further from the wall
 
   int next = tangle->connections[k].forward;
   int prev = tangle->connections[k].reverse;

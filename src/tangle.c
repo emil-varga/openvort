@@ -167,40 +167,31 @@ struct vec3d step_node(const struct tangle_state *tangle, int i, int where)
   if(where == 0)
     return tangle->vnodes[i];
 
-  if(tangle->status[i].status == FREE)
-    {
-      if(where > 0)
-	return step_node(tangle, tangle->connections[i].forward, where-1);
-      else if (where < 0)
-	return step_node(tangle, tangle->connections[i].reverse, where+1);
-    }
-  else if(tangle->status[i].status == PINNED ||
-          tangle->status[i].status == PINNED_SLIP)
-    {
-      struct vec3d out;
-      if(where > 0)
-	{
-	  if(tangle->connections[i].forward < 0)
-	    out = step_node(tangle, i, -where);
-	  else
+  if(tangle->status[i].status == FREE) {
+    if(where > 0)
 	    return step_node(tangle, tangle->connections[i].forward, where-1);
-	}
-      else if(where < 0)
-	{
-	  if(tangle->connections[i].reverse < 0)
-	    out = step_node(tangle, i, -where);
-	  else
+    else if (where < 0)
 	    return step_node(tangle, tangle->connections[i].reverse, where+1);
-	}
-
+  } else if(tangle->status[i].status == PINNED || tangle->status[i].status == PINNED_SLIP) {
+    struct vec3d out;
+    if(where > 0) {
+	    if(tangle->connections[i].forward < 0)
+	      out = step_node(tangle, i, -where);
+	    else
+	      return step_node(tangle, tangle->connections[i].forward, where-1);
+	  } else if(where < 0) {
+	    if(tangle->connections[i].reverse < 0)
+	      out = step_node(tangle, i, -where);
+	    else
+	      return step_node(tangle, tangle->connections[i].reverse, where+1);
+	  }
       //if we are here it means we have ran into a wall and we need to flip the node
       return mirror_shift(&out, &tangle->box, tangle->status[i].pin_wall);
-    }
-  else
-    {
+    } else {
       error("Walking across empty node.");//we should never get here
       return vec3(0,0,0);
     }
+    
   //to suppress warning
   return vec3(0,0,0);
 }
@@ -305,7 +296,7 @@ static inline struct vec3d segment_field1(struct segment *seg, struct vec3d r)
 
   //if R and Rp1 are colinear, the result is 0
   //but code below would try to calculate 0/0
-  if(vec3_ndot(&R, &Rp1) < 1e-8)
+  if(fabs(fabs(vec3_ndot(&R, &Rp1)) - 1) < 1e-8)
     return vec3(0,0,0);
 
   struct vec3d vv;
@@ -585,45 +576,41 @@ int add_point(struct tangle_state *tangle, int point_idx);
 void remesh(struct tangle_state *tangle, double min_dist, double max_dist)
 {
   int added = 0;
-  for(int k=0; k<tangle->N; ++k)
-    {
-      if(tangle->status[k].status == EMPTY)
-	continue;
+  for(int k=0; k<tangle->N; ++k) {
+    if(tangle->status[k].status == EMPTY)
+	    continue;
 
 
-      int next = tangle->connections[k].forward;
-      int prev = tangle->connections[k].reverse;
+    int next = tangle->connections[k].forward;
+    int prev = tangle->connections[k].reverse;
 
-      struct segment sf;
-      struct segment sr;
-      double lf;
-      double lr;
+    struct segment sf;
+    struct segment sr;
+    double lf = 0;
+    double lr = 0;
 
-      if(next >= 0)
-	{
-	  sf = seg_pwrap(&tangle->vnodes[k], &tangle->vnodes[next], &tangle->box);
-	  lf = segment_len(&sf);
-	}
-      if(prev >= 0)
-	{
-	  sr = seg_pwrap(&tangle->vnodes[k], &tangle->vnodes[prev], &tangle->box);
-	  lr = segment_len(&sr);
-	}
-
-      //can we remove point k?
-      if(next >= 0 && prev >= 0 && ((lf < min_dist || lr < min_dist) && (lf + lr) < max_dist ))
-	{
-	  remove_point(tangle, k);
-	}
-
-      //do we need an extra point?
-      if(next >= 0 && (lf > max_dist)) //since we are adding between k and next, check only lf
-	{
-	  added++;
-	  int new_pt = add_point(tangle, k);
-	  update_tangent_normal(tangle, new_pt);
-	}
+    if(next >= 0) {
+      sf = seg_pwrap(&tangle->vnodes[k], &tangle->vnodes[next], &tangle->box);
+      lf = segment_len(&sf);
     }
+
+    if(prev >= 0) {
+      sr = seg_pwrap(&tangle->vnodes[k], &tangle->vnodes[prev], &tangle->box);
+      lr = segment_len(&sr);
+    }
+
+    //can we remove point k?
+    if(next >= 0 && prev >= 0 && ((lf < min_dist || lr < min_dist) && (lf + lr) < max_dist )) {
+      remove_point(tangle, k);
+    }
+
+    //do we need an extra point?
+    if(next >= 0 && (lf > max_dist)) { //since we are adding between k and next, check only lf
+      added++;
+      int new_pt = add_point(tangle, k);
+      update_tangent_normal(tangle, new_pt);
+    }
+  }
   //we could have added points outside of the domain
   if(added)
     enforce_boundaries(tangle);

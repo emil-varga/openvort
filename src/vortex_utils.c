@@ -217,43 +217,41 @@ void save_tangle(const char *filename, struct tangle_state *tangle)
       return;
   }
 
-  for(int k=0; k < tangle->N; ++k)
-    {
-      if(!visited[k])
-	{
-	  if(tangle->status[k].status == EMPTY)
-	    {
+  for(int k=0; k < tangle->N; ++k) {
+    if(!visited[k])	{
+	    if(tangle->status[k].status == EMPTY) {
 	      visited[k] = 1;
 	      continue;
 	    }
 	  
-	  int first = k;
-	  int curr  = k;
-	  while(tangle->connections[curr].forward != first)
-	    {
+	    int first = k;
+	    int curr  = k;
+
+	    while(tangle->connections[curr].forward != first) {
 	      save_point(stream, vortex_idx, tangle, curr);
 	      visited[curr] = 1;
 	      curr = tangle->connections[curr].forward;
-	      if(curr < 0)
-		{
-		  curr = tangle->connections[first].reverse;
-		  while(curr > 0 && tangle->connections[curr].reverse > 0)
-		    {
-		      save_point(stream, vortex_idx, tangle, curr);
-		      visited[curr] = 1;
-		      curr = tangle->connections[curr].reverse;
+	      if(curr < 0) {
+		      curr = tangle->connections[first].reverse;
+		      while(curr > 0 && tangle->connections[curr].reverse > 0) {
+            save_point(stream, vortex_idx, tangle, curr);
+            visited[curr] = 1;
+            curr = tangle->connections[curr].reverse;
+		      }
+		      break;
 		    }
-		  break;
-		}
-	    }
-	  if(curr > 0)
-	    {
+      }
+      
+	    if(curr > 0) {
 	      save_point(stream, vortex_idx, tangle, curr);
 	      visited[curr] = 1;
 	    }
-	  vortex_idx++;
-	}
-    }
+	    vortex_idx++;
+	  }
+  }
+  
+  if(vortex_idx > 2)
+    printf("Three vortices\n");
 
   free(visited);
   fclose(stream);
@@ -308,28 +306,24 @@ int check_integrity(const struct tangle_state *tangle)
   int *visited = calloc(tangle->N, sizeof(int));
   int errors = 0;
 
-  for(int k=0; k < tangle->N; ++k)
-    {
-      int next = tangle->connections[k].forward;
-      int prev = tangle->connections[k].reverse;
-      if(next >= 0 && tangle->status[k].status == FREE)
-	{
-	  if(k != tangle->connections[next].reverse)
-	    error("Forward connection broken %d %d %d\n", k, next,
-		  tangle->connections[next].reverse);
-	}
-      if(prev >= 0 && tangle->status[k].status == FREE)
-	{
-	  if( k!= tangle->connections[prev].forward)
-	    error("Reverse connection broken %d %d %d\n", k, prev,
-		  tangle->connections[prev].forward);
-	}
-      if(!visited[k])
-	{
-	  visited[k] += 1;	  	  
-	  errors += check_loop(tangle, visited, k);
-	}
-    }
+  for(int k=0; k < tangle->N; ++k) {
+    int next = tangle->connections[k].forward;
+    int prev = tangle->connections[k].reverse;
+    if(next >= 0 && tangle->status[k].status == FREE)	{
+      if(k != tangle->connections[next].reverse)
+        error("Forward connection broken %d %d %d\n", k, next, 
+              tangle->connections[next].reverse);
+	  }
+    if(prev >= 0 && tangle->status[k].status == FREE) {
+      if( k!= tangle->connections[prev].forward)
+        error("Reverse connection broken %d %d %d\n", k, prev,
+              tangle->connections[prev].forward);
+	  }
+    if(!visited[k])	{
+	    visited[k] += 1;	  	  
+	    errors += check_loop(tangle, visited, k);
+	  }
+  }
 
   free(visited);
   return errors;

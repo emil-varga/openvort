@@ -95,34 +95,37 @@ int main(int argc, char **argv)
   fflush(stdout);
   sprintf(filename, "%s/init.dat", output_dir);
   save_tangle(filename, tangle);
-  for(int k=0; Np > 0; ++k)
-    {
-      printf("Step %d, time = %g, recs: %d, Np: %d\n", k, time, recs, Np);
-      nrec = reconnect(tangle, time, rec_dist, reconnection_angle_cutoff);
+  for(int k=0; Np > 0; ++k) {
+    printf("Step %d, time = %g, recs: %d, Np: %d\n", k, time, recs, Np);
+    nrec = reconnect(tangle, time, rec_dist, reconnection_angle_cutoff);
 
-      recs += nrec;
-      eliminate_small_loops(tangle, small_loop_cutoff);
-      if(!shot)
-	{
-	  //output_dir declared extern in configuration.h
-	  sprintf(filename, "%s/frame%04d.dat", output_dir, frame);
-	  save_tangle(filename, tangle);
-	  frame++;
-	  shot = frame_shot;
-	}
-
-      inject_vortices(tangle, time);
-      update_tangle(tangle, time);
-      rk4_step(tangle, time, global_dt);
-      remesh(tangle, global_dl_min, global_dl_max);
-      eliminate_small_loops(tangle, small_loop_cutoff);
-      enforce_boundaries(tangle);
-
-      Np = tangle_total_points(tangle);
-      shot--;
-      time += global_dt;
-      fflush(stdout);
+    recs += nrec;
+    eliminate_small_loops(tangle, small_loop_cutoff);
+    if(!shot)	{
+      //output_dir declared extern in configuration.h
+      sprintf(filename, "%s/frame%04d.dat", output_dir, frame);
+      save_tangle(filename, tangle);
+      frame++;
+      shot = frame_shot;
     }
+
+    inject_vortices(tangle, time);
+    update_tangle(tangle, time);
+    rk4_step(tangle, time, global_dt);
+    remesh(tangle, global_dl_min, global_dl_max);
+    eliminate_small_loops(tangle, small_loop_cutoff);
+    enforce_boundaries(tangle);
+
+    // #ifdef _DEBUG_
+    // printf("Checking tangle integrity.");
+    // check_integrity(tangle);
+    // #endif
+
+    Np = tangle_total_points(tangle);
+    shot--;
+    time += global_dt;
+    fflush(stdout);
+  }
   clock_gettime(clock, &ti);
   printf("Elapsed seconds: %f\n", time_diff(&t0, &ti));
   free_tangle(tangle);

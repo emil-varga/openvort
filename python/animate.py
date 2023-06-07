@@ -49,6 +49,16 @@ if __name__ == '__main__':
                         action='store_true')
     parser.add_argument('--colorful', help='Plot vortices using many colors',
                         action='store_true')
+    parser.add_argument('--just-one', help='Plot just a single vortex.',
+                        type=int, default=-1)
+    parser.add_argument('--auto-ax', help='Leave axes range automatic',
+                        action='store_true')
+    parser.add_argument('--xlim', help='x-axis limiting values', type=float,
+                        nargs=2)
+    parser.add_argument('--ylim', help='y-axis limiting values', type=float,
+                        nargs=2)
+    parser.add_argument('--zlim', help='z-axis limiting values', type=float,
+                        nargs=2)
 
     args = parser.parse_args()
 
@@ -104,11 +114,26 @@ if __name__ == '__main__':
         color = None
     else:
         color = 'r'
+        
+    if args.just_one >= 0:
+        just_one = args.just_one
+    else:
+        just_one = None
+        
+    if args.xlim is not None:
+        Dxl, Dxh = args.xlim
+    if args.ylim is not None:
+        Dyl, Dyh = args.ylim
+    if args.zlim is not None:
+        Dzl, Dzh = args.zlim
 
     i=-1
     for fn in files:
         i = i+1
-        if path.isfile(fn.replace('.dat', '.png')):
+        pic_path = fn.replace('.dat', '.png')
+        if just_one is not None:
+            pic_path = fn.replace('.dat', '_{:d}.png'.format(just_one))
+        if path.isfile(pic_path):
             continue
         print("{}/{}".format(i, len(files)))
         frame_index = int(path.split(fn)[1][5:-4])
@@ -116,17 +141,19 @@ if __name__ == '__main__':
 
         ax.clear()
         ax.auto_scale_xyz(1, 1, 1)
-        draw_vortices(fn, ax, slow=slow, max_len=dl_max, color=color)
-        ax.set_xlim(Dxl, Dxh)
-        ax.set_ylim(Dyl, Dyh)
-        ax.set_zlim(Dzl, Dzh)
-        ax.set_aspect('equal')
+        draw_vortices(fn, ax, slow=slow, max_len=dl_max, color=color,
+                      just_one=just_one)
+        if not args.auto_ax:
+            ax.set_xlim(Dxl, Dxh)
+            ax.set_ylim(Dyl, Dyh)
+            ax.set_zlim(Dzl, Dzh)
+        ax.set_aspect('auto')
         ax.set_xlabel("$x$ (mm)")
         ax.set_ylabel("$y$ (mm)")
         ax.set_zlabel("$z$ (mm)")
         if args.show_time:
             txt = fig.text(0.05, 0.05, "$t$ = {:.06f} s".format(time), fontsize=18)
         fig.tight_layout()
-        fig.savefig(fn.replace('.dat', '.png'), dpi=120)
+        fig.savefig(pic_path, dpi=120)
         if args.show_time:
             txt.remove()

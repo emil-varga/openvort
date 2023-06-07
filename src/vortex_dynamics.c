@@ -164,26 +164,22 @@ int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec
   /*
    * "reconnect" with walls
    */
-  for(int wall = 0; wall < 6; ++wall)
-    {
-      if(tangle->box.wall[wall] == WALL_OPEN ||
-	 tangle->box.wall[wall] == WALL_PERIODIC)
-	continue;
-
-      for(k=0; k<tangle->N; ++k)
-	{
-	  if(tangle->status[k].status == PINNED      ||
-	     tangle->status[k].status == PINNED_SLIP ||
-	     tangle->status[k].status == EMPTY       ||
-	     tangle->recalculate[k])
+  for(int wall = 0; wall < 6; ++wall) {
+    if(tangle->box.wall[wall] == WALL_OPEN || tangle->box.wall[wall] == WALL_PERIODIC)
 	    continue;
 
-	  if(check_wall(tangle, k, wall, rec_dist/2))
-	    {
-	      Nrecs += connect_to_wall(tangle, k, wall, rec_dist/2, pin_mode, rec_angle, t);
+    for(k=0; k<tangle->N; ++k) {
+	    if(tangle->status[k].status == PINNED       ||
+	        tangle->status[k].status == PINNED_SLIP ||
+	        tangle->status[k].status == EMPTY       ||
+	        tangle->recalculate[k])
+	    continue;
+
+	    if(check_wall(tangle, k, wall, rec_dist/2)) {
+        Nrecs += connect_to_wall(tangle, k, wall, rec_dist/2, pin_mode, rec_angle, t);
 	    }
-	}
-    }
+	  }
+  }
 
   /*
    * Wall reconnection can create small loops that could be broken by the domain killing below
@@ -197,24 +193,20 @@ int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec
    * if the time step is too long and more than one discretisation point gets outside the domain.
    */
   int domain_killed = 0;
-  for(int wall = 0; wall < 6; ++wall)
-    {
-      if(tangle->box.wall[wall] == WALL_OPEN ||
-	 tangle->box.wall[wall] == WALL_PERIODIC)
-	continue;
-
-      for(k=0; k<tangle->N; ++k)
-	{
-	  if(tangle->status[k].status == EMPTY)
+  for(int wall = 0; wall < 6; ++wall) {
+    if(tangle->box.wall[wall] == WALL_OPEN || tangle->box.wall[wall] == WALL_PERIODIC)
 	    continue;
 
-	  if(wall_dist(tangle, k, wall) < 0)
-	    {
-	      remove_point(tangle, k);
-	      domain_killed++;
-	    }
-	}
-    }
+    for(k=0; k<tangle->N; ++k) {
+	    if(tangle->status[k].status == EMPTY)
+	      continue;
+
+      if(wall_dist(tangle, k, wall) < 0) {
+          remove_point(tangle, k);
+          domain_killed++;
+      }
+	  }
+  }
   if(domain_killed > 0)
     printf("Killed %d points outside the domain.\n", domain_killed);
 

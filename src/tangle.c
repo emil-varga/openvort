@@ -191,7 +191,7 @@ struct vec3d step_node(const struct tangle_state *tangle, int i, int where)
       error("Walking across empty node.");//we should never get here
       return vec3(0,0,0);
     }
-    
+
   //to suppress warning
   return vec3(0,0,0);
 }
@@ -270,7 +270,7 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k)
     }
   //double x = vec3_d(&tangle->tangents[k]);
   //vec3_mul(&tangle->normals[k], &tangle->normals[k], 1/x/x);
-  //vec3_normalize(&tangle->tangents[k]);
+  vec3_normalize(&tangle->tangents[k]);
 }
 
 /*
@@ -296,7 +296,7 @@ static inline struct vec3d segment_field1(struct segment *seg, struct vec3d r)
 
   //if R and Rp1 are colinear, the result is 0
   //but code below would try to calculate 0/0
-  if(fabs(fabs(vec3_ndot(&R, &Rp1)) - 1) < 1e-8)
+  if(fabs(vec3_ndot(&R, &Rp1) - 1) < 1e-8)
     return vec3(0,0,0);
 
   struct vec3d vv;
@@ -332,7 +332,7 @@ static inline struct vec3d lia_velocity(const struct tangle_state *tangle, int i
   double l_next = segment_len(&sf);
   double l_prev = segment_len(&sr);
 
-  double f = KAPPA*log(2*sqrt(l_next*l_prev)/sqrt(M_E)/VORTEX_WIDTH)/4/M_PI;
+  double f = KAPPA*log(2*sqrt(l_next*l_prev)/sqrt(sqrt(M_E))/VORTEX_WIDTH)/4/M_PI;
 
   struct vec3d vv;
   vec3_cross(&vv, &tangle->tangents[i], &tangle->normals[i]);
@@ -341,8 +341,8 @@ static inline struct vec3d lia_velocity(const struct tangle_state *tangle, int i
   return vv;
 }
 
-struct vec3d calculate_vs_shift(struct tangle_state *tangle, struct vec3d r, int skip,
-				const struct vec3d *shift)
+struct vec3d calculate_vs_shift(struct tangle_state *tangle, struct vec3d r, int skip, 
+                                const struct vec3d *shift)
 {
   int m;
   struct vec3d vs = vec3(0,0,0);
@@ -351,15 +351,14 @@ struct vec3d calculate_vs_shift(struct tangle_state *tangle, struct vec3d r, int
     vec3_add(&r, &r, shift);
 
 
-  for(m=0; m < tangle->N; ++m)
-    {
-      if(tangle->connections[m].forward == -1   ||
-	 skip == m                              ||
-	 skip == tangle->connections[m].forward)
-	continue;
+  for(m=0; m < tangle->N; ++m) {
+    if(tangle->connections[m].forward == -1   ||
+	     skip == m                              ||
+	     skip == tangle->connections[m].forward)
+	    continue;
 
-      struct vec3d ivs = segment_field(tangle, m, r);
-      vec3_add(&vs, &vs, &ivs);
+    struct vec3d ivs = segment_field(tangle, m, r);
+    vec3_add(&vs, &vs, &ivs);
     }
 
   return vs;
@@ -408,60 +407,63 @@ void update_velocity(struct tangle_state *tangle, int k, double t)
   struct vec3d shift_r, v_shift;
   struct vec3d v_shift_total = vec3(0, 0, 0);
 
-  for(int j = 0; j < tangle->bimg.n; ++j)
-    {
-      shift_r = shifted(&tangle->bimg.images[j], tangle, &tangle->vnodes[k]);
-      v_shift = calculate_vs(tangle, shift_r, -1);
-      if(tangle->bimg.images[j].reflect > -1) //mirror wall
-	v_shift = mirror_dir_reflect(&v_shift, tangle->bimg.images[j].reflect);
-      vec3_add(&v_shift_total, &v_shift_total, &v_shift);
-    }
+  for(int j = 0; j < tangle->bimg.n; ++j) {
+    shift_r = shifted(&tangle->bimg.images[j], tangle, &tangle->vnodes[k]);
+    v_shift = calculate_vs(tangle, shift_r, -1);
+    if(tangle->bimg.images[j].reflect > -1) //mirror wall
+	    v_shift = mirror_dir_reflect(&v_shift, tangle->bimg.images[j].reflect);
+    vec3_add(&v_shift_total, &v_shift_total, &v_shift);
+  }
   //add everything to the result
   vec3_add(&tangle->vs[k], &tangle->vs[k], &v_shift_total);
 
   tangle->vels[k] = tangle->vs[k];
 
 
-  if(use_mutual_friction)
-    {
-      struct vec3d tmp, dv;
+  if(use_mutual_friction) {
+    struct vec3d tmp, dv;
 
-      //the velocity difference
-      get_vn(&tangle->vnodes[k], t, &dv);
-      vec3_sub(&dv, &dv, &tangle->vs[k]);
-
-      //the dissipative term
-      vec3_cross(&tmp, &tangle->tangents[k], &dv);
-      vec3_mul(&tmp, &tmp, alpha);
-      vec3_add(&tangle->vels[k], &tangle->vels[k], &tmp);
-
-      //the non-dissipative term
-      vec3_cross(&tmp, &tangle->tangents[k], &dv);
-      vec3_cross(&tmp, &tangle->tangents[k], &tmp);
-      vec3_mul(&tmp, &tmp, -alpha_p);
-      vec3_add(&tangle->vels[k], &tangle->vels[k], &tmp);
+    double _alpha = alpha;
+    if(hyperfriction) {
+      double spp = vec3_d(&tangle->normals[k]);
+      if(spp > max_curvature_scale/global_dl_max)
+        _alpha = hyperalpha;
     }
 
-  if(tangle->status[k].status == PINNED_SLIP)
-    {
-      struct vec3d n = boundary_normals[tangle->status[k].pin_wall];
-      double normal_velocity = vec3_dot(&n, &tangle->vels[k]);
-      vec3_mul(&n, &n, normal_velocity);
-      vec3_sub(&tangle->vels[k], &tangle->vels[k], &n);
-    }
+    //the velocity difference
+    get_vn(&tangle->vnodes[k], t, &dv);
+    vec3_sub(&dv, &dv, &tangle->vs[k]);
+
+    //the dissipative term
+    vec3_cross(&tmp, &tangle->tangents[k], &dv);
+    vec3_mul(&tmp, &tmp, _alpha);
+    vec3_add(&tangle->vels[k], &tangle->vels[k], &tmp);
+
+    //the non-dissipative term
+    vec3_cross(&tmp, &tangle->tangents[k], &dv);
+    vec3_cross(&tmp, &tangle->tangents[k], &tmp);
+    vec3_mul(&tmp, &tmp, -alpha_p);
+    vec3_add(&tangle->vels[k], &tangle->vels[k], &tmp);
+  }
+
+  if(tangle->status[k].status == PINNED_SLIP) {
+    struct vec3d n = boundary_normals[tangle->status[k].pin_wall];
+    double normal_velocity = vec3_dot(&n, &tangle->vels[k]);
+    vec3_mul(&n, &n, normal_velocity);
+    vec3_sub(&tangle->vels[k], &tangle->vels[k], &n);
+  }
 }
 
 void update_velocities(struct tangle_state *tangle, double t)
 {
   int i;
   #pragma omp parallel private(i) num_threads(global_num_threads)
-    {
-      #pragma omp for
-      for(i=0; i<tangle->N; ++i)
-	{
-	  update_velocity(tangle, i, t);
-	}
-    }
+  {
+    #pragma omp for
+    for(i=0; i<tangle->N; ++i) {
+	    update_velocity(tangle, i, t);
+	  }
+  }
 }
 
 void update_tangents_normals(struct tangle_state *tangle)
@@ -630,63 +632,55 @@ void eliminate_small_loops(struct tangle_state *tangle, int loop_length)
   for(int k=0; k < tangle->N; ++k)
     tangle->recalculate[k] = 0;
 
-  for(int k=0; k < tangle->N; ++k)
-    {
-      if(tangle->status[k].status == EMPTY ||
-	 tangle->recalculate[k])
-	continue; //empty or already visited point
+  for(int k=0; k < tangle->N; ++k) {
+    if(tangle->status[k].status == EMPTY || tangle->recalculate[k])
+	    continue; //empty or already visited point
 
-      tangle->recalculate[k]++;
+    tangle->recalculate[k]++;
 
-      int loop = 0;
-      int here = k;
-      int next = tangle->connections[here].forward;
-      while(next != k)
-	{
-	  if((tangle->status[here].status == PINNED ||
-	      tangle->status[here].status == PINNED_SLIP) && next < 0)
-	    {
+    int loop = 0;
+    int here = k;
+    int next = tangle->connections[here].forward;
+    while(next != k) {
+	    if((tangle->status[here].status == PINNED || tangle->status[here].status == PINNED_SLIP) && next < 0) {
 	      //we hit a wall, turn back from k
 	      here = k;
 	      next = tangle->connections[here].reverse;
-	      while(next >= 0)
-		{
-		  tangle->recalculate[here]++;
-		  here = next;
-		  next = tangle->connections[here].reverse;
-		  loop++;
-		}
+        while(next >= 0) {
+          tangle->recalculate[here]++;
+          here = next;
+          next = tangle->connections[here].reverse;
+          loop++;
+		    }
 	      //'here' now points to a node with its back to the wall
 	      break;//exit the outer loop,
 	    }
-	  tangle->recalculate[here]++;
-	  here = next;
-	  next = tangle->connections[here].forward;
-	  loop++;
-	}
-      if(loop < loop_length) //the loop is short, delete it
-	{
-	  /*
-	   * for loops, the starting point doesn't matter
-	   * but for wall-pinned lines the code bellow only goes
-	   * forward, so we have to start at the end facing away from
-	   * the wall
-	  */
-	  killed++;
-	  next = here;
-	  while(1)
-	    {
-	      int tmp = next;
-	      next = tangle->connections[next].forward;
-	      //printf("deleting %d\n", tmp);
-	      tangle->connections[tmp].forward = -1;
-	      tangle->connections[tmp].reverse = -1;
-	      tangle->status[tmp].status = EMPTY;
-	      if(next == here || next < 0)
-		break;
-	    }
-	}
-    }
+      tangle->recalculate[here]++;
+      here = next;
+      next = tangle->connections[here].forward;
+      loop++;
+	  } 
+    if(loop < loop_length) { //the loop is short, delete it
+      /*
+      * for loops, the starting point doesn't matter
+      * but for wall-pinned lines the code bellow only goes
+      * forward, so we have to start at the end facing away from
+      * the wall
+      */
+      killed++;
+      next = here;
+      while(1) {
+        int tmp = next;
+        next = tangle->connections[next].forward;
+        printf("deleting %d\n", tmp);
+        tangle->connections[tmp].forward = -1;
+        tangle->connections[tmp].reverse = -1;
+        tangle->status[tmp].status = EMPTY;
+        if(next == here || next < 0)
+          break;
+      }
+	  }
+  }
   //printf("Killed %d loops.\n", killed);
 }
 
@@ -846,24 +840,23 @@ int curvature_smoothing(struct tangle_state *tangle, double max_spp, double damp
 {
   update_tangents_normals(tangle);
 
-  for(int i=0; i < tangle->N; ++i)
-    {
-      if(tangle->status[i].status == EMPTY ||
-	 tangle->status[i].status == PINNED ||
-	 tangle->status[i].status == PINNED_SLIP)
-	continue;
+  for(int i=0; i < tangle->N; ++i) {
+    if(tangle->status[i].status == EMPTY ||
+       tangle->status[i].status == PINNED ||
+       tangle->status[i].status == PINNED_SLIP)
+      continue;
 
-      struct vec3d c = tangle->normals[i];
-      double spp = vec3_d(&c);
+    struct vec3d c = tangle->normals[i];
+    double spp = vec3_d(&c);
 
-      if(spp > max_spp)
-	{
-	  struct vec3d n = c;
-	  vec3_normalize(&n);
-	  vec3_mul(&n, &n, damping*(spp - max_spp));
-	  vec3_add(&tangle->vnodes[i], &tangle->vnodes[i], &n);
-	}
-    }
+    if(spp > max_spp)	{
+      struct vec3d lia_v = lia_velocity(tangle, i);
+      //vec3_normalize(&n);
+      struct vec3d n;
+      vec3_mul(&n, &lia_v, damping*global_dt);
+      vec3_add(&tangle->vnodes[i], &tangle->vnodes[i], &n);
+	  }
+  }
   return 0;
 }
 

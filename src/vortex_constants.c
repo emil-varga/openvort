@@ -47,6 +47,10 @@ int global_num_threads = 4;
 //switch mutual friction on/off
 int use_mutual_friction = 1;
 
+int hyperfriction = 1;
+double max_curvature_scale = 0.25;
+double hyperalpha = 0.5;
+
 /*
  * Pinning mode
  */

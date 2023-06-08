@@ -58,4 +58,8 @@ extern int line_injection_n; //how many pairs to inject
 extern double line_injection_frequency; //injections per second
 extern int line_injection_polarized; //whether the injection is polarized
 
+extern int hyperfriction;
+extern double max_curvature_scale;
+extern double hyperalpha;
+
 #endif //VORTEX_CONSTANTS_H

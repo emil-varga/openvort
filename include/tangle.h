@@ -151,4 +151,6 @@ static inline void update_tangle(struct tangle_state *tangle, double t)
 
 void remove_point(struct tangle_state *tangle, int point_idx);
 int add_point(struct tangle_state *tangle, int p);
+
+int curvature_smoothing(struct tangle_state *tangle, double max_spp, double damping);
 #endif //TANGLE_H

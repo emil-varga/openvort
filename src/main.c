@@ -64,13 +64,12 @@ int main(int argc, char **argv)
 
   printf("Reading config from %s.\n", conf_file);
   char filename[128];
-  if(!load_conf(conf_file, tangle))
-    {
+  if(!load_conf(conf_file, tangle)) {
       printf("Can't initialize! Exiting.\n");
       free_tangle(tangle);
       free(tangle);
       return EXIT_FAILURE;
-    }
+  }
 
   print_config(tangle);
 
@@ -101,7 +100,8 @@ int main(int argc, char **argv)
 
     recs += nrec;
     eliminate_small_loops(tangle, small_loop_cutoff);
-    if(!shot)	{
+    if(shot <= 0)	{
+      update_tangle(tangle, time);
       //output_dir declared extern in configuration.h
       sprintf(filename, "%s/frame%04d.dat", output_dir, frame);
       save_tangle(filename, tangle);
@@ -115,6 +115,7 @@ int main(int argc, char **argv)
     remesh(tangle, global_dl_min, global_dl_max);
     eliminate_small_loops(tangle, small_loop_cutoff);
     enforce_boundaries(tangle);
+    //curvature_smoothing(tangle, 0.5/global_dl_max, 0.1);
 
     // #ifdef _DEBUG_
     // printf("Checking tangle integrity.");

@@ -126,6 +126,8 @@ int main(int argc, char **argv)
     shot--;
     time += global_dt;
     fflush(stdout);
+    if(max_steps > 0 && k > max_steps)
+      break;
   }
   clock_gettime(clock, &ti);
   printf("Elapsed seconds: %f\n", time_diff(&t0, &ti));

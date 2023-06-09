@@ -180,36 +180,36 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
   config_t cfg;
 
   config_init(&cfg);
-  if(!config_read_file(&cfg, conf_file))
-    {
-        fprintf(stderr, "%s:%d - %s\n", config_error_file(&cfg),
-                config_error_line(&cfg), config_error_text(&cfg));
-        config_destroy(&cfg);
-        return 0;
-    }
+  if(!config_read_file(&cfg, conf_file)) {
+    fprintf(stderr, "%s:%d - %s\n", config_error_file(&cfg),
+            config_error_line(&cfg), config_error_text(&cfg));
+    config_destroy(&cfg);
+    return 0;
+  }
 
   int ival;
   double dval;
   const char *str;
 
   //general properties
+  if(config_lookup_int(&cfg, "max_steps", &ival))
+    max_steps = ival;
   if(config_lookup_int(&cfg, "frame_shots", &ival))
     frame_shot = ival;
   if(config_lookup_float(&cfg, "KAPPA", &dval))
       KAPPA = dval;
   if(config_lookup_int(&cfg, "num_threads", &ival))
       global_num_threads = ival;
-  if(config_lookup_string(&cfg, "wall_type", &str))
-    {
-      if(strcmp(str, "pin") == 0)
-	pin_mode = PINNED;
-      else if(strcmp(str, "slip") == 0)
-	pin_mode = PINNED_SLIP;
-      else
-	error("Unknown wall type. Possible options are 'pin' or 'slip'.");
+  if(config_lookup_string(&cfg, "wall_type", &str)) {
+    if(strcmp(str, "pin") == 0)
+	    pin_mode = PINNED;
+    else if(strcmp(str, "slip") == 0)
+	    pin_mode = PINNED_SLIP;
+    else
+	    error("Unknown wall type. Possible options are 'pin' or 'slip'.");
 
-      printf("Using pin mode %d\n", pin_mode);
-    }
+    printf("Using pin mode %d\n", pin_mode);
+  }
 
   //mutual friction
   if(config_lookup_bool(&cfg, "use_mutual_friction", &ival))
@@ -218,6 +218,14 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
     alpha = dval;
   if(config_lookup_float(&cfg, "alpha_p", &dval))
     alpha_p = dval;
+
+  //hyperfriction
+  if(config_lookup_bool(&cfg, "use_hyperfriction", &ival))
+    hyperfriction = ival;
+  if(config_lookup_float(&cfg, "hyperalpha", &dval))
+    hyperalpha = dval;
+  if(config_lookup_float(&cfg, "max_curvature_scale", &dval))
+    max_curvature_scale = dval;
 
   //resolution
   if(config_lookup_float(&cfg, "dt", &dval))
@@ -246,43 +254,38 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
   if(config_lookup_float(&cfg, "eliminate_loops_zaxis_cutoff", &dval))
     eliminate_loops_zaxis_cutoff = dval;
 
-  if(config_lookup_bool(&cfg, "loop_injection", &ival))
-    {
-      loop_injection = ival;
-      if(loop_injection)
-	{
-	  if(config_lookup_float(&cfg, "loop_injection_frequency", &dval))
-	    loop_injection_frequency = dval;
-	  else
-	    error("Specify loop_injection_frequency in the config.");
-	}
+  if(config_lookup_bool(&cfg, "loop_injection", &ival)) {
+    loop_injection = ival;
+    if(loop_injection) {
+	    if(config_lookup_float(&cfg, "loop_injection_frequency", &dval))
+	      loop_injection_frequency = dval;
+	    else
+	      error("Specify loop_injection_frequency in the config.");
+	  }
+  }
+
+  if(config_lookup_bool(&cfg, "line_injection", &ival)) {
+    line_injection = ival;
+    if(line_injection) {
+	    //injection frequency
+	    if(config_lookup_float(&cfg, "line_injection_frequency", &dval))
+	      line_injection_frequency = dval;
+	    else
+	      error("Specify line_injection_frequency in the config.");
+
+	    //number of injected pairs
+	    if(config_lookup_int(&cfg, "line_injection_n", &ival))
+	      line_injection_n = ival;
+	    else
+	      line_injection_n = 1;
+
+	    //injection polarization
+	    if(config_lookup_bool(&cfg, "line_injection_polarized", &ival))
+	      line_injection_polarized = ival;
+	    else
+	      line_injection_polarized = 0;
     }
-
-  if(config_lookup_bool(&cfg, "line_injection", &ival))
-    {
-      line_injection = ival;
-      if(line_injection)
-	{
-	  //injection frequency
-	  if(config_lookup_float(&cfg, "line_injection_frequency", &dval))
-	    line_injection_frequency = dval;
-	  else
-	    error("Specify line_injection_frequency in the config.");
-
-	  //number of injected pairs
-	  if(config_lookup_int(&cfg, "line_injection_n", &ival))
-	    line_injection_n = ival;
-	  else
-	    line_injection_n = 1;
-
-	  //injection polarization
-	  if(config_lookup_bool(&cfg, "line_injection_polarized", &ival))
-	    line_injection_polarized = ival;
-	  else
-	    line_injection_polarized = 0;
-	}
-
-    }
+  }
 
   //external velocity configuration
   config_setting_t *vel_conf;
@@ -304,94 +307,77 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
 
   config_setting_t *domain;
   domain = config_lookup(&cfg, "domain");
-  if(domain && config_setting_type(domain) == CONFIG_TYPE_LIST)
-    {
-	  load_conf_vector(&cfg, "domain.[0]", &(tangle->box.bottom_left_back));
-	  load_conf_vector(&cfg, "domain.[1]", &(tangle->box.top_right_front));
-    }
-  else
-    {
-      fprintf(stderr, "Error: incorrectly specified domain\n");
-      goto failure;
-    }
+  if(domain && config_setting_type(domain) == CONFIG_TYPE_LIST) {
+    load_conf_vector(&cfg, "domain.[0]", &(tangle->box.bottom_left_back));
+    load_conf_vector(&cfg, "domain.[1]", &(tangle->box.top_right_front));
+  } else {
+    fprintf(stderr, "Error: incorrectly specified domain\n");
+    goto failure;
+  }
 
   //setup the boundaries
 
-  if(!config_lookup_string(&cfg, "boundaries", &str))
-    {
-      fprintf(stderr, "Error: specify boundaries\n");
-      goto failure;
-    }
-  if(strcmp(str, "wall-2-4") == 0)
-    {
-      tangle->bimg = wall_2_4;
-      set_walls_full(tangle, WALL_PERIODIC);
-      tangle->box.wall[Z_L] = WALL_MIRROR;
-      tangle->box.wall[Z_H] = WALL_MIRROR;
-    }
-  else if(strcmp(str, "wall-2-2") == 0)
-    {
-      tangle->bimg = wall_2_2;
-      set_walls_full(tangle, WALL_MIRROR);
-      tangle->box.wall[X_L] = WALL_PERIODIC;
-      tangle->box.wall[X_H] = WALL_PERIODIC;
-
-    }
-  else if(strcmp(str, "periodic-6") == 0)
-    {
-      tangle->bimg = periodic_6;
-      set_walls_full(tangle, WALL_PERIODIC);
-    }
-  else if(strcmp(str, "periodic-18") == 0)
-    {
-      tangle->bimg = periodic_18;
-      set_walls_full(tangle, WALL_PERIODIC);
-    }
-  else if(strcmp(str, "periodic-26") == 0)
-    {
-      tangle->bimg = periodic_26;
-      set_walls_full(tangle, WALL_PERIODIC);
-    }
-  else if(strcmp(str, "wall-1-6") == 0)
-    {
-      tangle->bimg = wall_1_6;
-      set_walls_full(tangle, WALL_PERIODIC);
-      tangle->box.wall[Z_L] = WALL_MIRROR;
-      tangle->box.wall[Z_H] = WALL_OPEN;
-    }
-  else if(strcmp(str, "wall-1-18") == 0)
-    {
-      tangle->bimg = wall_1_18;
-      set_walls_full(tangle, WALL_PERIODIC);
-      tangle->box.wall[Z_L] = WALL_MIRROR;
-      tangle->box.wall[Z_H] = WALL_OPEN;
-    }
-  else if(strcmp(str, "wall-1-26") == 0)
-    {
-      tangle->bimg = wall_1_26;
-      set_walls_full(tangle, WALL_PERIODIC);
-      tangle->box.wall[Z_L] = WALL_MIRROR;
-      tangle->box.wall[Z_H] = WALL_OPEN;
-    }
-  else if(strcmp(str, "wall-1-open") == 0)
-    {
-      tangle->bimg = wall_1_open;
-      set_walls_full(tangle, WALL_OPEN);
-      tangle->box.wall[Z_L] = WALL_MIRROR;
-    }
-  else if(strcmp(str, "open") == 0)
-    {
-      tangle->bimg = open_boundaries;
-      set_walls_full(tangle, WALL_OPEN);
-    }
-  else
-    {
-      fprintf(stderr, "Error: unknown boundary condition\n");
-      goto failure;
-    }
+  if(!config_lookup_string(&cfg, "boundaries", &str)) {
+    fprintf(stderr, "Error: specify boundaries\n");
+    goto failure;
+  }
+  if(strcmp(str, "wall-2-4") == 0) {
+    tangle->bimg = wall_2_4;
+    set_walls_full(tangle, WALL_PERIODIC);
+    tangle->box.wall[Z_L] = WALL_MIRROR;
+    tangle->box.wall[Z_H] = WALL_MIRROR;
+  }
+  else if(strcmp(str, "wall-2-2") == 0) {
+    tangle->bimg = wall_2_2;
+    set_walls_full(tangle, WALL_MIRROR);
+    tangle->box.wall[X_L] = WALL_PERIODIC;
+    tangle->box.wall[X_H] = WALL_PERIODIC;
+  }
+  else if(strcmp(str, "periodic-6") == 0) {
+    tangle->bimg = periodic_6;
+    set_walls_full(tangle, WALL_PERIODIC);
+  }
+  else if(strcmp(str, "periodic-18") == 0) {
+    tangle->bimg = periodic_18;
+    set_walls_full(tangle, WALL_PERIODIC);
+  }
+  else if(strcmp(str, "periodic-26") == 0) {
+    tangle->bimg = periodic_26;
+    set_walls_full(tangle, WALL_PERIODIC);
+  }
+  else if(strcmp(str, "wall-1-6") == 0) {
+    tangle->bimg = wall_1_6;
+    set_walls_full(tangle, WALL_PERIODIC);
+    tangle->box.wall[Z_L] = WALL_MIRROR;
+    tangle->box.wall[Z_H] = WALL_OPEN;
+  }
+  else if(strcmp(str, "wall-1-18") == 0) {
+    tangle->bimg = wall_1_18;
+    set_walls_full(tangle, WALL_PERIODIC);
+    tangle->box.wall[Z_L] = WALL_MIRROR;
+    tangle->box.wall[Z_H] = WALL_OPEN;
+  }
+  else if(strcmp(str, "wall-1-26") == 0) {
+    tangle->bimg = wall_1_26;
+    set_walls_full(tangle, WALL_PERIODIC);
+    tangle->box.wall[Z_L] = WALL_MIRROR;
+    tangle->box.wall[Z_H] = WALL_OPEN;
+  }
+  else if(strcmp(str, "wall-1-open") == 0) {
+    tangle->bimg = wall_1_open;
+    set_walls_full(tangle, WALL_OPEN);
+    tangle->box.wall[Z_L] = WALL_MIRROR;
+  }
+  else if(strcmp(str, "open") == 0) {
+    tangle->bimg = open_boundaries;
+    set_walls_full(tangle, WALL_OPEN);
+  }
+  else {
+    fprintf(stderr, "Error: unknown boundary condition\n");
+    goto failure;
+  }
 
   //setup the initial condition
-
   if(!setup_init(conf_file, tangle))
     goto failure;
 
@@ -403,90 +389,97 @@ failure:
   return 0;
 }
 
+//Configure the initial condition of the tangle.
 int setup_init(const char *conf_file, struct tangle_state *tangle)
 {
   config_t cfg;
 
   config_init(&cfg);
-  if(!config_read_file(&cfg, conf_file))
-    {
-      fprintf(stderr, "Can't read config file %s", conf_file);
-      return 0;
-    }
+  if(!config_read_file(&cfg, conf_file)) {
+    fprintf(stderr, "Can't read config file %s", conf_file);
+    return 0;
+  }
 
   const char *str;
   const char *path;
   int ival;
 
-  if(config_lookup_string(&cfg, "init_mode", &str))
-    {
-      if(strcmp(str, "random loops") == 0)
-	{
-	  if(config_lookup_int(&cfg, "init_loops_n", &ival))
-	    insert_random_loops(tangle, ival);
-	  else
-	    {
-	      fprintf(stderr, "Error: set the number of loops in config_file\n");
-	      goto failure;
-	    }
+  if(config_lookup_string(&cfg, "init_mode", &str)) {
 
+    //random loops
+    if(strcmp(str, "random loops") == 0) {
+	    if(config_lookup_int(&cfg, "init_loops_n", &ival))
+	      insert_random_loops(tangle, ival);
+	    else {
+        fprintf(stderr, "Error: set the number of loops in config_file\n");
+	      goto failure;
+	    }
 	  clip_at_wall(tangle);
-	}
-      else if(strcmp(str, "one loop") == 0)
-	{
-	  struct vec3d c;
-	  struct vec3d d;
-	  double r;
-	  int N;
-	  load_conf_vector(&cfg, "loop_center", &c);
-	  load_conf_vector(&cfg, "loop_dir", &d);
-	  if(!config_lookup_float(&cfg, "loop_r", &r))
-	    {
-	      fprintf(stderr, "Please specify loop radius with loop_r.");
-	      goto failure;
-	    }
-	  if(!config_lookup_int(&cfg, "loop_N", &N))
-	    {
-	      fprintf(stderr, "Please specify number of discretisation points with loop_N.");
-	      goto failure;
-	    }
-	  add_circle(tangle, &c, &d, r, N);
+	  }
+    //single loop
+    else if(strcmp(str, "one loop") == 0) {
+      struct vec3d c;
+      struct vec3d d;
+      double r;
+      int N;
+      load_conf_vector(&cfg, "loop_center", &c);
+      load_conf_vector(&cfg, "loop_dir", &d);
+      if(!config_lookup_float(&cfg, "loop_r", &r)) {
+        fprintf(stderr, "Please specify loop radius with loop_r.");
+        goto failure;
+      }
+      if(!config_lookup_int(&cfg, "loop_N", &N)) {
+        fprintf(stderr, "Please specify number of discretisation points with loop_N.");
+        goto failure;
+      }
+      add_circle(tangle, &c, &d, r, N);
 
-	  clip_at_wall(tangle);
-	}
-      else if(strcmp(str, "restart") == 0)
-	{
-	  config_lookup_string(&cfg, "init_file", &path);
-	  strncpy(restart_path, path, PATH_LEN);
-	  load_tangle(restart_path, tangle);
-	}
-      else if(strcmp(str, "big ring") == 0)
-	{
-	  double ring_r;
-	  int ring_N;
-	  if(!config_lookup_float(&cfg, "ring_r", &ring_r))
-	    goto failure;
-	  if(!config_lookup_int(&cfg, "ring_N", &ring_N))
-	    goto failure;
-	  make_big_ring(tangle, ring_r, ring_N);
-	}
-      else if(strcmp(str, "random straight lines") == 0)
-	{
-	  //this only works for the two-walls boundary condition
-	  int npairs;
-	  int points_per_line;
-	  if(!config_lookup_int(&cfg, "init_npairs", &npairs))
-	    goto failure;
-	  if(!config_lookup_int(&cfg, "init_line_points", &points_per_line))
-	    goto failure;
-	  random_straight_lines(tangle, npairs, points_per_line);
-	}
-      else//TODO: add more init modes
-	{
-	  fprintf(stderr, "Error: unknown initialization mode: %s\n", str);
-	  goto failure;
-	}
+      clip_at_wall(tangle);
     }
+    else if(strcmp(str, "restart") == 0) {
+      config_lookup_string(&cfg, "init_file", &path);
+      strncpy(restart_path, path, PATH_LEN);
+      load_tangle(restart_path, tangle);
+    }
+    else if(strcmp(str, "big ring") == 0)	{
+      double ring_r;
+      int ring_N;
+      if(!config_lookup_float(&cfg, "ring_r", &ring_r))
+        goto failure;
+      if(!config_lookup_int(&cfg, "ring_N", &ring_N))
+        goto failure;
+      make_big_ring(tangle, ring_r, ring_N);
+    }
+    else if(strcmp(str, "random straight lines") == 0) {
+      //this only works for the two-walls boundary condition
+      int npairs;
+      int points_per_line;
+      if(!config_lookup_int(&cfg, "init_npairs", &npairs))
+        goto failure;
+      if(!config_lookup_int(&cfg, "init_line_points", &points_per_line))
+        goto failure;
+      random_straight_lines(tangle, npairs, points_per_line);
+    }
+    else if(strcmp(str, "quad") == 0) {
+      int points_per_line;
+      if(!config_lookup_int(&cfg, "init_line_points", &points_per_line))
+        goto failure;
+      quad_straight_lines(tangle, points_per_line);
+    }
+    else if(strcmp(str, "dipole") == 0) {
+      int points_per_line;
+      int direction;
+      if(!config_lookup_int(&cfg, "init_line_points", &points_per_line))
+        goto failure;
+      if(!config_lookup_int(&cfg, "dipole_direction", &direction))
+        goto failure;
+      dipole_straight_lines(tangle, points_per_line, direction);
+    }
+    else {
+      fprintf(stderr, "Error: unknown initialization mode: %s\n", str);
+      goto failure;
+    }
+  }
   else
     {
       fprintf(stderr, "Error: set the initialization mode\n");
@@ -568,13 +561,22 @@ void print_config(const struct tangle_state *tangle)
       tangle->box.top_right_front.p[1],
       tangle->box.top_right_front.p[2]);
   printf("Mutual friction: \n");
-  if(use_mutual_friction)
-    {
+  if(use_mutual_friction) {
       printf(
 	  "\talpha                    = %g\n"
 	  "\talpha_p                  = %g\n",
 	  alpha, alpha_p);
-    }
+  }
   else
     printf("\tNot using mutual friction\n.");
+  if(hyperfriction) {
+    printf(
+      "\thyperalpha             = %g\n"
+      "\tmax_curvature_scale    = %g\n",
+      hyperalpha, max_curvature_scale
+    );
+  }
+  else {
+    printf("\tNot using hyperfriction.");
+  }
 }

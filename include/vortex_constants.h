@@ -25,6 +25,8 @@
 extern double VORTEX_WIDTH;
 extern double KAPPA;
 
+extern int max_steps;
+
 extern double alpha;
 extern double alpha_p;
 

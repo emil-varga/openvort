@@ -21,6 +21,8 @@
 #include "tangle.h"
 //declared as extern in vortex_constants.h
 
+int max_steps = -1;
+
 double VORTEX_WIDTH = 1e-8; //cm
 //quantum of circulation
 double KAPPA = 9.97e-4; //cm^2/s

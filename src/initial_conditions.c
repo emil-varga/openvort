@@ -82,10 +82,10 @@ void random_straight_lines(struct tangle_state *tangle, int npairs, int points_p
   //for the slab geometry, populate the computational box with straight vortices
   assert(tangle->box.wall[Z_L] == WALL_MIRROR && tangle->box.wall[Z_H] == WALL_MIRROR);
 
-  double xmin = tangle->box.bottom_left_back.p[0];
-  double xmax = tangle->box.top_right_front.p[0];
-  double ymin = tangle->box.bottom_left_back.p[1];
-  double ymax = tangle->box.top_right_front.p[1];
+  const double xmin = tangle->box.bottom_left_back.p[0];
+  const double xmax = tangle->box.top_right_front.p[0];
+  const double ymin = tangle->box.bottom_left_back.p[1];
+  const double ymax = tangle->box.top_right_front.p[1];
 
   for(int k=0; k < npairs; ++k)
     {
@@ -98,3 +98,41 @@ void random_straight_lines(struct tangle_state *tangle, int npairs, int points_p
     }
 }
 
+void quad_straight_lines(struct  tangle_state *tangle, int points_per_line)
+{
+  assert(tangle->box.wall[Z_L] == WALL_MIRROR && tangle->box.wall[Z_H] == WALL_MIRROR);
+
+  const double xmin = tangle->box.bottom_left_back.p[0];
+  const double xmax = tangle->box.top_right_front.p[0];
+  const double ymin = tangle->box.bottom_left_back.p[1];
+  const double ymax = tangle->box.top_right_front.p[1];
+
+  const double dx = xmax - xmin;
+  const double dy = ymax - ymin;
+
+  add_line(tangle, dx/4, dy/4, +1, points_per_line);
+  add_line(tangle, -dx/4, -dy/4, +1, points_per_line);
+  add_line(tangle, -dx/4, dy/4, -1, points_per_line);
+  add_line(tangle, dx/4, -dy/4, -1, points_per_line);
+}
+
+void dipole_straight_lines(struct  tangle_state *tangle, int points_per_line, int direction)
+{
+  assert(tangle->box.wall[Z_L] == WALL_MIRROR && tangle->box.wall[Z_H] == WALL_MIRROR);
+
+  const double xmin = tangle->box.bottom_left_back.p[0];
+  const double xmax = tangle->box.top_right_front.p[0];
+  const double ymin = tangle->box.bottom_left_back.p[1];
+  const double ymax = tangle->box.top_right_front.p[1];
+
+  const double dx = xmax - xmin;
+  const double dy = ymax - ymin;
+  
+  if(direction == 0) {
+    add_line(tangle, dx/4, 0, +1, points_per_line);
+    add_line(tangle, -dx/4, 0, -1, points_per_line);
+  } else {
+    add_line(tangle, 0, dy/4, +1, points_per_line);
+    add_line(tangle, 0, -dy/4, -1, points_per_line);
+  }
+}

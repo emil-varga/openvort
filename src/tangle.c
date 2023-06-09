@@ -341,8 +341,7 @@ static inline struct vec3d lia_velocity(const struct tangle_state *tangle, int i
   return vv;
 }
 
-struct vec3d calculate_vs_shift(struct tangle_state *tangle, struct vec3d r, int skip, 
-                                const struct vec3d *shift)
+struct vec3d calculate_vs_shift(struct tangle_state *tangle, struct vec3d r, int skip, const struct vec3d *shift)
 {
   int m;
   struct vec3d vs = vec3(0,0,0);
@@ -526,18 +525,17 @@ int num_free_points(struct tangle_state *tangle)
 
 static inline int out_of_box(const struct tangle_state *tangle, const struct vec3d *where)
 {
-  double x = where->p[0];
-  double y = where->p[1];
-  double z = where->p[2];
-  double bounds[] =
-      {
-	  tangle->box.bottom_left_back.p[0],
-	  tangle->box.top_right_front.p[0],
-	  tangle->box.bottom_left_back.p[1],
-	  tangle->box.top_right_front.p[1],
-	  tangle->box.bottom_left_back.p[2],
-	  tangle->box.top_right_front.p[2]
-      };
+  const double x = where->p[0];
+  const double y = where->p[1];
+  const double z = where->p[2];
+  const double bounds[] = {
+    tangle->box.bottom_left_back.p[0],
+    tangle->box.top_right_front.p[0],
+    tangle->box.bottom_left_back.p[1],
+    tangle->box.top_right_front.p[1],
+    tangle->box.bottom_left_back.p[2],
+    tangle->box.top_right_front.p[2]
+  };
 
   int face = -1;
   if(x < bounds[X_L])
@@ -809,31 +807,35 @@ int add_point(struct tangle_state *tangle, int p)
   struct vec3d n;
   vec3_add(&n, &s0pp, &s1pp);
   vec3_mul(&n, &n, 0.5);
-  if(vec3_d(&n) > 1e-5) //n will be identically 0 for a straight vortex
-    {
-      double R = 1/vec3_d(&n);
-      double dR = R*R - l*l/4;
-      //dR can become < 0 for sharp cusps
-      //simplest way to deal with it is to treat the s0 and s1 as sitting
-      //on opposite ends of a circle, for which dR = 0
-      //this does not preserve curvature, but this is below our resolution anyway
-      double delta = dR > 0 ? R - sqrt(dR) : R;
+  double nd = vec3_d(&n);
+  if(nd < max_curvature_scale/global_dl_max && nd > 1e-5) {
+    //if the curvature is too high (can happen near walls due to numerical instability) this extrapolation places the
+    //point too far and breaks the curvature calculation in the subsequent steps
 
-      vec3_normalize(&n);
-      vec3_mul(&n, &n, -1);
+    //n will be identically 0 for a straight vortex
+    //for both of these cases it's better to just average s0 and s1
+    double R = 1/vec3_d(&n);
+    double dR = R*R - l*l/4;
+    //dR can become < 0 for sharp cusps
+    //simplest way to deal with it is to treat the s0 and s1 as sitting
+    //on opposite ends of a circle, for which dR = 0
+    //this does not preserve curvature, but this is below our resolution anyway
+    double delta = dR > 0 ? R - sqrt(dR) : R;
 
-      vec3_add(&a, &s0, &s1);
-      vec3_mul(&a, &a, 0.5);
+    vec3_normalize(&n);
+    vec3_mul(&n, &n, -1);
 
-      vec3_mul(&b, &n, delta);
+    vec3_add(&a, &s0, &s1);
+    vec3_mul(&a, &a, 0.5);
 
-      vec3_add(&new, &a, &b);
-    }
-  else //we basically have a straight vortex, just average s0 and s1
-    {
-      vec3_add(&new, &s0, &s1);
-      vec3_mul(&new, &new, 0.5);
-    }
+    vec3_mul(&b, &n, delta);
+
+    vec3_add(&new, &a, &b);
+  }
+  else { //we basically have a straight vortex, just average s0 and s1
+    vec3_add(&new, &s0, &s1);
+    vec3_mul(&new, &new, 0.5);
+  }
 
   tangle->vnodes[new_pt] = new;
   tangle->connections[new_pt].reverse = p;
@@ -870,10 +872,9 @@ int curvature_smoothing(struct tangle_state *tangle, double max_spp, double damp
 int tangle_total_points(struct tangle_state *tangle)
 {
   int total = 0;
-  for(int k=0; k<tangle->N; ++k)
-    {
-      if(tangle->status[k].status != EMPTY)
-	total++;
-    }
+  for(int k=0; k<tangle->N; ++k) {
+    if(tangle->status[k].status != EMPTY)
+	    total++;
+  }
   return total;
 }

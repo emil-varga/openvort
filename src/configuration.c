@@ -43,15 +43,15 @@ char output_dir[PATH_LEN+1];
 char conf_file[PATH_LEN+1];
 
 struct option options[] = {
-    {"conf", required_argument, NULL, 'c'},
-    {"output", required_argument, NULL, 'o'},
-    {0, 0, 0, 0}
+  {"conf", required_argument, NULL, 'c'},
+  {"output", required_argument, NULL, 'o'},
+  {0, 0, 0, 0}
 };
 
 void set_walls_full(struct tangle_state *tangle, wall_type wall)
 {
   for(int k=0; k<6; ++k)
-        tangle->box.wall[k] = wall;
+    tangle->box.wall[k] = wall;
 }
 
 void set_walls_xy_periodic(struct tangle_state *tangle)

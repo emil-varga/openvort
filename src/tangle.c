@@ -383,8 +383,9 @@ void update_velocity(struct tangle_state *tangle, int k, double t)
       return;
     }
 
-
-  tangle->vs[k] = lia_velocity(tangle, k);
+  //save the LIA velocity for use in hyperfriction later
+  struct vec3d lia_v = lia_velocity(tangle, k);
+  tangle->vs[k] = lia_v;
 
   struct vec3d evs;
   get_vs(&tangle->vnodes[k], t, &evs);
@@ -419,16 +420,22 @@ void update_velocity(struct tangle_state *tangle, int k, double t)
 
   tangle->vels[k] = tangle->vs[k];
 
+  if(hyperfriction) {
+    //hyperfriction damps segments of vortices with very high curvature, idea is similar to hyperviscosity
+    //dissipation similar to mutual friction is applied with high alpha (~0.5 -- 1)
+    //but only to parts where curvature is higher than settable threshold
+    //and only through the (curvature-sensitive) locally induced velocity 
+    struct vec3d tmp;
+    double spp = vec3_d(&tangle->normals[k]);
+    if(spp > max_curvature_scale/global_dl_max) {
+      vec3_cross(&tmp, &tangle->tangents[k], &lia_v);
+      vec3_mul(&tmp, &tmp, -hyperalpha);
+      vec3_add(&tangle->vels[k], &tangle->vels[k], &tmp);
+    }
+  }
 
   if(use_mutual_friction) {
     struct vec3d tmp, dv;
-
-    double _alpha = alpha;
-    if(hyperfriction) {
-      double spp = vec3_d(&tangle->normals[k]);
-      if(spp > max_curvature_scale/global_dl_max)
-        _alpha = hyperalpha;
-    }
 
     //the velocity difference
     get_vn(&tangle->vnodes[k], t, &dv);
@@ -436,7 +443,7 @@ void update_velocity(struct tangle_state *tangle, int k, double t)
 
     //the dissipative term
     vec3_cross(&tmp, &tangle->tangents[k], &dv);
-    vec3_mul(&tmp, &tmp, _alpha);
+    vec3_mul(&tmp, &tmp, alpha);
     vec3_add(&tangle->vels[k], &tangle->vels[k], &tmp);
 
     //the non-dissipative term

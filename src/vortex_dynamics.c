@@ -39,22 +39,18 @@ void euler_step2(struct tangle_state *result,
 {
   int k;
 
-  for(k=0; k<tangle->N; ++k)
-    {
-      if(tangle->status[k].status == EMPTY)
-	continue; //empty node
-      struct vec3d move;
-      if(!use_vel)
-	{
-	  vec3_mul(&move, &tangle->vels[k], dt);
-	  vec3_add(&result->vnodes[k], &tangle->vnodes[k], &move);
-	}
-      else
-	{
-	  vec3_mul(&move, &use_vel[k], dt);
-	  vec3_add(&result->vnodes[k], &tangle->vnodes[k], &move);
-	}
-    }
+  for(k=0; k<tangle->N; ++k) {
+    if(tangle->status[k].status == EMPTY)
+	    continue; //empty node
+    struct vec3d move;
+    if(!use_vel) {
+      vec3_mul(&move, &tangle->vels[k], dt);
+      vec3_add(&result->vnodes[k], &tangle->vnodes[k], &move);
+	  } else {
+	    vec3_mul(&move, &use_vel[k], dt);
+	    vec3_add(&result->vnodes[k], &tangle->vnodes[k], &move);
+	  }
+  }
 }
 
 void euler_step(struct tangle_state *tangle, double dt)
@@ -69,18 +65,16 @@ void rk4_step2(struct tangle_state *result,
   struct tangle_state rk_state[3]; //k2 through k4, we already have k1 in tangle
 
   N = tangle->N;
-  for(int k=0; k < 3; ++k)
-    {
-      create_tangle(&rk_state[k], N);
-      //only copy the stuff we actualy need
-      rk_state[k].bimg = tangle->bimg;
-      rk_state[k].box = tangle->box;
-      for(int kk=0; kk < N; ++kk)
-	{
-	  rk_state[k].status[kk] = tangle->status[kk];
-	  rk_state[k].connections[kk] = tangle->connections[kk];
-	}
-    }
+  for(int k=0; k < 3; ++k) {
+    create_tangle(&rk_state[k], N);
+    //only copy the stuff we actualy need
+    rk_state[k].bimg = tangle->bimg;
+    rk_state[k].box = tangle->box;
+    for(int kk=0; kk < N; ++kk) {
+      rk_state[k].status[kk] = tangle->status[kk];
+      rk_state[k].connections[kk] = tangle->connections[kk];
+	  }
+  }
 
   //calculate k2
   euler_step2(&rk_state[0], tangle, dt/2, NULL);
@@ -164,58 +158,57 @@ int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec
   /*
    * "reconnect" with walls
    */
-  for(int wall = 0; wall < 6; ++wall)
-    {
-      if(tangle->box.wall[wall] == WALL_OPEN ||
-	 tangle->box.wall[wall] == WALL_PERIODIC)
-	continue;
-
-      for(k=0; k<tangle->N; ++k)
-	{
-	  if(tangle->status[k].status == PINNED      ||
-	     tangle->status[k].status == PINNED_SLIP ||
-	     tangle->status[k].status == EMPTY       ||
-	     tangle->recalculate[k])
+  for(int wall = 0; wall < 6; ++wall) {
+    if(tangle->box.wall[wall] == WALL_OPEN || tangle->box.wall[wall] == WALL_PERIODIC)
 	    continue;
 
-	  if(check_wall(tangle, k, wall, rec_dist/2))
-	    {
-	      connect_to_wall(tangle, k, wall, rec_dist/2, pin_mode, rec_angle, t);
+    for(k=0; k<tangle->N; ++k) {
+	    if(tangle->status[k].status == PINNED       ||
+	        tangle->status[k].status == PINNED_SLIP ||
+	        tangle->status[k].status == EMPTY       ||
+	        tangle->recalculate[k] > 0)
+	      continue;
+
+	    if(check_wall(tangle, k, wall, rec_dist/2)) {
+        Nrecs += connect_to_wall(tangle, k, wall, rec_dist/2, pin_mode, rec_angle, t);
 	    }
-	}
-    }
+	  }
+  }
+
+  /*
+   * Wall reconnection can create small loops that could be broken by the domain killing below
+   * which can cause the simulation to crash. These loops need to be removed.
+   */
+  if(Nrecs > 0)
+      eliminate_small_loops(tangle, small_loop_cutoff);
 
   /*
    * Eliminate all points that are active and outside the walls. This can potentially happen
    * if the time step is too long and more than one discretisation point gets outside the domain.
    */
   int domain_killed = 0;
-  for(int wall = 0; wall < 6; ++wall)
-    {
-      if(tangle->box.wall[wall] == WALL_OPEN ||
-	 tangle->box.wall[wall] == WALL_PERIODIC)
-	continue;
-
-      for(k=0; k<tangle->N; ++k)
-	{
-	  if(tangle->status[k].status == EMPTY)
+  for(int wall = 0; wall < 6; ++wall) {
+    if(tangle->box.wall[wall] == WALL_OPEN || tangle->box.wall[wall] == WALL_PERIODIC)
 	    continue;
 
-	  if(wall_dist(tangle, k, wall) < 0)
-	    {
-	      remove_point(tangle, k);
-	      domain_killed++;
-	    }
-	}
-    }
+    for(k=0; k<tangle->N; ++k) {
+	    if(tangle->status[k].status == EMPTY)
+	      continue;
+
+      if(wall_dist(tangle, k, wall) < 0) {
+          remove_point(tangle, k);
+          domain_killed++;
+      }
+	  }
+  }
   if(domain_killed > 0)
     printf("Killed %d points outside the domain.\n", domain_killed);
 
   /*
-   * Some small loops might have been created by the reconnections and removals above.
+   * Some small loops might have been created by the removals above.
    * These can confuse the tangent calculation so they should be removed.
    */
-  if(Nrecs > 0 || domain_killed > 0)
+  if(domain_killed > 0)
     eliminate_small_loops(tangle, small_loop_cutoff);
 
   /*
@@ -312,6 +305,7 @@ int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec
 	  tangle->recalculate[lprev]++;
 
 	  Nrecs++;
+    printf("vortex-vortex reconnection %d %d\n", k, l);
 	  
 	  break; 
 	}
@@ -411,11 +405,7 @@ int connect_to_wall(struct tangle_state *tangle, int k, int wall, double rdist,
   //check that the node is actually getting closer to the wall
   //boundary_normals are inward-facing unit normals
   if(d0 > 0 && vec3_dot(&tangle->vels[k], &boundary_normals[wall]) > 0)
-    return 0;
-
-  //
-  if(vec3_dot(&tangle->tangents[k], &boundary_normals[wall]) > cos(rec_angle))
-    return 0;
+    return 0; //EXIT because we are getting further from the wall
 
   int next = tangle->connections[k].forward;
   int prev = tangle->connections[k].reverse;
@@ -429,9 +419,7 @@ int connect_to_wall(struct tangle_state *tangle, int k, int wall, double rdist,
 
   //check that the total length does not increase
   if(vd1 < d0 + d1 && vdm1 < d0 + dm1)
-    {
-      return 0;
-    }
+    return 0;
 
   //printf("Pinning %d %d %d\n", prev, k, next);
 
@@ -448,6 +436,7 @@ int connect_to_wall(struct tangle_state *tangle, int k, int wall, double rdist,
   tangle->status[new_pt2].pin_wall = wall;
   //printf("New points: %d %d\n", new_pt, new_pt2);
 
+  //the first new point is the projection of the kth point on the wall
   vec3_mul(&tmp, &boundary_normals[wall], -d0);
   vec3_add(&tangle->vnodes[new_pt], &tangle->vnodes[k], &tmp);
 
@@ -458,30 +447,27 @@ int connect_to_wall(struct tangle_state *tangle, int k, int wall, double rdist,
   tangle->recalculate[next]++;
   tangle->recalculate[prev]++;
 
-  if(d1 < dm1)
-    {
-      vec3_mul(&tmp, &boundary_normals[wall], -d1);
-      vec3_add(&tangle->vnodes[new_pt2], &tangle->vnodes[next], &tmp);
+  if(d1 < dm1) {
+    vec3_mul(&tmp, &boundary_normals[wall], -d1);
+    vec3_add(&tangle->vnodes[new_pt2], &tangle->vnodes[next], &tmp);
 
-      tangle->connections[k].forward = new_pt;
-      tangle->connections[new_pt].forward = -1;
-      tangle->connections[new_pt].reverse = k;
-      tangle->connections[new_pt2].forward = next;
-      tangle->connections[new_pt2].reverse = -1;
-      tangle->connections[next].reverse = new_pt2;
-    }
-  else
-    {
-      vec3_mul(&tmp, &boundary_normals[wall], -dm1);
-      vec3_add(&tangle->vnodes[new_pt2], &tangle->vnodes[prev], &tmp);
+    tangle->connections[k].forward = new_pt;
+    tangle->connections[new_pt].forward = -1;
+    tangle->connections[new_pt].reverse = k;
+    tangle->connections[new_pt2].forward = next;
+    tangle->connections[new_pt2].reverse = -1;
+    tangle->connections[next].reverse = new_pt2;
+  } else {
+    vec3_mul(&tmp, &boundary_normals[wall], -dm1);
+    vec3_add(&tangle->vnodes[new_pt2], &tangle->vnodes[prev], &tmp);
 
-      tangle->connections[k].reverse = new_pt;
-      tangle->connections[new_pt].forward = k;
-      tangle->connections[new_pt].reverse = -1;
-      tangle->connections[new_pt2].forward = -1;
-      tangle->connections[new_pt2].reverse = prev;
-      tangle->connections[prev].forward = new_pt2;
-    }
-
+    tangle->connections[k].reverse = new_pt;
+    tangle->connections[new_pt].forward = k;
+    tangle->connections[new_pt].reverse = -1;
+    tangle->connections[new_pt2].forward = -1;
+    tangle->connections[new_pt2].reverse = prev;
+    tangle->connections[prev].forward = new_pt2;
+  }
+  printf("vortex-wall reconnection %d (%d, %d)\n", k, prev, next);
   return 2;
 }

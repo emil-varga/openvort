@@ -50,6 +50,17 @@ if __name__ == '__main__':
     parser.add_argument('--colorful', help='Plot vortices using many colors',
                         action='store_true')
     parser.add_argument('--projection', help='Projection axis.', type=str, default='z')
+    parser.add_argument('--just-one', help='Plot just a single vortex.',
+                        type=int, default=-1)
+    parser.add_argument('--auto-ax', help='Leave axes range automatic',
+                        action='store_true')
+    parser.add_argument('--xlim', help='x-axis limiting values', type=float,
+                        nargs=2)
+    parser.add_argument('--ylim', help='y-axis limiting values', type=float,
+                        nargs=2)
+    parser.add_argument('--zlim', help='z-axis limiting values', type=float,
+                        nargs=2)
+
 
     args = parser.parse_args()
 
@@ -131,8 +142,14 @@ if __name__ == '__main__':
         if args.show_time:
             txt = fig.text(0.05, 0.05, "$t$ = {:.06f} s".format(time), fontsize=18)
         draw_vortices(fn, ax, slow=slow, max_len=dl_max, color=color, projection=axids)
-        ax.set_xlim(Dls[axids[0]], Dhs[axids[0]])
-        ax.set_ylim(Dls[axids[1]], Dhs[axids[1]])
+        if args.xlim is None:
+            ax.set_xlim(Dls[axids[0]], Dhs[axids[0]])
+        else:
+            ax.set_xlim(*args.xlim)
+        if args.ylim is None:
+            ax.set_ylim(Dls[axids[1]], Dhs[axids[1]])
+        else:
+            ax.set_ylim(*args.ylim)
         ax.set_aspect('equal')
         ax.set_xlabel("$x$ (mm)")
         ax.set_ylabel("$y$ (mm)")

@@ -25,6 +25,8 @@
 extern double VORTEX_WIDTH;
 extern double KAPPA;
 
+extern int max_steps;
+
 extern double alpha;
 extern double alpha_p;
 
@@ -61,5 +63,11 @@ extern int line_injection_polarized; //whether the injection is polarized
 //Barnes-Hut ('tree') approximation
 extern int use_BH;
 extern double BH_resolution;
+
+//hyperfriction to damp out strongly curved parts that are not resolved
+//by the discretisation
+extern int hyperfriction;
+extern double max_curvature_scale;
+extern double hyperalpha;
 
 #endif //VORTEX_CONSTANTS_H

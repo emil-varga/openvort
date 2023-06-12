@@ -82,11 +82,26 @@ const struct image_tangle periodic_26_img[] = {
     {{1, 1, 1}, -1}
 };
 
+//wall in z, periodix in x, y
 const struct image_tangle wall_2_4_img[] = {
     {{-1, 0, 0}, -1}, //periodic in x
     {{1, 0, 0}, -1},
     {{0, -1, 0}, -1}, //periodic in y
     {{0, 1, 0}, -1},
+    {{0, 0, -1}, Z_L}, //lower z-wall
+    {{0, 0, 1}, Z_H} //upper z-wall
+};
+
+//as before, but also including the diagonal shifts
+const struct image_tangle wall_2_6_img[] = {
+    {{-1, 0, 0}, -1}, //periodic in x
+    {{1, 0, 0}, -1},
+    {{0, -1, 0}, -1}, //periodic in y
+    {{0, 1, 0}, -1},
+    {{-1, -1, 0}, -1}, //-x-y
+    {{-1, 1, 0}, -1}, //-xy
+    {{1, -1, 0}, -1}, //x-y
+    {{1, 1, 0}, -1}, //xy
     {{0, 0, -1}, Z_L}, //lower z-wall
     {{0, 0, 1}, Z_H} //upper z-wall
 };

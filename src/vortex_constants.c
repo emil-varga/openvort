@@ -21,6 +21,8 @@
 #include "tangle.h"
 //declared as extern in vortex_constants.h
 
+int max_steps = -1;
+
 double VORTEX_WIDTH = 1e-8; //cm
 //quantum of circulation
 double KAPPA = 9.97e-4; //cm^2/s
@@ -46,6 +48,10 @@ int global_num_threads = 4;
 
 //switch mutual friction on/off
 int use_mutual_friction = 1;
+
+int hyperfriction = 1;
+double max_curvature_scale = 0.2;
+double hyperalpha = 0.5;
 
 /*
  * Pinning mode

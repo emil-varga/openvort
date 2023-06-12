@@ -102,6 +102,9 @@ void octree_inner_sort(struct octree *tree, const struct tangle_state *tangle)
 
   for(octree_child_idx child=0; child < OCTREE_CHILDREN_N; child++)
     octree_inner_sort(tree->children[child], tangle);
+  
+  //update the centers of mass, total circulation vectors and circulation tensors
+  octree_update_means(tree, tangle);
 }
 
 struct domain_box make_child_box(const struct domain_box *parent_box, octree_child_idx child_idx);
@@ -242,6 +245,7 @@ void octree_get_vs(const struct octree *tree, const struct vec3d *r, double reso
   //leaf (i.e., only one node, bottom of the tree)
   //that is also the point of interest itself
   if(d < 1e-8) {
+    //this would be the LIA part
     *res = vec3(0,0,0);
     return;
   }

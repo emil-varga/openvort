@@ -272,8 +272,9 @@ int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec
 	  //Do not reconnect if the nodes are getting further apart from each other
 	  struct vec3d dx, dv;
 	  //we only update velocities if we really need them
-	  update_velocity(tangle, k, t);
-	  update_velocity(tangle, l, t);
+    //do not bother with the Barnes-Hut here, passing NULL for the tree turns it off even if enabled globally
+	  update_velocity(tangle, k, t, NULL);
+	  update_velocity(tangle, l, t, NULL);
 	  vec3_sub(&dx, v1, v2);
 	  vec3_sub(&dv, &tangle->vels[k], &tangle->vels[l]);
 
@@ -400,7 +401,7 @@ int connect_to_wall(struct tangle_state *tangle, int k, int wall, double rdist,
 		   node_status_t pin_mode, double rec_angle, double time)
 {
   update_tangent_normal(tangle, k);
-  update_velocity(tangle, k, time);
+  update_velocity(tangle, k, time, NULL); //do not bother with B-H for a small number of points
   double d0 = wall_dist(tangle, k, wall);
   //check that the node is actually getting closer to the wall
   //boundary_normals are inward-facing unit normals

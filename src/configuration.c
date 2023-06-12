@@ -211,6 +211,12 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
     printf("Using pin mode %d\n", pin_mode);
   }
 
+  //Barnes-Hut approximation
+  if(config_lookup_bool(&cfg, "use_BH", &ival))
+    use_BH = ival;
+  if(config_lookup_float(&cfg, "BH_resolution", &dval))
+    BH_resolution = dval;
+
   //mutual friction
   if(config_lookup_bool(&cfg, "use_mutual_friction", &ival))
     use_mutual_friction = ival;

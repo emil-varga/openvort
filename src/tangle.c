@@ -369,19 +369,18 @@ struct vec3d calculate_vs(struct tangle_state *tangle, struct vec3d r, int skip)
   return calculate_vs_shift(tangle, r, skip, NULL);
 }
 
-void update_velocity(struct tangle_state *tangle, int k, double t)
+void update_velocity(struct tangle_state *tangle, int k, double t, struct octree *tree)
 {
   int m, i;
   if(tangle->status[k].status == EMPTY)
     return;
 
-  if(tangle->status[k].status == PINNED)
-    {
-      tangle->vs[k] = vec3(0,0,0);
-      //get the boundary velocity, by default non-moving
-      get_vb(&tangle->vnodes[k], t, &tangle->vels[k]);
-      return;
-    }
+  if(tangle->status[k].status == PINNED) {
+    tangle->vs[k] = vec3(0,0,0);
+    //get the boundary velocity, by default non-moving
+    get_vb(&tangle->vnodes[k], t, &tangle->vels[k]);
+    return;
+  }
 
   //save the LIA velocity for use in hyperfriction later
   struct vec3d lia_v = lia_velocity(tangle, k);
@@ -391,29 +390,22 @@ void update_velocity(struct tangle_state *tangle, int k, double t)
   get_vs(&tangle->vnodes[k], t, &evs);
   vec3_add(&tangle->vs[k], &tangle->vs[k], &evs);
 
-  struct octree *tree = NULL;
-  if(use_BH)
-    {
-      //use the tree approximation to the full Biot-Savart
-      tree = octree_build(tangle);
-      struct vec3d v_tree;
-      octree_get_vs(tree, &tangle->vnodes[k], BH_resolution, &v_tree);
-    }
-  else
-    {
-      //integrate Biot-Savart as usual
-      for(m=0; m<tangle->N; ++m)
-	{
-	  if(tangle->connections[m].forward == -1 ||
-	     m == k                               ||
-	     k == tangle->connections[m].forward)
-	    continue;
+  if(use_BH && tree) {
+    //use the tree approximation to the full Biot-Savart
+    struct vec3d v_tree;
+    octree_get_vs(tree, &tangle->vnodes[k], BH_resolution, &v_tree);
+    vec3_add(&tangle->vs[k], &tangle->vs[k], &v_tree);
+  }
+  else {
+    //integrate Biot-Savart as usual
+    for(m=0; m<tangle->N; ++m) {
+	    if(tangle->connections[m].forward == -1 || m == k || k == tangle->connections[m].forward)
+	      continue;
 
-	  struct vec3d segment_vel = segment_field(tangle, m, tangle->vnodes[k]);
-	  for(i=0; i<3; ++i)
-	    tangle->vs[k].p[i] += segment_vel.p[i];
-	}
-    }
+      struct vec3d segment_vel = segment_field(tangle, m, tangle->vnodes[k]);
+      vec3_add(&tangle->vs[k], &tangle->vs[k], &segment_vel);
+	  }
+  }
 
   //calculate the velocity due to boundary images
 
@@ -465,6 +457,7 @@ void update_velocity(struct tangle_state *tangle, int k, double t)
     vec3_add(&tangle->vels[k], &tangle->vels[k], &tmp);
   }
 
+  //with slip pinning the vortex cannot move only in the normal direction
   if(tangle->status[k].status == PINNED_SLIP) {
     struct vec3d n = boundary_normals[tangle->status[k].pin_wall];
     double normal_velocity = vec3_dot(&n, &tangle->vels[k]);
@@ -475,23 +468,27 @@ void update_velocity(struct tangle_state *tangle, int k, double t)
 
 void update_velocities(struct tangle_state *tangle, double t)
 {
+  struct octree *tree = NULL;
+  if(use_BH)
+    tree = octree_build(tangle);
+
   int i;
   #pragma omp parallel private(i) num_threads(global_num_threads)
-  {
+  { 
     #pragma omp for
     for(i=0; i<tangle->N; ++i) {
-	    update_velocity(tangle, i, t);
+	    update_velocity(tangle, i, t, tree);
 	  }
   }
+  octree_destroy(tree);
 }
 
 void update_tangents_normals(struct tangle_state *tangle)
 {
   int i;
-  for(i=0; i<tangle->N; ++i)
-    {
+  for(i=0; i<tangle->N; ++i) {
       update_tangent_normal(tangle, i);
-    }
+  }
 }
 
 static inline int search_next_free(struct tangle_state *tangle)
@@ -504,11 +501,10 @@ static inline int search_next_free(struct tangle_state *tangle)
   //otherwise we have to search for it
 
   for(int k=0; k<tangle->N; ++k)
-    if(tangle->status[k].status == EMPTY)
-      {
-	tangle->next_free = k+1;
-	return k;
-      }
+    if(tangle->status[k].status == EMPTY) {
+	    tangle->next_free = k+1;
+	    return k;
+    }
 
   //we haven't found anything, return error
   return -1;
@@ -518,11 +514,10 @@ int get_tangle_next_free(struct tangle_state *tangle)
 {
   int idx = search_next_free(tangle);
 
-  if(idx < 0)
-    {
-      expand_tangle(tangle, 2*tangle->N);
-      idx = search_next_free(tangle);
-    }
+  if(idx < 0) {
+    expand_tangle(tangle, 2*tangle->N);
+    idx = search_next_free(tangle);
+  }
 
   return idx;
 }

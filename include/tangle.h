@@ -118,7 +118,9 @@ void enforce_boundaries(struct tangle_state *tangle);
 void update_tangent_normal(struct tangle_state *tangle, size_t k);
 void update_tangents_normals(struct tangle_state *tangle);
 void update_velocities(struct tangle_state *tangle, double t);
-void update_velocity(struct tangle_state *tangle, int k, double t);
+
+struct octree;
+void update_velocity(struct tangle_state *tangle, int k, double t, struct octree *tree);
 
 /**
   @brief calculates the superfluid velocity

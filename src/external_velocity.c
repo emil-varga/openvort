@@ -323,7 +323,7 @@ int get_v_oscillating(const struct vec3d *where, double t, struct vec3d *res, st
   if(!(err = get_v_param_vector(vconf, "polarization", &pol)))
     return err;
 
-  double X = cos(vec3_dot(&k, where));
+  double X = cos(2*M_PI*vec3_dot(&k, where));
   double T = cos(2*M_PI*freq*t);
 
   vec3_mul(res, &pol, strength*X*T);

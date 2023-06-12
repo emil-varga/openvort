@@ -12,6 +12,8 @@
 #include "util.h"
 #include "vec3_maths.h"
 
+//create an empty octree with depth *depth* and room for *Ninit* vortex nodes
+//at every tree node
 struct octree* octree_init(int Ninit, int depth)
 {
   struct octree *tree = (struct octree*)malloc(sizeof(struct octree));
@@ -19,87 +21,85 @@ struct octree* octree_init(int Ninit, int depth)
   tree->N=0;
   tree->N_total = Ninit;
   tree->node_ids = (int*)malloc(sizeof(int)*Ninit);
-  if(depth > 1)
-    {
-      for(int k=0; k < OCTREE_CHILDREN_N; ++k)
-	tree->children[k] = octree_init(Ninit, depth-1);
-    }
+  if(depth > 1) {
+    for(int k=0; k < OCTREE_CHILDREN_N; ++k)
+	  tree->children[k] = octree_init(Ninit, depth-1);
+  }
   return tree;
 }
 
+//free the entire structure whose root is *tree*
 void octree_destroy(struct octree *tree)
 {
   if(!tree)
     return;
 
   //we need to destroy it from the bottom up
-  for(octree_child_idx child = 0; child < OCTREE_CHILDREN_N; child++)
-    {
-      if(tree->children[child])
-	octree_destroy(tree->children[child]);
-	free(tree->children[child]);
-    }
+  for(octree_child_idx child = 0; child < OCTREE_CHILDREN_N; child++) {
+    if(tree->children[child])
+      octree_destroy(tree->children[child]);
+    free(tree->children[child]);
+  }
   free(tree);
 }
 
+//adds a node to the root of the tree
+//this DOES NOT add the node recursively
 struct octree *octree_add_node(struct octree *tree, int node_id)
 {
-  //adds a node to the root of the tree
-  //this DOES NOT add the node recursively
-  if(tree->N < tree->N_total)
-    {
-      tree->node_ids[tree->N++] = node_id;
-      return tree;
-    }
+  if(tree->N < tree->N_total) {
+    tree->node_ids[tree->N++] = node_id;
+    return tree;
+  }
 
   tree->node_ids = realloc(tree->node_ids, 2*tree->N_total);
-  if(tree->node_ids)
-    {
-      tree->N_total *= 2;
-      tree->node_ids[tree->N] = node_id;
-      return tree;
-    }
+  if(tree->node_ids) {
+    tree->N_total *= 2;
+    tree->node_ids[tree->N] = node_id;
+    return tree;
+  }
   else
     return NULL;
 }
 
 void octree_inner_sort(struct octree *tree, const struct tangle_state *tangle);
+
+//builds the octree from a tangle
 struct octree *octree_build(const struct tangle_state *tangle)
 {
   struct octree *tree = octree_init(tangle->N, 1);
-  //load up all the non-empty points
-  for(int k=0; k < tangle->N; ++k)
-    {
-      if(tangle->status[k].status == EMPTY)
-	continue;
-      if(!octree_add_node(tree, k))
-	error("failed to add node");
-    }
+  //load all the non-empty points into the root of the tree
+  for(int k=0; k < tangle->N; ++k) {
+    if(tangle->status[k].status == EMPTY)
+	    continue;
+    if(!octree_add_node(tree, k))
+	    error("failed to add node");
+  }
   tree->tangle = tangle;
   tree->box = tangle->box;
-  //sort the points in a recursive function
+  //sort the points in a recursive function into the children of the tree
   octree_inner_sort(tree, tangle);
   octree_update_means(tree, tangle);
   return tree;
 }
+
+//sorting the nodes in the root into the children
 void octree_inner_sort(struct octree *tree, const struct tangle_state *tangle)
 {
   if(!tree || tree->N <= 1) //there is only one node, we do not need to split further
     return;
 
   octree_make_child_boxes(tree);
-  for(int k=0; k < tree->N; ++k)
-    {
-      for(octree_child_idx child=0; child < OCTREE_CHILDREN_N; child++)
-	{
-	  if(in_box(&tree->box, &tangle->vnodes[tree->node_ids[k]]))
-	    {
-	      if(!octree_add_node(tree->children[child], tree->node_ids[k]))
-		error("failed to add node");
-	      continue;
+  for(int k=0; k < tree->N; ++k) {
+    for(octree_child_idx child=0; child < OCTREE_CHILDREN_N; child++) {
+	    if(in_box(&tree->box, &tangle->vnodes[tree->node_ids[k]])) {
+        if(!octree_add_node(tree->children[child], tree->node_ids[k]))
+		      error("failed to add node");
+	      break;
 	    }
-	}
-    }
+	  }
+  }
+
   for(octree_child_idx child=0; child < OCTREE_CHILDREN_N; child++)
     octree_inner_sort(tree->children[child], tangle);
 }
@@ -119,12 +119,10 @@ void octree_make_child_boxes(struct octree *tree)
       tree->children[child]->tangle = tree->tangle;
     }
 }
+//Helper for creating a child box. Gets the base dimensions from parent_box and returns the box
+//corresponding to the child_idx.
 struct domain_box make_child_box(const struct domain_box *parent_box, octree_child_idx child_idx)
 {
-  /*
-   * Helper for creating a child box. Gets the base dimensions from parent_box and returns the box
-   * corresponding to the child_idx.
-   */
   //box center and lengths
   struct vec3d c;
   struct vec3d L;
@@ -198,44 +196,39 @@ void octree_update_means(struct octree *tree, const struct tangle_state *tangle)
     return;
 
   tree->centre_of_mass = vec3(0,0,0);
-  for(int k=0; k < tree->N; k++)
-    {
-      vec3_add(&tree->centre_of_mass, &tree->centre_of_mass, &tangle->vnodes[tree->node_ids[k]]);
-    }
+  for(int k=0; k < tree->N; k++) {
+    vec3_add(&tree->centre_of_mass, &tree->centre_of_mass, &tangle->vnodes[tree->node_ids[k]]);
+  }
   vec3_mul(&tree->centre_of_mass, &tree->centre_of_mass, 1.0/tree->N);
 
   tree->total_circulation = vec3(0,0,0);
   tree->circ_tensor = mat3_null();
-  for(int k=0; k < tree->N; k++)
-    {
-      int idx = tree->node_ids[k];
-      int forward = tangle->connections[idx].forward;
-      struct segment seg = seg_pwrap(&tangle->vnodes[idx], &tangle->vnodes[forward],
-				     &tangle->box);
-      struct vec3d ds = segment_to_vec(&seg);
-      vec3_add(&tree->total_circulation, &tree->total_circulation,
-	       &ds);
+  for(int k=0; k < tree->N; k++) {
+    int idx = tree->node_ids[k];
+    int forward = tangle->connections[idx].forward;
+    struct segment seg = seg_pwrap(&tangle->vnodes[idx], &tangle->vnodes[forward], &tangle->box);
+    struct vec3d ds = segment_to_vec(&seg);
+    vec3_add(&tree->total_circulation, &tree->total_circulation, &ds);
 
-      struct vec3d sloc;
-      vec3_sub(&sloc, &tangle->vnodes[idx], &tree->centre_of_mass);
-      struct mat3d dM;
-      vec3_outer(&dM, &ds, &sloc);
-      mat3_add(&tree->circ_tensor, &tree->circ_tensor, &dM);
-    }
+    struct vec3d sloc;
+    vec3_sub(&sloc, &tangle->vnodes[idx], &tree->centre_of_mass);
+    struct mat3d dM;
+    vec3_outer(&dM, &ds, &sloc);
+    mat3_add(&tree->circ_tensor, &tree->circ_tensor, &dM);
+  }
 
   for(octree_child_idx child=0; child < OCTREE_CHILDREN_N; child++)
     octree_update_means(tree->children[child], tangle);
 }
 
-/*velocity calculation*/
-void octree_get_vs(const struct octree *tree, const struct vec3d *r, double resolution,
-		   struct vec3d *res)
+//velocity calculation at point *r*
+void octree_get_vs(const struct octree *tree, const struct vec3d *r, double resolution, struct vec3d *res)
 {
-  if(tree->N == 0) //empty leaf, exit
-    {
-      *res = vec3(0,0,0);
-      return;
-    }
+  if(tree->N == 0) {
+    //empty leaf, exit
+    *res = vec3(0,0,0);
+    return;
+  }
 
   //check the resolution
   double Lx = tree->box.top_right_front.p[0] - tree->box.bottom_left_back.p[0];
@@ -246,68 +239,56 @@ void octree_get_vs(const struct octree *tree, const struct vec3d *r, double reso
   struct segment seg = seg_pwrap(r, &tree->centre_of_mass, &tree->tangle->box);
   double d = segment_len(&seg);
 
-  /*
-   * leaf (i.e., only one node, bottom of the tree)
-   * that is also the point of interest itself
-   */
-  if(d < 1e-8)
-    {
-      *res = vec3(0,0,0);
-      return;
-    }
+  //leaf (i.e., only one node, bottom of the tree)
+  //that is also the point of interest itself
+  if(d < 1e-8) {
+    *res = vec3(0,0,0);
+    return;
+  }
 
-  if(Lm/d < resolution || tree->N == 1)
-    {
-      //calculate the velocity using the approximation
-      struct vec3d v1;
-      *res = vec3(0,0,0); //TODO
-      struct vec3d R;
-      double Rm = vec3_d(&R);
+  if(Lm/d < resolution || tree->N == 1) {
+    //calculate the velocity using the approximation
+    struct vec3d v1;
+    *res = vec3(0,0,0); //TODO
+    struct vec3d R;
+    double Rm;
 
-      /*
-       * 1st order
-       */
-      vec3_sub(&R, r, &tree->centre_of_mass);
-      vec3_cross(&v1, &tree->total_circulation, &R);
-      vec3_mul(&v1, &v1, 1/Rm/Rm/Rm);
-      vec3_add(res, res, &v1);
+    //first order
+    vec3_sub(&R, r, &tree->centre_of_mass);
+    Rm = vec3_d(&R);
+    vec3_cross(&v1, &tree->total_circulation, &R);
+    vec3_mul(&v1, &v1, 1/Rm/Rm/Rm);
+    vec3_add(res, res, &v1);
 
-      /*
-       * 2nd order, 1st term
-       */
-      v1 = vec3(0,0,0);
-      for(int i = 0; i<3; ++i)
-	{
-	  for(int j=i+1; j<3; ++j)
-	    {
-	      for(int k=j+1; k<3; ++k)
-		{
-		  v1.p[i] = tree->circ_tensor.m[k][j] - tree->circ_tensor.m[j][k];
-		}
+    //second order, 1st term
+    v1 = vec3(0,0,0);
+    for(int i = 0; i<3; ++i) {
+	    for(int j=i+1; j<3; ++j) {
+        for(int k=j+1; k<3; ++k) {
+		      v1.p[i] = tree->circ_tensor.m[k][j] - tree->circ_tensor.m[j][k];
+		    }
 	    }
-	}
-      vec3_mul(&v1, &v1, 1/Rm/Rm/Rm);
-      vec3_add(res, res, &v1);
+	  }
+    vec3_mul(&v1, &v1, 1/Rm/Rm/Rm);
+    vec3_add(res, res, &v1);
 
-      /*
-       * 2nd order, 2nd term
-       */
-      mat3_vmul(&v1, &tree->circ_tensor, &R);
-      vec3_cross(&v1, &v1, &R);
-      vec3_mul(&v1, &v1, 1/Rm/Rm/Rm/Rm/Rm);
-      vec3_add(res, res, &v1);
+    // 2nd order, 2nd term
+    mat3_vmul(&v1, &tree->circ_tensor, &R);
+    vec3_cross(&v1, &v1, &R);
+    vec3_mul(&v1, &v1, 1/Rm/Rm/Rm/Rm/Rm);
+    vec3_add(res, res, &v1);
 
-      vec3_mul(res, res, KAPPA/4/M_PI);
+    vec3_mul(res, res, KAPPA/4/M_PI);
 
-      return;
-    }
+    return;
+  }
 
   //resolution is not sufficient, we need to open the tree deeper
   struct vec3d partial_vs, total_vs;
   total_vs = vec3(0,0,0);
-  for(int k = 0; k < 8; ++k)
-    {
+  for(int k = 0; k < 8; ++k) {
       octree_get_vs(tree->children[k], r, resolution, &partial_vs);
       vec3_add(&total_vs, &total_vs, &partial_vs);
-    }
+  }
+  *res = total_vs;
 }

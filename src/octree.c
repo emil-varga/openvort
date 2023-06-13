@@ -265,7 +265,7 @@ void octree_update_means(struct octree *tree, const struct tangle_state *tangle)
 }
 
 //velocity calculation at point *r*
-void octree_get_vs(const struct octree *tree, const struct vec3d *r, double resolution, struct vec3d *res)
+void octree_get_vs(const struct octree *tree, const struct vec3d *r, double resolution, struct vec3d *res, int skip)
 {
   if(!tree || tree->N == 0) {
     //empty leaf, exit
@@ -281,11 +281,11 @@ void octree_get_vs(const struct octree *tree, const struct vec3d *r, double reso
 
   if(tree->N == 1 || Lmin < BH_grain) {
     //end leaf or the box is already small, integrate the BS directly
-    *res = calculate_vs_shift(tree->tangle, *r, -1, NULL, tree->node_ids, tree->N);
+    *res = calculate_vs_shift(tree->tangle, *r, skip, NULL, tree->node_ids, tree->N);
     return;
   }
 
-  if(Lm/d < resolution || tree->N == 1) {
+  if(d > 0 && Lm/d < resolution) {
     //calculate the velocity using the approximation
     struct vec3d v1;
     *res = vec3(0,0,0);
@@ -327,7 +327,7 @@ void octree_get_vs(const struct octree *tree, const struct vec3d *r, double reso
   total_vs = vec3(0,0,0);
   const int children_N = tree->quadtree > 0 ? OCTREE_2D_CHILDREN_N : OCTREE_CHILDREN_N;
   for(int k = 0; k < children_N; ++k) {
-      octree_get_vs(tree->children[k], r, resolution, &partial_vs);
+      octree_get_vs(tree->children[k], r, resolution, &partial_vs, skip);
       vec3_add(&total_vs, &total_vs, &partial_vs);
   }
   *res = total_vs;

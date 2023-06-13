@@ -45,6 +45,6 @@ void octree_update_means(struct octree *tree, const struct tangle_state *tangle)
 void octree_create_children(struct octree *tree);
 
 /*velocity calculation*/
-void octree_get_vs(const struct octree *tree, const struct vec3d *r, double resolution, struct vec3d *res);
+void octree_get_vs(const struct octree *tree, const struct vec3d *r, double resolution, struct vec3d *res, int skip);
 
 #endif /* INCLUDE_OCTREE_H_ */

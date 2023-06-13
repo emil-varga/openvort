@@ -398,7 +398,7 @@ void update_velocity(struct tangle_state *tangle, int k, double t, struct octree
   if(use_BH && tree) {
     //use the Barnes-Hut approximation to the full Biot-Savart
     struct vec3d v_tree;
-    octree_get_vs(tree, &tangle->vnodes[k], BH_resolution, &v_tree);
+    octree_get_vs(tree, &tangle->vnodes[k], BH_resolution, &v_tree, k);
     vec3_add(&tangle->vs[k], &tangle->vs[k], &v_tree);
   }
   else {
@@ -420,7 +420,7 @@ void update_velocity(struct tangle_state *tangle, int k, double t, struct octree
   for(int j = 0; j < tangle->bimg.n; ++j) {
     shift_r = shifted(&tangle->bimg.images[j], tangle, &tangle->vnodes[k]);
     if(use_BH && tree)
-      octree_get_vs(tree, &shift_r, BH_resolution, &v_shift);
+      octree_get_vs(tree, &shift_r, BH_resolution, &v_shift, -1);
     else
       v_shift = calculate_vs(tangle, shift_r, -1);
     if(tangle->bimg.images[j].reflect > -1) //mirror wall

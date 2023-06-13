@@ -274,19 +274,14 @@ void octree_get_vs(const struct octree *tree, const struct vec3d *r, double reso
   }
 
   //check the resolution
-  double Lx = tree->box.top_right_front.p[0] - tree->box.bottom_left_back.p[0];
-  double Ly = tree->box.top_right_front.p[1] - tree->box.bottom_left_back.p[1];
-  double Lz = tree->box.top_right_front.p[2] - tree->box.bottom_left_back.p[2];
-  double Lm = Lx > Ly ? (Lx > Lz ? Lx : Lz) : (Ly > Lz ? Ly : Lz); //maximum size
-
+  const double Lm = max_box_size(&tree->box);
+  const double Lmin = min_box_size(&tree->box);
   struct segment seg = seg_pwrap(r, &tree->centre_of_mass, &tree->tangle->box);
   double d = segment_len(&seg);
 
-  //leaf (i.e., only one node, bottom of the tree)
-  //that is also the point of interest itself
-  if(d < 2*global_dl_max) {
-    //this would be the LIA part
-    *res = vec3(0,0,0);
+  if(tree->N == 1 || Lmin < BH_grain) {
+    //end leaf or the box is already small, integrate the BS directly
+    *res = calculate_vs_shift(tree->tangle, *r, -1, NULL, tree->node_ids, tree->N);
     return;
   }
 
@@ -327,9 +322,6 @@ void octree_get_vs(const struct octree *tree, const struct vec3d *r, double reso
     return;
   }
 
-  //TODO: quadtree is broken
-  //when using quadtree, the leaves do not necessarily have only one vortex node, but the leaf might still faile the condition
-  //for the approximation. This would open up into the NULL children and ignore the contribution of the leaf.
   //resolution is not sufficient, we need to open the tree deeper
   struct vec3d partial_vs, total_vs;
   total_vs = vec3(0,0,0);

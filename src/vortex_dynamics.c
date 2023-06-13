@@ -129,8 +129,7 @@ int do_reconnection(struct tangle_state *tangle, size_t k, size_t l);
 
 //helper for wall-reconnections
 int check_wall(struct tangle_state *tangle, int k, int wall, double rdist);
-int connect_to_wall(struct tangle_state *tangle, int k, int wall, double rdist,
-		   node_status_t pin_mode, double rec_angle, double time);
+int connect_to_wall(struct tangle_state *tangle, int k, int wall, node_status_t pin_mode, double time);
 
 /*
   Run through all the pairs of nodes and check their distance if they are not
@@ -167,7 +166,7 @@ int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec
 	      continue;
 
 	    if(check_wall(tangle, k, wall, rec_dist/2)) {
-        Nrecs += connect_to_wall(tangle, k, wall, rec_dist/2, pin_mode, rec_angle, t);
+        Nrecs += connect_to_wall(tangle, k, wall, pin_mode, t);
 	    }
 	  }
   }
@@ -199,7 +198,7 @@ int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec
 	  }
   }
   if(domain_killed > 0)
-    printf("Killed %d points outside the domain.\n", domain_killed);
+    printf("Removed %d points outside the domain.\n", domain_killed);
 
   /*
    * Some small loops might have been created by the removals above.
@@ -394,8 +393,7 @@ int check_wall(struct tangle_state *tangle, int k, int wall, double rdist)
   return 0;
 }
 
-int connect_to_wall(struct tangle_state *tangle, int k, int wall, double rdist,
-		   node_status_t pin_mode, double rec_angle, double time)
+int connect_to_wall(struct tangle_state *tangle, int k, int wall, node_status_t pin_mode, double time)
 {
   update_tangent_normal(tangle, k);
   update_velocity(tangle, k, time, NULL); //do not bother with B-H for a small number of points

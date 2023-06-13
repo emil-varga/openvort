@@ -79,8 +79,8 @@ int line_injection_n = 1; //how many pairs to inject
 double line_injection_frequency; //injections per second
 int line_injection_polarized = 0; //whether to inject the vortices in a polarized way, off by default
 
-//Barnes-Hut
+//Barnes-Hut approximation
 int use_BH = 0; //false by default
 int BH_quadtree = 0; //3D octree by default
-double BH_resolution = 0.1;
-double BH_grain = 10; //minimum size of the BH box relative to the global_dl_max
+double BH_resolution = 0.1; //maximum allowed ratio of BH box size to distance to center of mass
+double BH_grain = 1e-8; //minimum size of the BH box

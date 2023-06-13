@@ -342,7 +342,9 @@ static inline struct vec3d lia_velocity(const struct tangle_state *tangle, int i
   return vv;
 }
 
-struct vec3d calculate_vs_shift(struct tangle_state *tangle, struct vec3d r, int skip, const struct vec3d *shift)
+
+struct vec3d calculate_vs_shift(const struct tangle_state *tangle, struct vec3d r, int skip, const struct vec3d *shift,
+                                const int *use_only_points, const int Npoints)
 {
   int m;
   struct vec3d vs = vec3(0,0,0);
@@ -350,14 +352,17 @@ struct vec3d calculate_vs_shift(struct tangle_state *tangle, struct vec3d r, int
   if(shift)
     vec3_add(&r, &r, shift);
 
+  
+  const int N = use_only_points ? Npoints : tangle->N;
 
-  for(m=0; m < tangle->N; ++m) {
-    if(tangle->connections[m].forward == -1   ||
-	     skip == m                              ||
-	     skip == tangle->connections[m].forward)
+  for(m=0; m < N; ++m) {
+    const int k = use_only_points ? use_only_points[m] : m;
+    if(tangle->connections[k].forward == -1   ||
+	     skip == k                              ||
+	     skip == tangle->connections[k].forward)
 	    continue;
 
-    struct vec3d ivs = segment_field(tangle, m, r);
+    struct vec3d ivs = segment_field(tangle, k, r);
     vec3_add(&vs, &vs, &ivs);
     }
 
@@ -366,12 +371,12 @@ struct vec3d calculate_vs_shift(struct tangle_state *tangle, struct vec3d r, int
 
 struct vec3d calculate_vs(struct tangle_state *tangle, struct vec3d r, int skip)
 {
-  return calculate_vs_shift(tangle, r, skip, NULL);
+  return calculate_vs_shift(tangle, r, skip, NULL, NULL, 0);
 }
 
 void update_velocity(struct tangle_state *tangle, int k, double t, struct octree *tree)
 {
-  int m, i;
+  int m;
   if(tangle->status[k].status == EMPTY)
     return;
 
@@ -391,7 +396,7 @@ void update_velocity(struct tangle_state *tangle, int k, double t, struct octree
   vec3_add(&tangle->vs[k], &tangle->vs[k], &evs);
 
   if(use_BH && tree) {
-    //use the tree approximation to the full Biot-Savart
+    //use the Barnes-Hut approximation to the full Biot-Savart
     struct vec3d v_tree;
     octree_get_vs(tree, &tangle->vnodes[k], BH_resolution, &v_tree);
     vec3_add(&tangle->vs[k], &tangle->vs[k], &v_tree);

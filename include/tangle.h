@@ -113,22 +113,43 @@ int tangle_total_points(struct tangle_state *tangle);
 
 //calculates the shifted r according to the image_tangle conf
 struct vec3d shifted(const struct image_tangle *shift, const struct tangle_state *tangle,
-		     const struct vec3d *r);
+	                   const struct vec3d *r);
 void enforce_boundaries(struct tangle_state *tangle);
 void update_tangent_normal(struct tangle_state *tangle, size_t k);
 void update_tangents_normals(struct tangle_state *tangle);
 
 struct octree;
-void update_velocities(struct tangle_state *tangle, double t, struct octree *_tree);
+/// @brief Update velocities at all nodes in the tangle.
+/// @param tangle The vortex tangle, tangents and normals must be valid before calling this
+/// @param t time for external velocities and boundary conditions, if used
+/// @param tree octree used in the Barnes-Hut approximation, used only if the global use_BH is non-zero
+///             if NULL and use_BH is True, new tree is built internally and destroyed at the end 
+void update_velocities(struct tangle_state *tangle, double t, struct octree *tree);
+
+
+/// @brief Update velocity at the node k of the tangle, this is called by update_valocities
+/// @param tangle same as update_velocities
+/// @param k index of the node to update
+/// @param t same as update_velocities
+/// @param tree If non-NULL and global use_BH is true, use the Barnes-Hut approximation represented by tree
 void update_velocity(struct tangle_state *tangle, int k, double t, struct octree *tree);
 
-/**
-  @brief calculates the superfluid velocity
 
-  Calculates and returns the superfluid velocity v_s induced by tangle at location r.
-  Optionally disables one node given by skip. Use skip=-1 to not skip anything.
-*/
+/// @brief calculates the superfluid velocity
+/// Calculates and returns the superfluid velocity v_s induced by tangle at location r.
+/// Optionally disables one node given by skip. Use skip=-1 to not skip anything.
 struct vec3d calculate_vs(struct tangle_state *tangle, struct vec3d r, int skip);
+
+/// @brief Integration of the Biot-Savart integral
+/// @param tangle The vortex tangle
+/// @param r The point at which we want the velocity
+/// @param skip Which index to skip (-1 to disable)
+/// @param shift Calculate the velocity at r + shift (NULL to disable)
+/// @param use_only_points Only use these points in the tangle (NULL to disable)
+/// @param Npoints Number of points in use_only_points (ignored if use_only_points is NULL)
+/// @return velocity at point *r*
+struct vec3d calculate_vs_shift(const struct tangle_state *tangle, struct vec3d r, int skip, const struct vec3d *shift,
+                                const int *use_only_points, const int Npoints);
 
 void remesh(struct tangle_state *tangle, double min_dist, double max_dist);
 void eliminate_small_loops(struct tangle_state *tangle, int loop_length);

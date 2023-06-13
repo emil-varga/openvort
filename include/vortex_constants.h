@@ -63,6 +63,8 @@ extern int line_injection_polarized; //whether the injection is polarized
 //Barnes-Hut ('tree') approximation
 extern int use_BH;
 extern double BH_resolution;
+extern int BH_quadtree;
+extern double BH_grain;
 
 //hyperfriction to damp out strongly curved parts that are not resolved
 //by the discretisation

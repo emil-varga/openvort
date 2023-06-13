@@ -250,9 +250,7 @@ void save_tangle(const char *filename, struct tangle_state *tangle)
 	  }
   }
   
-  if(vortex_idx > 2)
-    printf("Three vortices\n");
-
+  printf("saving frame\n");
   free(visited);
   fclose(stream);
 }

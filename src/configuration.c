@@ -216,6 +216,10 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
     use_BH = ival;
   if(config_lookup_float(&cfg, "BH_resolution", &dval))
     BH_resolution = dval;
+  if(config_lookup_bool(&cfg, "BH_quadtree", &ival))
+    BH_quadtree = ival;
+  if(config_lookup_float(&cfg, "BH_grain", &dval))
+    BH_grain = dval;
 
   //mutual friction
   if(config_lookup_bool(&cfg, "use_mutual_friction", &ival))
@@ -576,6 +580,7 @@ void print_config(const struct tangle_state *tangle)
   else
     printf("\tNot using mutual friction\n.");
   if(hyperfriction) {
+    printf("Hyperfritcion:\n");
     printf(
       "\thyperalpha             = %g\n"
       "\tmax_curvature_scale    = %g\n",
@@ -584,5 +589,18 @@ void print_config(const struct tangle_state *tangle)
   }
   else {
     printf("\tNot using hyperfriction.");
+  }
+
+  if(use_BH) {
+    printf("Barnes-Hut approximation:\n");
+    printf(
+      "\tresolution        = %g\n"
+      "\tquadtree          = %s\n"
+      "\tgrain             = %g\n",
+      BH_resolution, BH_quadtree ? "True" : "False", BH_grain
+    );
+  }
+  else {
+    printf("Not using Barnes-Hut.\n");
   }
 }

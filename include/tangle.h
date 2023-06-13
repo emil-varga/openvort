@@ -117,9 +117,9 @@ struct vec3d shifted(const struct image_tangle *shift, const struct tangle_state
 void enforce_boundaries(struct tangle_state *tangle);
 void update_tangent_normal(struct tangle_state *tangle, size_t k);
 void update_tangents_normals(struct tangle_state *tangle);
-void update_velocities(struct tangle_state *tangle, double t);
 
 struct octree;
+void update_velocities(struct tangle_state *tangle, double t, struct octree *_tree);
 void update_velocity(struct tangle_state *tangle, int k, double t, struct octree *tree);
 
 /**
@@ -138,7 +138,7 @@ int get_tangle_next_free(struct tangle_state *tangle);
 static inline void update_tangle(struct tangle_state *tangle, double t)
 {
   update_tangents_normals(tangle);
-  update_velocities(tangle, t);
+  update_velocities(tangle, t, NULL);
 }
 
 void remove_point(struct tangle_state *tangle, int point_idx);

@@ -28,8 +28,8 @@ struct mat3d {
   double m[3][3];
 };
 
-extern struct mat3d mat_epsilon;
-extern struct mat3d mat_identity;
+extern const double epsilon[3][3][3];
+extern const struct mat3d mat_identity;
 
 struct segment {
   struct vec3d r1, r2;
@@ -78,6 +78,8 @@ struct domain_box make_box(struct vec3d bottom_left_front,
 			   wall_type wall[6]);
 
 int in_box(const struct domain_box *box, const struct vec3d *vec);
+double max_box_size(const struct domain_box *box);
+double min_box_size(const struct domain_box *box);
 /*
  * open-space geometry
  */

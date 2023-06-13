@@ -27,6 +27,30 @@ const struct vec3d DIR_Y = {{0, 1, 0}};
 const struct vec3d DIR_Z = {{0, 0, 1}};
 const struct vec3d DIRS[3] = {{{1, 0, 0}}, {{0, 1, 0}}, {{0, 0, 1}}};
 
+const struct mat3d mat_identity = {
+  .m = {{1, 0, 0},
+        {0, 1, 0},
+        {0, 0, 1}}
+};
+
+const double epsilon[3][3][3] = { //indices are ijk
+  {//i = 1
+    {0, 0, 0},  //j = 1, k={1,2,3}
+    {0, 0, 1},  //j = 2
+    {0, -1, 0}, //j = 3
+  },
+  {//i = 2
+    {0, 0, -1}, //j = 1
+    {0, 0, 0},  //j = 2
+    {1, 0, 0},  //j = 3
+  },
+  {//i = 3
+    {0, 1, 0},  //j = 1
+    {-1, 0, 0}, //j = 2
+    {0, 0, 0},  //j = 3
+  }
+};
+
 /*
  * Inward-facing normals of the box boundary face walls
  */
@@ -55,6 +79,32 @@ int in_box(const struct domain_box *box, const struct vec3d *vec)
       vy > box->bottom_left_back.p[1] && vy < box->top_right_front.p[1] &&
       vz > box->bottom_left_back.p[2] && vz < box->top_right_front.p[2];
   return in_box;
+}
+
+double max_box_size(const struct domain_box *box) {
+  struct vec3d L;
+  vec3_sub(&L, &box->top_right_front, &box->bottom_left_back);
+  const double Lx = L.p[0];
+  const double Ly = L.p[1];
+  const double Lz = L.p[2];
+  if(Lx > Ly) {
+    return Lx > Lz ? Lx : Lz;
+  } else {
+    return Ly > Lz ? Ly : Lz;
+  }
+}
+
+double min_box_size(const struct domain_box *box) {
+  struct vec3d L;
+  vec3_sub(&L, &box->top_right_front, &box->bottom_left_back);
+  const double Lx = L.p[0];
+  const double Ly = L.p[1];
+  const double Lz = L.p[2];
+  if(Lx < Ly) {
+    return Lx < Lz ? Lx : Lz;
+  } else {
+    return Ly < Lz ? Ly : Lz;
+  }
 }
 
 struct segment seg_pwrap(const struct vec3d *r1, const struct vec3d *r2,

@@ -18,7 +18,10 @@ typedef enum _octree_child_idx {
   OCTREE_CHILDREN_N
 } octree_child_idx;
 
+extern const int OCTREE_2D_CHILDREN_N;
+
 struct octree {
+  int quadtree; //==0 for normal 3D octree, ==1 for 2D quadtree (do not split z-direction)
   int N_total; //total number of available spaces for vortex nodes in this tree node
   int N; //number of actual nodes in the this tree node
   int *node_ids;
@@ -30,11 +33,10 @@ struct octree {
   const struct tangle_state *tangle; //reference to the tangle used to build the tree
 };
 
-struct octree* octree_init(int Ninit, int depth);
+struct octree* octree_init(int Ninit, int depth, int quadtree);
 void octree_destroy(struct octree *tree);
 
-int octree_add(struct octree *tree, const struct vec3d *v);
-struct octree *octree_build(const struct tangle_state *tangle);
+struct octree *octree_build(const struct tangle_state *tangle, int quadtree);
 
 /*helper functions*/
 octree_child_idx octree_find_child_index(const struct domain_box *box, const struct vec3d *r);

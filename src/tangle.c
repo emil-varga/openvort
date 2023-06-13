@@ -414,7 +414,10 @@ void update_velocity(struct tangle_state *tangle, int k, double t, struct octree
 
   for(int j = 0; j < tangle->bimg.n; ++j) {
     shift_r = shifted(&tangle->bimg.images[j], tangle, &tangle->vnodes[k]);
-    v_shift = calculate_vs(tangle, shift_r, -1);
+    if(use_BH && tree)
+      octree_get_vs(tree, &shift_r, BH_resolution, &v_shift);
+    else
+      v_shift = calculate_vs(tangle, shift_r, -1);
     if(tangle->bimg.images[j].reflect > -1) //mirror wall
 	    v_shift = mirror_dir_reflect(&v_shift, tangle->bimg.images[j].reflect);
     vec3_add(&v_shift_total, &v_shift_total, &v_shift);
@@ -466,11 +469,11 @@ void update_velocity(struct tangle_state *tangle, int k, double t, struct octree
   }
 }
 
-void update_velocities(struct tangle_state *tangle, double t)
+void update_velocities(struct tangle_state *tangle, double t, struct octree *_tree)
 {
-  struct octree *tree = NULL;
-  if(use_BH)
-    tree = octree_build(tangle);
+  struct octree *tree = _tree;
+  if(!tree && use_BH)
+    tree = octree_build(tangle, BH_quadtree);
 
   int i;
   #pragma omp parallel private(i) num_threads(global_num_threads)
@@ -480,7 +483,8 @@ void update_velocities(struct tangle_state *tangle, double t)
 	    update_velocity(tangle, i, t, tree);
 	  }
   }
-  octree_destroy(tree);
+  if(!_tree) //only destroy the tree if we made our own
+    octree_destroy(tree);
 }
 
 void update_tangents_normals(struct tangle_state *tangle)
@@ -685,7 +689,7 @@ void eliminate_small_loops(struct tangle_state *tangle, int loop_length)
       while(1) {
         int tmp = next;
         next = tangle->connections[next].forward;
-        printf("deleting %d\n", tmp);
+        //printf("deleting %d\n", tmp);
         tangle->connections[tmp].forward = -1;
         tangle->connections[tmp].reverse = -1;
         tangle->status[tmp].status = EMPTY;

@@ -80,46 +80,43 @@ void rk4_step2(struct tangle_state *result,
   euler_step2(&rk_state[0], tangle, dt/2, NULL);
   enforce_boundaries(&rk_state[0]);
   update_tangents_normals(&rk_state[0]);
-  update_velocities(&rk_state[0], t + dt/2);
+  update_velocities(&rk_state[0], t + dt/2, NULL);
 
   //calculate k3
   euler_step2(&rk_state[1], tangle, dt/2, rk_state[0].vels);
   enforce_boundaries(&rk_state[1]);
   update_tangents_normals(&rk_state[1]);
-  update_velocities(&rk_state[1], t+dt/2);
+  update_velocities(&rk_state[1], t+dt/2, NULL);
 
   //calculate k4
   euler_step2(&rk_state[2], tangle, dt/2, rk_state[1].vels);
   enforce_boundaries(&rk_state[2]);
   update_tangents_normals(&rk_state[2]);
-  update_velocities(&rk_state[2], t + dt);
+  update_velocities(&rk_state[2], t + dt, NULL);
 
-  for(int k=0; k < N; ++k)
-    {
-      if(tangle->status[k].status == EMPTY)
-	continue;
+  for(int k=0; k < N; ++k) {
+    if(tangle->status[k].status == EMPTY)
+	    continue;
 
-      //move contains the full step, a are partial steps
-      struct vec3d move, a;
-      vec3_mul(&move, &tangle->vels[k], dt/6); //k1
+    //move contains the full step, a are partial steps
+    struct vec3d move, a;
+    vec3_mul(&move, &tangle->vels[k], dt/6); //k1
 
-      vec3_mul(&a, &rk_state[0].vels[k], dt/3); // k2
-      vec3_add(&move, &move, &a);
+    vec3_mul(&a, &rk_state[0].vels[k], dt/3); // k2
+    vec3_add(&move, &move, &a);
 
-      vec3_mul(&a, &rk_state[1].vels[k], dt/3); // k3
-      vec3_add(&move, &move, &a);
+    vec3_mul(&a, &rk_state[1].vels[k], dt/3); // k3
+    vec3_add(&move, &move, &a);
 
-      vec3_mul(&a, &rk_state[2].vels[k], dt/6); //k4
-      vec3_add(&move, &move, &a);
+    vec3_mul(&a, &rk_state[2].vels[k], dt/6); //k4
+    vec3_add(&move, &move, &a);
 
-      vec3_add(&result->vnodes[k], &result->vnodes[k],
-	       &move);
-    }
+    vec3_add(&result->vnodes[k], &result->vnodes[k], &move);
+  }
 
-  for(int k=0; k<3; ++k)
-    {
-      free_tangle(&rk_state[k]);
-    }
+  for(int k=0; k<3; ++k) {
+    free_tangle(&rk_state[k]);
+  }
 }
 
 void rk4_step(struct tangle_state *tangle, double t, double dt)
@@ -306,7 +303,7 @@ int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec
 	  tangle->recalculate[lprev]++;
 
 	  Nrecs++;
-    printf("vortex-vortex reconnection %d %d\n", k, l);
+    //printf("vortex-vortex reconnection %d %d\n", k, l);
 	  
 	  break; 
 	}
@@ -469,6 +466,6 @@ int connect_to_wall(struct tangle_state *tangle, int k, int wall, double rdist,
     tangle->connections[new_pt2].reverse = prev;
     tangle->connections[prev].forward = new_pt2;
   }
-  printf("vortex-wall reconnection %d (%d, %d)\n", k, prev, next);
+  //printf("vortex-wall reconnection %d (%d, %d)\n", k, prev, next);
   return 2;
 }

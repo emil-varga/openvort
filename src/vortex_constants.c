@@ -81,4 +81,6 @@ int line_injection_polarized = 0; //whether to inject the vortices in a polarize
 
 //Barnes-Hut
 int use_BH = 0; //false by default
-double BH_resolution = 1e-3;
+int BH_quadtree = 0; //3D octree by default
+double BH_resolution = 0.1;
+double BH_grain = 10; //minimum size of the BH box relative to the global_dl_max

@@ -51,6 +51,7 @@ void octree_destroy(struct octree *tree)
     if(tree->children[child])
       octree_destroy(tree->children[child]);
   }
+  free(tree->node_ids);
   free(tree);
 }
 
@@ -264,7 +265,7 @@ void octree_update_means(struct octree *tree, const struct tangle_state *tangle)
     octree_update_means(tree->children[child], tangle);
 }
 
-//velocity calculation at point *r*
+//velocity calculation at point r
 void octree_get_vs(const struct octree *tree, const struct vec3d *r, double resolution, struct vec3d *res, int skip)
 {
   if(!tree || tree->N == 0) {

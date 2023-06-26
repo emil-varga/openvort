@@ -59,6 +59,7 @@ if __name__ == '__main__':
                         nargs=2)
     parser.add_argument('--zlim', help='z-axis limiting values', type=float,
                         nargs=2)
+    parser.add_argument('--aspect', help='equal aspect ratio on the axes', action='store_true')
 
     args = parser.parse_args()
 
@@ -151,6 +152,8 @@ if __name__ == '__main__':
         ax.set_xlabel("$x$ (mm)")
         ax.set_ylabel("$y$ (mm)")
         ax.set_zlabel("$z$ (mm)")
+        if args.aspect:
+            ax.set_aspect('equal')
         if args.show_time:
             txt = fig.text(0.05, 0.05, "$t$ = {:.06f} s".format(time), fontsize=18)
         fig.tight_layout()

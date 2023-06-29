@@ -136,3 +136,9 @@ void dipole_straight_lines(struct  tangle_state *tangle, int points_per_line, in
     add_line(tangle, 0, -dy/4, -1, points_per_line);
   }
 }
+
+void single_straight_line(struct tangle_state *tangle, int points_per_line, int direction)
+{
+  assert(tangle->box.wall[Z_L] == WALL_MIRROR && tangle->box.wall[Z_H] == WALL_MIRROR);
+  add_line(tangle, 0, 0, direction, points_per_line);
+}

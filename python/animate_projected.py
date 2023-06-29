@@ -36,6 +36,7 @@ import argparse
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Draws the individual frames.")
     parser.add_argument("data_dir", help="Directory with the frames.")
+    parser.add_argument("--output-dir", help="Where to save picutes. data_dir by default")
     parser.add_argument("--slow", help="Plot segment-by-segment. Very slow, but right now needed for periodic boxes.",
                         action = "store_true");
     parser.add_argument("-D", help="Size of the plot box. The box will be interval [-D,D]^3. If the box is assymetric, use also -D1",
@@ -65,6 +66,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     data_dir = args.data_dir
+    if args.output_dir is not None:
+        output_dir = args.output_dir
+    else:
+        output_dir = data_dir
     slow = args.slow
 
     if args.D:
@@ -132,7 +137,8 @@ if __name__ == '__main__':
     i=-1
     for fn in files:
         i = i+1
-        if path.isfile(fn.replace('.dat', '_2D.png')):
+        dst_file = path.join(output_dir, path.split(fn)[-1].replace('.dat', '_2D.png'))
+        if path.isfile(dst_file):
             continue
         print("{}/{}".format(i, len(files)))
         frame_index = int(path.split(fn)[1][5:-4])
@@ -153,6 +159,6 @@ if __name__ == '__main__':
         ax.set_aspect('equal')
         ax.set_xlabel("$x$ (mm)")
         ax.set_ylabel("$y$ (mm)")
-        fig.savefig(fn.replace('.dat', '_2D.png'))
+        fig.savefig(dst_file)
         if args.show_time:
             txt.remove()

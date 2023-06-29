@@ -154,22 +154,22 @@ int setup_external_velocity(config_setting_t *v_conf_setting, struct v_conf_t *v
     {
       switch((v_conf)->v_params[k].type)
       {
-	case scalar_param:
-	  if(config_setting_lookup_float(v_conf_setting, (v_conf)->v_params[k].name, &dval))
-	    (v_conf)->v_params[k].value.scalar = dval;
-	  else
-	    {
-	      error("Could not find parameter %s.", v_conf->v_params[k].name);
-	    }
-	  break;
-	case vector_param:
-	  vec_cfg = config_setting_lookup(v_conf_setting, (v_conf)->v_params[k].name);
-	  for(int j = 0; j<3; ++j)
-	    vval.p[j] = config_setting_get_float_elem(vec_cfg, j);
-	  (v_conf)->v_params[k].value.vector = vval;
-	  break;
-	default:
-	  break;
+        case scalar_param:
+          if(config_setting_lookup_float(v_conf_setting, (v_conf)->v_params[k].name, &dval))
+            (v_conf)->v_params[k].value.scalar = dval;
+          else
+          {
+              error("Could not find parameter %s.", v_conf->v_params[k].name);
+          }
+          break;
+        case vector_param:
+          vec_cfg = config_setting_lookup(v_conf_setting, (v_conf)->v_params[k].name);
+          for(int j = 0; j<3; ++j)
+            vval.p[j] = config_setting_get_float_elem(vec_cfg, j);
+          (v_conf)->v_params[k].value.vector = vval;
+          break;
+        default:
+          break;
       }
     }
   return 0;
@@ -484,6 +484,15 @@ int setup_init(const char *conf_file, struct tangle_state *tangle)
       if(!config_lookup_int(&cfg, "dipole_direction", &direction))
         goto failure;
       dipole_straight_lines(tangle, points_per_line, direction);
+    }
+    else if(strcmp(str, "single") == 0) {
+      int points_per_line;
+      int direction;
+      if(!config_lookup_int(&cfg, "init_line_points", &points_per_line))
+        goto failure;
+      if(!config_lookup_int(&cfg, "init_line_direction", &direction))
+        goto failure;
+      single_straight_line(tangle, points_per_line, direction);
     }
     else {
       fprintf(stderr, "Error: unknown initialization mode: %s\n", str);

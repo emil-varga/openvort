@@ -88,40 +88,40 @@ const struct v_conf_t v_conf_noflow = {
 };
 
 struct v_conf_t v_confs[] = {
-    {
-        .name = "no flow",
-        .fun = get_v_noflow,
-        .n_params = 0,
-        .v_params = {{0,0,{.scalar = 0}}}
-    },
-    {
-	.name = "spherical",
-	.fun = get_v_spherical,
-	.n_params = 2,
-	.v_params = {
-	    {"strength", scalar_param, {.scalar = 0}},
-	    {"cutoff", scalar_param, {.scalar = 0}}
-	}
-    },
-    {
-	.name = "simple",
-	.fun = get_v_simple,
-	.n_params = 1,
-	.v_params = {
-	    {"external_v", vector_param, {.scalar = 0}}
-	}
-    },
-    {
-	.name = "spherical and simple",
-	.fun = get_v_spherical_and_simple,
-	.n_params = 3,
-	.v_params = {
-	    {"external_v", vector_param, {.scalar = 0}},
-	    {"strength", scalar_param, {.scalar = 0}},
-	    {"cutoff", scalar_param, {.scalar = 0}}
-	}
-    },
-    {
+  {
+    .name = "no flow",
+    .fun = get_v_noflow,
+    .n_params = 0,
+    .v_params = {{0,0,{.scalar = 0}}}
+  },
+  {
+    .name = "spherical",
+    .fun = get_v_spherical,
+    .n_params = 2,
+    .v_params = {
+      {"strength", scalar_param, {.scalar = 0}},
+      {"cutoff", scalar_param, {.scalar = 0}}
+    }
+  },
+  {
+    .name = "simple",
+    .fun = get_v_simple,
+    .n_params = 1,
+    .v_params = {
+      {"external_v", vector_param, {.scalar = 0}}
+    }
+  },
+  {
+    .name = "spherical and simple",
+    .fun = get_v_spherical_and_simple,
+    .n_params = 3,
+    .v_params = {
+      {"external_v", vector_param, {.scalar = 0}},
+      {"strength", scalar_param, {.scalar = 0}},
+      {"cutoff", scalar_param, {.scalar = 0}}
+    }
+  },
+  {
 	.name = "cylindrical",
 	.fun = get_v_cylindrical,
 	.n_params = 2,
@@ -129,92 +129,100 @@ struct v_conf_t v_confs[] = {
 	    {"strength", scalar_param, {.scalar = 0}},
 	    {"cutoff", scalar_param, {.scalar = 0}}
 	}
-    },
-    {
-	.name = "oscillating",
-	.fun = get_v_oscillating,
-	.n_params = 4,
-	.v_params = {
-	    {"strength", scalar_param, {.scalar = 0}},
-	    {"frequency", scalar_param, {.scalar = 0}},
-	    {"wave", vector_param, {.scalar = 0}},
-	    {"polarization", vector_param, {.scalar = 0}}
-	}
-    },
-    {
-	.name = "oscillating slit",
-	.fun = get_v_oscillating_slit,
-	.n_params = 3,
-	.v_params = {
-	    {"strength", scalar_param, {.scalar = 0}},
-	    {"frequency", scalar_param, {.scalar = 0}},
-	    {"cutoff", scalar_param, {.scalar = 0}}
-	}
-    },
-    {
-	.name = "coscos",
-	.fun = get_v_coscos,
-	.n_params = 3,
-	.v_params = {
-	    {"k", scalar_param, {.scalar = 0}},
-	    {"v0", scalar_param, {.scalar = 0}},
-	    {"l", scalar_param, {.scalar = 0}}
-	}
-    },
-    {
-    	.name = "coscos-divfree",
-    	.fun = get_v_coscos_divfree,
-    	.n_params = 3,
-    	.v_params = {
-    	    {"k", scalar_param, {.scalar = 0}},
-    	    {"v0", scalar_param, {.scalar = 0}},
-    	    {"l", scalar_param, {.scalar = 0}}
-    	}
-    },
-    {
-      	.name = "cos-divfree",
-      	.fun = get_v_cos_divfree,
-      	.n_params = 3,
-      	.v_params = {
-      	    {"k", scalar_param, {.scalar = 0}},
-      	    {"v0", scalar_param, {.scalar = 0}},
-      	    {"l", scalar_param, {.scalar = 0}}
-      	}
-    },
-    {
-	.name = "simple-shear",
-	.fun = get_v_simple_shear,
-	.n_params = 2,
-	.v_params = {
-	    {"rate", scalar_param, {.scalar=0}},
-	    {"v0", scalar_param, {.scalar=0}}
-	}
-    },
-    {
-    	.name = "rotosc",
-    	.fun = get_v_rotosc,
-    	.n_params = 2,
-    	.v_params = {
-    	    {"freq", scalar_param, {.scalar=0}},
-    	    {"amp", scalar_param, {.scalar=0}}
-    	}
-    },
-    {
-	.name = "rotosc-boundary",
-	.fun = get_v_rotosc,
-	.n_params = 2,
-	.v_params = {
-	    {"freq", scalar_param, {.scalar=0}},
-	    {"amp", scalar_param, {.scalar=0}},
-	    {"delta", scalar_param, {.scalar=0}}
-	}
-    },
-    {
-      .name = "",
-      .fun = NULL,
-      .n_params = 0,
-      .v_params = {{0,0,{.scalar = 0}}}
+  },
+  {
+    .name = "oscillating",
+    .fun = get_v_oscillating,
+    .n_params = 4,
+    .v_params = {
+      {"strength", scalar_param, {.scalar = 0}},
+      {"frequency", scalar_param, {.scalar = 0}},
+      {"wave", vector_param, {.scalar = 0}},
+      {"polarization", vector_param, {.scalar = 0}}
     }
+  },
+  {
+    .name = "oscillating slit",
+    .fun = get_v_oscillating_slit,
+    .n_params = 3,
+    .v_params = {
+      {"strength", scalar_param, {.scalar = 0}},
+      {"frequency", scalar_param, {.scalar = 0}},
+      {"cutoff", scalar_param, {.scalar = 0}}
+    }
+  },
+  {
+    .name = "coscos",
+    .fun = get_v_coscos,
+    .n_params = 3,
+    .v_params = {
+      {"k", scalar_param, {.scalar = 0}},
+      {"v0", scalar_param, {.scalar = 0}},
+      {"l", scalar_param, {.scalar = 0}}
+    }
+  },
+  {
+    .name = "coscos-divfree",
+    .fun = get_v_coscos_divfree,
+    .n_params = 3,
+    .v_params = {
+      {"k", scalar_param, {.scalar = 0}},
+      {"v0", scalar_param, {.scalar = 0}},
+      {"l", scalar_param, {.scalar = 0}}
+    }
+  },
+  {
+    .name = "cos-divfree",
+    .fun = get_v_cos_divfree,
+    .n_params = 3,
+    .v_params = {
+      {"k", scalar_param, {.scalar = 0}},
+      {"v0", scalar_param, {.scalar = 0}},
+      {"l", scalar_param, {.scalar = 0}}
+    }
+  },
+  {
+    .name = "simple-shear",
+    .fun = get_v_simple_shear,
+    .n_params = 2,
+    .v_params = {
+      {"rate", scalar_param, {.scalar=0}},
+      {"v0", scalar_param, {.scalar=0}}
+    }
+  },
+  {
+    .name = "rotosc",
+    .fun = get_v_rotosc,
+    .n_params = 2,
+    .v_params = {
+      {"freq", scalar_param, {.scalar=0}},
+      {"amp", scalar_param, {.scalar=0}}
+    }
+  },
+  {
+    .name = "rotosc-boundary",
+    .fun = get_v_rotosc,
+    .n_params = 2,
+    .v_params = {
+      {"freq", scalar_param, {.scalar=0}},
+      {"amp", scalar_param, {.scalar=0}},
+      {"delta", scalar_param, {.scalar=0}}
+    }
+  },
+  {
+    .name = "constant acceleration",
+    .fun = get_v_constant_acceleration,
+    .n_params = 1,
+    .v_params = {
+      {"accel", scalar_param, {.scalar=0}}
+    }
+  },
+  {
+    .name = "",
+    .fun = NULL,
+    .n_params = 0,
+    .v_params = {{0,0,{.scalar = 0}}}
+  }
 };
 
 int get_v_noflow(const struct vec3d *where __attribute__((unused)), double t __attribute__((unused)), struct vec3d *res, struct v_conf_t * v_conf __attribute__((unused)))
@@ -324,7 +332,7 @@ int get_v_oscillating(const struct vec3d *where, double t, struct vec3d *res, st
     return err;
 
   double X = cos(2*M_PI*vec3_dot(&k, where));
-  double T = cos(2*M_PI*freq*t);
+  double T = sin(2*M_PI*freq*t);
 
   vec3_mul(res, &pol, strength*X*T);
   return 0;
@@ -486,6 +494,18 @@ int get_v_rotosc_boundary(const struct vec3d *where, double t, struct vec3d *res
   double z = where->p[2];
   vec3_mul(&v, &v, amp*exp(-z/delta)*cos(freq*t - z/delta));
 
+  *res = v;
+  return 0;
+}
+
+int get_v_constant_acceleration(const struct vec3d *where __attribute__((unused)), double t, struct vec3d *res, struct v_conf_t *vconf)
+{
+  double acc;
+  int err;
+  if(!(err = get_v_param_scalar(vconf, "accel", &acc)))
+    return err;
+  
+  struct vec3d v = vec3(acc*t, 0, 0);
   *res = v;
   return 0;
 }

@@ -15,5 +15,6 @@ void insert_random_loops(struct tangle_state *tangle, int N);
 void make_big_ring(struct tangle_state *tangle, double ring_r, int ring_N);
 void quad_straight_lines(struct  tangle_state *tangle, int points_per_line);
 void dipole_straight_lines(struct  tangle_state *tangle, int points_per_line, int direction);
+void single_straight_line(struct tangle_state *tangle, int points_per_line, int direction);
 
 #endif /* INCLUDE_INITIAL_CONDITIONS_H_ */

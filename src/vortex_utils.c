@@ -120,40 +120,57 @@ void add_line(struct tangle_state *tangle, double x, double y, int direction, in
   struct vec3d spp = vec3(0, 0, 0); //normal
 
   int new_pt = get_tangle_next_free(tangle);
+  const int first_pt = new_pt;
+  const int start_wall = direction > 0 ? Z_L : Z_H;
+  const int end_wall = direction > 0 ? Z_H : Z_L;
   int last_pt;
   tangle->vnodes[new_pt] = s;
   tangle->tangents[new_pt] = sp;
   tangle->normals[new_pt] = spp;
-  tangle->status[new_pt].status = pin_mode;
-  tangle->status[new_pt].pin_wall = direction > 0 ? Z_L : Z_H;
-  tangle->connections[new_pt].reverse = -1;
+  if(tangle->box.wall[start_wall] == WALL_MIRROR) {
+    tangle->status[new_pt].status = pin_mode;
+    tangle->status[new_pt].pin_wall = start_wall;
+    tangle->connections[new_pt].reverse = -1;
+  } else if(tangle->box.wall[start_wall] == WALL_PERIODIC) {
+    tangle->vnodes[new_pt].p[2] += direction*1e-6; //so that it's not right on the face
+    tangle->status[new_pt].status = FREE;
+    tangle->status[new_pt].pin_wall = NOT_A_FACE;
+  } else {
+    error("only walls or periodic conditions for add_line");
+  }
 
-  for(int k=1; k<points-1; ++k)
-    {
-      last_pt = new_pt;
-      new_pt = get_tangle_next_free(tangle);
-      s.p[2] = zstart + direction*k*dz;
+  for(int k=1; k<points-1; ++k) {
+    last_pt = new_pt;
+    new_pt = get_tangle_next_free(tangle);
+    s.p[2] = zstart + direction*k*dz;
 
-      tangle->vnodes[new_pt] = s;
-      tangle->tangents[new_pt] = sp;
-      tangle->normals[new_pt] = spp;
-      tangle->status[new_pt].status = FREE;
-      tangle->status[new_pt].pin_wall = NOT_A_FACE;
-      tangle->connections[new_pt].reverse = last_pt;
-      tangle->connections[last_pt].forward = new_pt;
-    }
+    tangle->vnodes[new_pt] = s;
+    tangle->tangents[new_pt] = sp;
+    tangle->normals[new_pt] = spp;
+    tangle->status[new_pt].status = FREE;
+    tangle->status[new_pt].pin_wall = NOT_A_FACE;
+    tangle->connections[new_pt].reverse = last_pt;
+    tangle->connections[last_pt].forward = new_pt;
+  }
 
   s.p[2] = zend;
   last_pt = new_pt;
-  new_pt = get_tangle_next_free(tangle);
-  tangle->vnodes[new_pt] = s;
-  tangle->tangents[new_pt] = sp;
-  tangle->normals[new_pt] = spp;
-  tangle->status[new_pt].status = pin_mode;
-  tangle->status[new_pt].pin_wall = direction > 0 ? Z_H : Z_L;
-  tangle->connections[new_pt].reverse = last_pt;
-  tangle->connections[new_pt].forward = -1;
-  tangle->connections[last_pt].forward = new_pt;
+  if(tangle->box.wall[end_wall] == WALL_MIRROR) {
+    new_pt = get_tangle_next_free(tangle);
+    tangle->vnodes[new_pt] = s;
+    tangle->tangents[new_pt] = sp;
+    tangle->normals[new_pt] = spp;
+    tangle->status[new_pt].status = pin_mode;
+    tangle->status[new_pt].pin_wall = end_wall;
+    tangle->connections[new_pt].reverse = last_pt;
+    tangle->connections[new_pt].forward = -1;
+    tangle->connections[last_pt].forward = new_pt;
+  } else if (tangle->box.wall[end_wall] == WALL_PERIODIC) {
+    tangle->connections[new_pt].forward = first_pt;
+    tangle->connections[first_pt].reverse = new_pt;
+  } else {
+    error("only walls or periodic conditions for add_line");
+  }
 }
 
 /*

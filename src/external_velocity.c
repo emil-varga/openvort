@@ -468,7 +468,7 @@ int get_v_rotosc(const struct vec3d *where, double t, struct vec3d *res, struct 
   const struct vec3d axis = vec3(0, 0, 1);
   struct vec3d v;
   vec3_cross(&v, &axis, where);
-  vec3_mul(&v, &v, amp*cos(freq*t));
+  vec3_mul(&v, &v, amp*cos(2*M_PI*freq*t));
 
   *res = v;
   return 0;

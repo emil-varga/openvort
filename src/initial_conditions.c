@@ -77,7 +77,8 @@ void make_big_ring(struct tangle_state *tangle, double ring_r, int ring_N)
 void random_straight_lines(struct tangle_state *tangle, int npairs, int points_per_line)
 {
   //for the slab geometry, populate the computational box with straight vortices
-  assert(tangle->box.wall[Z_L] == WALL_MIRROR && tangle->box.wall[Z_H] == WALL_MIRROR);
+  assert((tangle->box.wall[Z_L] == WALL_MIRROR && tangle->box.wall[Z_H] == WALL_MIRROR) ||
+         (tangle->box.wall[Z_L] == WALL_PERIODIC && tangle->box.wall[Z_H] == WALL_PERIODIC));
 
   const double xmin = tangle->box.bottom_left_back.p[0];
   const double xmax = tangle->box.top_right_front.p[0];
@@ -91,6 +92,23 @@ void random_straight_lines(struct tangle_state *tangle, int npairs, int points_p
     double y2 = ymin + (ymax - ymin)*drand48();
     add_line(tangle, x1, y1, +1, points_per_line);
     add_line(tangle, x2, y2, -1, points_per_line);
+  }
+}
+
+void random_polarized_lines(struct tangle_state *tangle, int nvort, int direction, int points_per_line)
+{
+  assert((tangle->box.wall[Z_L] == WALL_MIRROR && tangle->box.wall[Z_H] == WALL_MIRROR) ||
+         (tangle->box.wall[Z_L] == WALL_PERIODIC && tangle->box.wall[Z_H] == WALL_PERIODIC));
+
+  const double xmin = tangle->box.bottom_left_back.p[0];
+  const double xmax = tangle->box.top_right_front.p[0];
+  const double ymin = tangle->box.bottom_left_back.p[1];
+  const double ymax = tangle->box.top_right_front.p[1];
+
+  for(int k=0; k < nvort; ++k) {
+    double x1 = xmin + (xmax - xmin)*drand48();
+    double y1 = ymin + (ymax - ymin)*drand48();
+    add_line(tangle, x1, y1, direction, points_per_line);
   }
 }
 

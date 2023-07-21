@@ -355,6 +355,12 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
     tangle->bimg = periodic_26;
     set_walls_full(tangle, WALL_PERIODIC);
   }
+  else if(strcmp(str, "periodic-z-open-xy") == 0) {
+    tangle->bimg = periodic_z_open_xy;
+    set_walls_full(tangle, WALL_OPEN);
+    tangle->box.wall[Z_L] = WALL_PERIODIC;
+    tangle->box.wall[Z_H] = WALL_PERIODIC;
+  }
   else if(strcmp(str, "wall-1-6") == 0) {
     tangle->bimg = wall_1_6;
     set_walls_full(tangle, WALL_PERIODIC);
@@ -469,6 +475,16 @@ int setup_init(const char *conf_file, struct tangle_state *tangle)
       if(!config_lookup_int(&cfg, "init_line_points", &points_per_line))
         goto failure;
       random_straight_lines(tangle, npairs, points_per_line);
+    }
+    else if(strcmp(str, "random polarized lines") == 0) {
+      int nvorts, direction, points_per_line;
+      if(!config_lookup_int(&cfg, "init_nvorts", &nvorts))
+        goto failure;
+      if(!config_lookup_int(&cfg, "init_line_points", &points_per_line))
+        goto failure;
+      if(!config_lookup_int(&cfg, "init_direction", &direction))
+        goto failure;
+      random_polarized_lines(tangle, nvorts, direction, points_per_line);
     }
     else if(strcmp(str, "quad") == 0) {
       int points_per_line;

@@ -132,7 +132,7 @@ void add_line(struct tangle_state *tangle, double x, double y, int direction, in
     tangle->status[new_pt].pin_wall = start_wall;
     tangle->connections[new_pt].reverse = -1;
   } else if(tangle->box.wall[start_wall] == WALL_PERIODIC) {
-    tangle->vnodes[new_pt].p[2] += direction*1e-6; //so that it's not right on the face
+    tangle->vnodes[new_pt].p[2] += direction*1e-6; //so that it's not right on the boundary
     tangle->status[new_pt].status = FREE;
     tangle->status[new_pt].pin_wall = NOT_A_FACE;
   } else {

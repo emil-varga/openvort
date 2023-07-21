@@ -67,6 +67,7 @@ extern const struct boundary_images open_boundaries;
 extern const struct boundary_images periodic_6;
 extern const struct boundary_images periodic_18;
 extern const struct boundary_images periodic_26;
+extern const struct boundary_images periodic_z_open_xy;
 
 extern const struct boundary_images wall_1_open;
 extern const struct boundary_images wall_1_6;

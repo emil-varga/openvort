@@ -34,6 +34,10 @@
 
 #define PATH_LEN 256
 
+#ifndef M_PI
+# define M_PI		3.14159265358979323846
+#endif
+
 //whether and from what file are we restarting the calculation
 static int restart = 0;
 static char restart_path[PATH_LEN];

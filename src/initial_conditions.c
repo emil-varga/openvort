@@ -21,6 +21,7 @@
 #include "tangle.h"
 #include "vortex_utils.h"
 #include <assert.h>
+#include <math.h>
 
 void insert_random_loops(struct tangle_state *tangle, int N)
 {
@@ -109,6 +110,23 @@ void random_polarized_lines(struct tangle_state *tangle, int nvort, int directio
     double x1 = xmin + (xmax - xmin)*drand48();
     double y1 = ymin + (ymax - ymin)*drand48();
     add_line(tangle, x1, y1, direction, points_per_line);
+  }
+}
+
+void triangular_lattice(struct tangle_state *tangle, int shells, int direction, int points_per_line, float lattice_constant)
+{
+  const double dy = sqrt(3)/2;
+
+  for(int i=-shells; i<shells+1; ++i)
+  {
+    for(int j=-shells; j<shells+1; ++j)
+    {
+      if(abs(i-j) > shells)
+        continue;
+      double x = i - 0.5*j;
+      double y = dy*j;
+      add_line(tangle, x*lattice_constant, y*lattice_constant, direction, points_per_line);
+    }
   }
 }
 

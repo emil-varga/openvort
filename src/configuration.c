@@ -486,6 +486,19 @@ int setup_init(const char *conf_file, struct tangle_state *tangle)
         goto failure;
       random_polarized_lines(tangle, nvorts, direction, points_per_line);
     }
+    else if(strcmp(str, "lattice") == 0) {
+      int shells, direction, points_per_line;
+      double lattice_constant;
+      if(!config_lookup_int(&cfg, "init_lattice_shells", &shells))
+        goto failure;
+      if(!config_lookup_int(&cfg, "init_line_points", &points_per_line))
+        goto failure;
+      if(!config_lookup_int(&cfg, "init_direction", &direction))
+        goto failure;
+      if(!config_lookup_float(&cfg, "init_lattice_constant", &lattice_constant))
+        goto failure;
+      triangular_lattice(tangle, shells, direction, points_per_line, lattice_constant);
+    }
     else if(strcmp(str, "quad") == 0) {
       int points_per_line;
       if(!config_lookup_int(&cfg, "init_line_points", &points_per_line))

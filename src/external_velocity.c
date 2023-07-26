@@ -200,6 +200,15 @@ struct v_conf_t v_confs[] = {
     }
   },
   {
+    .name = "DG",
+    .fun = get_v_DG,
+    .n_params = 2,
+    .v_params = {
+      {"rot", scalar_param, {.scalar=0}},
+      {"vz", scalar_param, {.scalar=0}}
+    }
+  },
+  {
     .name = "rotosc-boundary",
     .fun = get_v_rotosc,
     .n_params = 2,
@@ -469,6 +478,30 @@ int get_v_rotosc(const struct vec3d *where, double t, struct vec3d *res, struct 
   struct vec3d v;
   vec3_cross(&v, &axis, where);
   vec3_mul(&v, &v, amp*cos(2*M_PI*freq*t));
+
+  *res = v;
+  return 0;
+}
+
+/*
+Donnelly-Glaberson configuration, flow along the axis of rotation
+*/
+int get_v_DG(const struct vec3d *where, double t __attribute__((unused)), struct vec3d *res, struct v_conf_t *vconf)
+{
+  double rot;
+  double vz;
+
+  int err;
+  if(!(err = get_v_param_scalar(vconf, "rot", &rot)))
+    return err;
+  if(!(err = get_v_param_scalar(vconf, "vz", &vz)))
+    return err;
+
+  const struct vec3d axis = vec3(0, 0, 1);
+  struct vec3d v;
+  vec3_cross(&v, &axis, where);
+  vec3_mul(&v, &v, rot);
+  v.p[2] += vz;
 
   *res = v;
   return 0;

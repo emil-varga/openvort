@@ -108,6 +108,7 @@ int get_v_coscos_divfree(const struct vec3d *where, double t, struct vec3d *res,
 int get_v_cos_divfree(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf);
 int get_v_simple_shear(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf);
 int get_v_constant_acceleration(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf);
+int get_v_DG(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf);
 
 //oscillatory rotation, with attenuation and the boundary version with viscous penetration depth
 //the boundary version requires that the boundary is at 0

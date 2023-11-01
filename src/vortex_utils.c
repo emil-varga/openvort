@@ -106,6 +106,12 @@ void add_circle(struct tangle_state *tangle,
   tangle->connections[first_point].reverse = curr_point;
 }
 
+void add_wall_circle(struct tangle_state *tangle, struct vec3d *center, struct vec3d *dir, double r, int Npoints)
+{
+  //TODO
+  return;
+}
+
 void add_line(struct tangle_state *tangle, double x, double y, int direction, int points)
 {
   double zmin = tangle->box.bottom_left_back.p[2];

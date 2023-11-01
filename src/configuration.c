@@ -505,18 +505,24 @@ int setup_init(const char *conf_file, struct tangle_state *tangle)
     }
     else if(strcmp(str, "quad") == 0) {
       int points_per_line;
+      double separation;
       if(!config_lookup_int(&cfg, "init_line_points", &points_per_line))
         goto failure;
-      quad_straight_lines(tangle, points_per_line);
+      if(!config_lookup_float(&cfg, "init_separation", &separation))
+        goto failure;
+      quad_straight_lines(tangle, points_per_line, separation);
     }
     else if(strcmp(str, "dipole") == 0) {
       int points_per_line;
       int direction;
+      double separation;
       if(!config_lookup_int(&cfg, "init_line_points", &points_per_line))
         goto failure;
       if(!config_lookup_int(&cfg, "dipole_direction", &direction))
         goto failure;
-      dipole_straight_lines(tangle, points_per_line, direction);
+      if(!config_lookup_float(&cfg, "init_separation", &separation))
+        goto failure;
+      dipole_straight_lines(tangle, points_per_line, direction, separation);
     }
     else if(strcmp(str, "single") == 0) {
       int points_per_line;

@@ -50,6 +50,35 @@ void insert_random_loops(struct tangle_state *tangle, int N)
   }
 }
 
+void insert_wall_bound_loops(struct tangle_state *tangle, int N)
+{
+  //assuming that the walls are in xy planes at zmin and zmax
+  double D = 1;
+  double Ls[3];
+  for(int k = 0; k<3; ++k)
+	  Ls[k] = tangle->box.top_right_front.p[k] - tangle->box.bottom_left_back.p[k];
+  
+  D = Ls[2];
+
+  const double r = 0.5*D;
+
+  for(int k = 0; k<N; ++k) {
+    struct vec3d dir = vec3(drand48()-0.5, drand48()-0.5, drand48()-0.5);
+    vec3_normalize(&dir);
+
+    struct vec3d c;
+    for(int j=0; j<2; ++j)
+	    c.p[j] = tangle->box.bottom_left_back.p[j] + drand48()*Ls[j];
+
+    if(drand48() < 0.5)
+      c.p[2] = tangle->box.bottom_left_back.p[2];
+    else
+      c.p[2] = tangle->box.top_right_front.p[2];
+
+    add_wall_circle(tangle, &c, &dir, r, 256);
+  }
+}
+
 void make_big_ring(struct tangle_state *tangle, double ring_r, int ring_N)
 {
   /*
@@ -130,42 +159,26 @@ void triangular_lattice(struct tangle_state *tangle, int shells, int direction, 
   }
 }
 
-void quad_straight_lines(struct  tangle_state *tangle, int points_per_line)
+void quad_straight_lines(struct  tangle_state *tangle, int points_per_line, double separation)
 {
   assert(tangle->box.wall[Z_L] == WALL_MIRROR && tangle->box.wall[Z_H] == WALL_MIRROR);
 
-  const double xmin = tangle->box.bottom_left_back.p[0];
-  const double xmax = tangle->box.top_right_front.p[0];
-  const double ymin = tangle->box.bottom_left_back.p[1];
-  const double ymax = tangle->box.top_right_front.p[1];
-
-  const double dx = xmax - xmin;
-  const double dy = ymax - ymin;
-
-  add_line(tangle, dx/4, dy/4, +1, points_per_line);
-  add_line(tangle, -dx/4, -dy/4, +1, points_per_line);
-  add_line(tangle, -dx/4, dy/4, -1, points_per_line);
-  add_line(tangle, dx/4, -dy/4, -1, points_per_line);
+  add_line(tangle, separation/2, separation/2, +1, points_per_line);
+  add_line(tangle, -separation/2, -separation/2, +1, points_per_line);
+  add_line(tangle, -separation/2, separation/2, -1, points_per_line);
+  add_line(tangle, separation/2, -separation/2, -1, points_per_line);
 }
 
-void dipole_straight_lines(struct  tangle_state *tangle, int points_per_line, int direction)
+void dipole_straight_lines(struct  tangle_state *tangle, int points_per_line, int direction, double separation)
 {
   assert(tangle->box.wall[Z_L] == WALL_MIRROR && tangle->box.wall[Z_H] == WALL_MIRROR);
-
-  const double xmin = tangle->box.bottom_left_back.p[0];
-  const double xmax = tangle->box.top_right_front.p[0];
-  const double ymin = tangle->box.bottom_left_back.p[1];
-  const double ymax = tangle->box.top_right_front.p[1];
-
-  const double dx = xmax - xmin;
-  const double dy = ymax - ymin;
-  
+ 
   if(direction == 0) {
-    add_line(tangle, dx/4, 0, +1, points_per_line);
-    add_line(tangle, -dx/4, 0, -1, points_per_line);
+    add_line(tangle, separation/2, 0, +1, points_per_line);
+    add_line(tangle, -separation/2, 0, -1, points_per_line);
   } else {
-    add_line(tangle, 0, dy/4, +1, points_per_line);
-    add_line(tangle, 0, -dy/4, -1, points_per_line);
+    add_line(tangle, 0, separation/2, +1, points_per_line);
+    add_line(tangle, 0, -separation/2, -1, points_per_line);
   }
 }
 

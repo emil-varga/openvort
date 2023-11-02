@@ -82,7 +82,7 @@ int load_conf_vector(config_t *cfg, const char *name, struct vec3d *v)
   return 1;
 
 failure:
-  error("Failed to load domain! ");
+  error("Failed to load vector: %s\n", name);
   return 0;
 }
 

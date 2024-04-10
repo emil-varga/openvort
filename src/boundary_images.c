@@ -111,6 +111,36 @@ const struct image_tangle wall_2_6_img[] = {
     {{0, 0, 1}, Z_H} //upper z-wall
 };
 
+//as before, but also including the diagonal shifts also for the reflected tangles
+const struct image_tangle wall_2_26_img[] = {
+    {{-1, 0, 0}, -1}, //periodic in x
+    {{1, 0, 0}, -1},
+    {{0, -1, 0}, -1}, //periodic in y
+    {{0, 1, 0}, -1},
+    {{-1, -1, 0}, -1}, //-x-y
+    {{-1, 1, 0}, -1}, //-xy
+    {{1, -1, 0}, -1}, //x-y
+    {{1, 1, 0}, -1}, //xy
+    {{0, 0, -1}, Z_L}, //lower z-wall
+    {{1, 0, -1}, Z_L}, //lower z-wall, x
+    {{-1, 0, -1}, Z_L}, //lower z-wall, -x
+    {{0, 1, -1}, Z_L}, //lower z-wall, y
+    {{0, -1, -1}, Z_L}, //lower z-wall, -y
+    {{1, 1, -1}, Z_L}, //lower z-wall, xy
+    {{-1, 1, -1}, Z_L}, //lower z-wall, -xy
+    {{1, -1, -1}, Z_L}, //lower z-wall, x-y
+    {{-1, -1, -1}, Z_L}, //lower z-wall, -x-y
+    {{0, 0, 1}, Z_H}, //upper z-wall
+    {{1, 0, -1}, Z_H}, //upper z-wall, x
+    {{-1, 0, -1}, Z_H}, //upper z-wall, -x
+    {{0, 1, -1}, Z_H}, //upper z-wall, y
+    {{0, -1, -1}, Z_H}, //upper z-wall, -y
+    {{1, 1, -1}, Z_H}, //upper z-wall, xy
+    {{-1, 1, -1}, Z_H}, //upper z-wall, -xy
+    {{1, -1, -1}, Z_H}, //upper z-wall, x-y
+    {{-1, -1, -1}, Z_H}, //upper z-wall, -x-y
+};
+
 const struct image_tangle wall_2_2_img[] = {
     {{-1, 0, 0}, -1}, //periodic in x
     {{1, 0, 0}, -1},
@@ -233,5 +263,10 @@ const struct boundary_images wall_2_4 = {
 };
 const struct boundary_images wall_2_2 = {
     .images = wall_2_2_img,
+    .n = 6
+};
+
+const struct boundary_images wall_2_26 = {
+    .images = wall_2_26_img,
     .n = 6
 };

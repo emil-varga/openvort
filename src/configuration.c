@@ -347,6 +347,12 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
     tangle->box.wall[X_L] = WALL_PERIODIC;
     tangle->box.wall[X_H] = WALL_PERIODIC;
   }
+  else if(strcmp(str, "wall-2-26") == 0) {
+    tangle->bimg = wall_2_26;
+    set_walls_full(tangle, WALL_PERIODIC);
+    tangle->box.wall[Z_L] = WALL_MIRROR;
+    tangle->box.wall[Z_H] = WALL_MIRROR;
+  }
   else if(strcmp(str, "periodic-6") == 0) {
     tangle->bimg = periodic_6;
     set_walls_full(tangle, WALL_PERIODIC);

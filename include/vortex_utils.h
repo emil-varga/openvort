@@ -38,6 +38,7 @@ void add_circle(struct tangle_state *tangle,
 		struct vec3d *center, struct vec3d *dir, double r,
 		int Npoints);
 void add_line(struct tangle_state *tangle, double x, double y, int direction, int points);
+void add_wall_circle(struct tangle_state *tangle, struct vec3d *center, struct vec3d *dir, double r, int Npoints);
 
 /*
  * File I/O

@@ -231,6 +231,15 @@ struct v_conf_t v_confs[] = {
     }
   },
   {
+    .name = "parabolic",
+    .fun = get_v_parabolic,
+    .n_params = 2,
+    .v_params = {
+      {"H", scalar_param, {.scalar=0}},
+      {"amp", scalar_param, {.scalar=0}}
+    }
+  },
+  {
     .name = "",
     .fun = NULL,
     .n_params = 0,
@@ -543,6 +552,23 @@ int get_v_constant_acceleration(const struct vec3d *where __attribute__((unused)
     return err;
   
   struct vec3d v = vec3(acc*t, 0, 0);
+  *res = v;
+  return 0;
+}
+
+int get_v_parabolic(const struct vec3d *where, double t, struct vec3d *res, struct v_conf_t *vconf)
+{
+  double vx;
+  double amp;
+  double H;
+  int err;
+  if(!(err = get_v_param_scalar(vconf, "H", &H)))
+    return err;
+  if(!(err = get_v_param_scalar(vconf, "amp", &amp)))
+    return err;
+  
+  vx = amp*where->p[2]*(H - where->p[2]);
+  struct vec3d v = vec3(vx, 0, 0);
   *res = v;
   return 0;
 }

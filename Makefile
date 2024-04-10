@@ -18,8 +18,8 @@
 #####################################################################
 
 CC=gcc -fopenmp
-CFLAGS=  -O2 -fsanitize=undefined -fsanitize=float-divide-by-zero -fsanitize=leak `pkg-config --cflags libconfig`
-#CFLAGS = -O2 `pkg-config --cflags libconfig` `gsl-config --cflags`
+#CFLAGS=  -O2 -fsanitize=undefined -fsanitize=float-divide-by-zero -fsanitize=leak `pkg-config --cflags libconfig`
+CFLAGS = -O2 `pkg-config --cflags libconfig`
 DEBUG = -Wall -Wextra -pedantic -ggdb -D_DEBUG_
 INCLUDE = include
 

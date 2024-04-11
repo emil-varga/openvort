@@ -82,6 +82,7 @@ if __name__ == '__main__':
     ax.set_xlabel('$x$ ($\mu$m)')
     ax.set_ylabel('$y$ ($\mu$m)')
     ax.set_zlabel('$z$ ($\mu$m)')
+    ax.set_aspect('equal')
     
     fig.tight_layout()
     fig.savefig(args.filename.replace('.dat', '.pdf'))

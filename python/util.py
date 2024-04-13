@@ -48,6 +48,7 @@ def build_vortex(frame_data, vortex_idx, max_l=None):
     for kr, r in enumerate(reverse):
         if r == -1: #the point doesn't have a reverse, vortex is starting on wall here
             k = kr
+            break
     #if we didn't find any point where the vortex starts on a wall just use
     #arbitrary k=0
 

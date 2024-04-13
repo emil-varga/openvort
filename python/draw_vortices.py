@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 import util
 
 def draw_vortices(fn, plot_axes, slow=False, max_len=0.05, scale=10, just_one=None,
-                  color=None, colorcode_z=True, projection=None, **pltkw):
+                  color=None, colorcode_z=False, projection=None, **pltkw):
     data = np.loadtxt(fn)
 
     vix = data[:,0].astype(int)
@@ -53,7 +53,7 @@ def draw_vortices(fn, plot_axes, slow=False, max_len=0.05, scale=10, just_one=No
             else:
                 ax1, ax2 = projection
                 pl = plot_axes.plot(vxs[:,ax1], vxs[:,ax2], '-', color=clr, lw=2)
-                plot_axes.plot([vxs[:,ax1].mean()], [vxs[:,ax2].mean()], 'x', color=clr, ms=2, **pltkw)
+                #plot_axes.plot([vxs[:,ax1].mean()], [vxs[:,ax2].mean()], 'x', color=clr, ms=2, **pltkw)
             if clr is None:
                 clr = pl[-1].get_color()
         if just_one is not None:

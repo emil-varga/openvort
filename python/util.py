@@ -28,7 +28,7 @@ def frame_id(fn):
     fnb = path.split(fn)[-1]
     return int(fnb[5:-4])
 
-def build_vortex(frame_data, vortex_idx, max_l = None):
+def build_vortex(frame_data, vortex_idx, max_l=None):
     vidx = frame_data[:,0].astype(int)
     
     vortex_data = frame_data[vidx==vortex_idx,:]
@@ -42,8 +42,15 @@ def build_vortex(frame_data, vortex_idx, max_l = None):
     node_i = vortex_data[:,-5]
     
     vxs = []
-   
-    k = 0
+
+    #first find if the vortex is attached to a wall and start from there
+    k=0
+    for kr, r in enumerate(reverse):
+        if r == -1: #the point doesn't have a reverse, vortex is starting on wall here
+            k = kr
+    #if we didn't find any point where the vortex starts on a wall just use
+    #arbitrary k=0
+
     initial_node_i = node_i[k]
     while True:
         vxs.append(xs[k,:])
@@ -56,18 +63,13 @@ def build_vortex(frame_data, vortex_idx, max_l = None):
             break #we ran full circle
             
         if next_node_i < 0:
-            k = 0
-            while True:
-                next_node_i = reverse[k]
-                if next_node_i >= 0:
-                    k = np.where(node_i == next_node_i)[0][0]
-                    vxs = [xs[k]] + vxs
-                else:
-                    break
+            #this means that we hit a wall
+            #since by initial condition we started on another wall
+            #we can just quit
             break
     vxs = np.array(vxs)
     if max_l is not None:
-        return split_vortex(vxs, max_l)
+        return split_vortex(vxs, 1.1*max_l)
     return [vxs]
 
 def split_vortex(vxs, max_l):
@@ -107,3 +109,8 @@ def stitch_vortex(pieces, box_Ds):
         np.row_stack((full_vortex, piece + shift))
     
     return full_vortex
+
+def get_frame_number(filename):
+    name = path.basename(filename)
+    fileid = int(name[5:-4])
+    return fileid

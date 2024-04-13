@@ -27,6 +27,7 @@ import os.path as path
 from glob import glob
 
 from draw_vortices import draw_vortices
+from util import get_frame_number
 import sys
 
 import io, libconf
@@ -125,7 +126,7 @@ if __name__ == '__main__':
 
 
     files = glob(path.join(data_dir, 'frame*.dat'))
-    files.sort()
+    files.sort(key=get_frame_number)
 
     fig, ax = plt.subplots(1,1, figsize=(8,4.5), tight_layout=True)
         
@@ -137,10 +138,10 @@ if __name__ == '__main__':
     i=-1
     for fn in files:
         i = i+1
-        dst_file = path.join(output_dir, path.split(fn)[-1].replace('.dat', '_2D.png'))
+        dst_file = path.join(output_dir, path.split(fn)[-1].replace('.dat', f'_2D{args.projection}.png'))
         if path.isfile(dst_file):
             continue
-        print("{}/{}".format(i, len(files)))
+        print("{}/{}".format(get_frame_number(fn), len(files)))
         frame_index = int(path.split(fn)[1][5:-4])
         time = frame_index*nshots*dt
 

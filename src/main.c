@@ -103,7 +103,7 @@ int main(int argc, char **argv)
     if(shot <= 0)	{
       update_tangle(tangle, time);
       //output_dir declared extern in configuration.h
-      sprintf(filename, "%s/frame%04d.dat", output_dir, frame);
+      sprintf(filename, "%s/frame%08d.dat", output_dir, frame);
       save_tangle(filename, tangle);
       frame++;
       shot = frame_shot;

@@ -157,8 +157,9 @@ if __name__ == '__main__':
         else:
             ax.set_ylim(*args.ylim)
         ax.set_aspect('equal')
-        ax.set_xlabel("$x$ (mm)")
-        ax.set_ylabel("$y$ (mm)")
+        axnames = ['x', 'y', 'z']
+        ax.set_xlabel(f"${axnames[axids[0]]}$ (mm)")
+        ax.set_ylabel(f"${axnames[axids[1]]}$ (mm)")
         fig.savefig(dst_file)
         if args.show_time:
             txt.remove()

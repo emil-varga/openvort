@@ -88,8 +88,8 @@ if __name__ == '__main__':
         RFT = np.array(domain[1])
 
         if args.fix_plot_box:
-            Dxl, Dyl, Dzl = LBB*10000
-            Dxh, Dyh, Dzh = RFT*10000
+            Dxl, Dyl, Dzl = LBB*10
+            Dxh, Dyh, Dzh = RFT*10
         else:
             Lmax = np.abs(LBB - RFT).max()
             mids = 0.5*(LBB + RFT)

@@ -49,7 +49,7 @@ def draw_vortices(fn, plot_axes, slow=False, max_len=0.05, scale=10, just_one=No
                 else:
                     clr = 'g' 
             if projection is None:
-                pl = plot_axes.plot(1000*vxs[:,0], 1000*vxs[:,1], 1000*vxs[:,2], '-', color=clr, **pltkw)
+                pl = plot_axes.plot(vxs[:,0], vxs[:,1], vxs[:,2], '-', color=clr, **pltkw)
             else:
                 ax1, ax2 = projection
                 pl = plot_axes.plot(vxs[:,ax1], vxs[:,ax2], '-', color=clr, lw=2)
@@ -79,9 +79,9 @@ if __name__ == '__main__':
     else:
         just_one = None
     draw_vortices(args.filename, ax, slow=False, max_len=args.dl_max, just_one=just_one)
-    ax.set_xlabel('$x$ ($\mu$m)')
-    ax.set_ylabel('$y$ ($\mu$m)')
-    ax.set_zlabel('$z$ ($\mu$m)')
+    ax.set_xlabel('$x$ (mm)')
+    ax.set_ylabel('$y$ (mm)')
+    ax.set_zlabel('$z$ (mm)')
     ax.set_aspect('equal')
     
     fig.tight_layout()

@@ -62,6 +62,8 @@ if __name__ == '__main__':
                         nargs=2)
     parser.add_argument('--zlim', help='z-axis limiting values', type=float,
                         nargs=2)
+    parser.add_argument('--colorcode-z', help='differentiate up and down vortices with color',
+                        action='store_true')
 
 
     args = parser.parse_args()
@@ -148,7 +150,7 @@ if __name__ == '__main__':
         ax.clear()
         if args.show_time:
             txt = fig.text(0.05, 0.05, "$t$ = {:.06f} s".format(time), fontsize=18)
-        draw_vortices(fn, ax, slow=slow, max_len=dl_max, color=color, projection=axids)
+        draw_vortices(fn, ax, slow=slow, max_len=dl_max, color=color, projection=axids, colorcode_z=args.colorcode_z)
         if args.xlim is None:
             ax.set_xlim(Dls[axids[0]], Dhs[axids[0]])
         else:

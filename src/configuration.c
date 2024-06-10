@@ -398,6 +398,12 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
     tangle->bimg = open_boundaries;
     set_walls_full(tangle, WALL_OPEN);
   }
+  else if(strcmp(str, "channel-z") == 0) {
+    tangle->bimg = channel_z;
+    set_walls_full(tangle, WALL_MIRROR);
+    tangle->box.wall[Z_L] = WALL_PERIODIC;
+    tangle->box.wall[Z_H] = WALL_PERIODIC;
+  }
   else {
     fprintf(stderr, "Error: unknown boundary condition\n");
     goto failure;

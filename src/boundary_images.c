@@ -212,6 +212,21 @@ const struct image_tangle wall_1_26_img[] = {
     {{1, 1, 1}, -1}
 };
 
+const struct image_tangle channel_z_img[] = {
+    {{-1,  0,  0}, X_L}, //wall in x
+    {{ 1,  0,  0}, X_H},
+    {{ 0, -1,  0}, Y_L}, //wall in y
+    {{ 0,  1,  0}, Y_H},
+    {{ 0,  0,  1}, -1}, //periodic in z
+    {{ 0,  0, 01}, -1}
+};
+
+const struct boundary_images channel_z = {
+    .images = channel_z_img,
+    .n = 6
+};
+
+
 const struct boundary_images open_boundaries = {
     .images = NULL,
     .n = 0

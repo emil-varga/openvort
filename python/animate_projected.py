@@ -64,6 +64,8 @@ if __name__ == '__main__':
                         nargs=2)
     parser.add_argument('--colorcode-z', help='differentiate up and down vortices with color',
                         action='store_true')
+    parser.add_argument('--dir-z-color', help="Gradual colorcoding of the orientation of the line segment",
+                        action='store_true')
 
 
     args = parser.parse_args()
@@ -150,7 +152,8 @@ if __name__ == '__main__':
         ax.clear()
         if args.show_time:
             txt = fig.text(0.05, 0.05, "$t$ = {:.06f} s".format(time), fontsize=18)
-        draw_vortices(fn, ax, slow=slow, max_len=dl_max, color=color, projection=axids, colorcode_z=args.colorcode_z)
+        draw_vortices(fn, ax, slow=slow, max_len=dl_max, color=color, projection=axids, colorcode_z=args.colorcode_z,
+                      directional_z_color=args.dir_z_color)
         if args.xlim is None:
             ax.set_xlim(Dls[axids[0]], Dhs[axids[0]])
         else:

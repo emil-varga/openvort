@@ -23,8 +23,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import util
 
+directional_cmap = plt.get_cmap('jet')
+
 def draw_vortices(fn, plot_axes, slow=False, max_len=0.05, scale=10, just_one=None,
-                  color=None, colorcode_z=False, projection=None, **pltkw):
+                  color=None, colorcode_z=False, directional_z_color=False, projection=None, **pltkw):
     data = np.loadtxt(fn)
 
     vix = data[:,0].astype(int)
@@ -42,17 +44,27 @@ def draw_vortices(fn, plot_axes, slow=False, max_len=0.05, scale=10, just_one=No
             if dd[0] < 2:
                 continue
             if colorcode_z:
-                if vxs[dd[0]-1,2] > vxs[0,2]:
-                    clr = 'r'
-                elif vxs[dd[0]-1,2] < vxs[0,2]:
-                    clr = 'b'
+                if directional_z_color:
+                    pass
                 else:
-                    clr = 'g' 
+                    if vxs[dd[0]-1,2] > vxs[0,2]:
+                        clr = 'r'
+                    elif vxs[dd[0]-1,2] < vxs[0,2]:
+                        clr = 'b'
+                    else:
+                        clr = 'g' 
             if projection is None:
                 pl = plot_axes.plot(vxs[:,0], vxs[:,1], vxs[:,2], '-', color=clr, **pltkw)
             else:
                 ax1, ax2 = projection
-                pl = plot_axes.plot(vxs[:,ax1], vxs[:,ax2], '-', color=clr, lw=2)
+                if directional_z_color:
+                    for k in range(len(vxs) - 1):
+                        d = vxs[k+1, :] - vxs[k, :]
+                        d_mag = np.sqrt(np.sum(d**2))
+                        clr = directional_cmap(0.5*(1 + d[2]/d_mag))
+                        pl = plot_axes.plot(vxs[k:(k+2),ax1], vxs[k:(k+2),ax2], '-', color=clr, lw=1)
+                else:
+                    pl = plot_axes.plot(vxs[:,ax1], vxs[:,ax2], '-', color=clr, lw=2)
                 #plot_axes.plot([vxs[:,ax1].mean()], [vxs[:,ax2].mean()], 'x', color=clr, ms=2, **pltkw)
             if clr is None:
                 clr = pl[-1].get_color()

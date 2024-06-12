@@ -66,6 +66,10 @@ double eliminate_loops_origin_cutoff = 3e-2;
 int eliminate_zaxis_loops = 0;
 double eliminate_loops_zaxis_cutoff = 2e-2;
 
+//remove loops further from the z-axis than the given cutoff
+int eliminate_outer_loops = 0; //default off
+double eliminate_outer_loops_cutoff = 1; //cm
+
 /*
  * configuration of vortex injection
  */

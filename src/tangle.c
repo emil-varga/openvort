@@ -641,13 +641,15 @@ void remesh(struct tangle_state *tangle, double min_dist, double max_dist)
 }
 
 void eliminate_loops_near_origin(struct tangle_state *tangle, double cutoff);
-void eliminate_loops_near_zaxis(struct tangle_state *tangle, double cutoff);
+void eliminate_loops_near_zaxis(struct tangle_state *tangle, double cutoff, const int inside_outside);
 void eliminate_small_loops(struct tangle_state *tangle, int loop_length)
 {
   if(eliminate_origin_loops)
     eliminate_loops_near_origin(tangle, eliminate_loops_origin_cutoff);
   if(eliminate_zaxis_loops)
-    eliminate_loops_near_zaxis(tangle, eliminate_loops_zaxis_cutoff);
+    eliminate_loops_near_zaxis(tangle, eliminate_loops_zaxis_cutoff, 1); //inside removal
+  if(eliminate_outer_loops)
+    eliminate_loops_near_zaxis(tangle, eliminate_outer_loops_cutoff, 0); // outside removal
 
   int killed = 0;
 
@@ -743,41 +745,43 @@ void eliminate_loops_near_origin(struct tangle_state *tangle, double cutoff)
     }
 }
 
-void eliminate_loops_near_zaxis(struct tangle_state *tangle, double cutoff)
+void eliminate_loops_near_zaxis(struct tangle_state *tangle, double cutoff, const int inside_outside)
 {
   for(int k=0; k<tangle->N; ++k)
     tangle->recalculate[k] = 0;
 
-  for(int k=0; k<tangle->N; ++k)
-    {
-      if(tangle->status[k].status == EMPTY ||
-	 tangle->recalculate[k] > 0)
-	continue;
+  for(int k=0; k<tangle->N; ++k) {
+    if(tangle->status[k].status == EMPTY || tangle->recalculate[k] > 0)
+      continue;
 
-      int here = tangle->connections[k].forward;
-      int next = tangle->connections[here].forward;
+    int here = tangle->connections[k].forward;
+    int next = tangle->connections[here].forward;
 #define Z_R(v) (sqrt(v.p[0]*v.p[0] + v.p[1]*v.p[1]))
-      int cut = Z_R(tangle->vnodes[k]) < cutoff;
-      while(here != k)
-	{
-	  cut = cut && (Z_R(tangle->vnodes[here]) < cutoff);
-	  here = next;
-	  next = tangle->connections[here].forward;
-	}
+    int cut;
+    if(inside_outside)
+      cut = Z_R(tangle->vnodes[k]) < cutoff;
+    else
+      cut = Z_R(tangle->vnodes[k]) > cutoff;
+    while(here != k) {
+      if(inside_outside)
+	      cut = cut && (Z_R(tangle->vnodes[here]) < cutoff);
+      else
+        cut = cut && (Z_R(tangle->vnodes[here]) > cutoff);
+	    here = next;
+	    next = tangle->connections[here].forward;
+	  }
 
-      here = tangle->connections[k].forward;
-      next = tangle->connections[here].forward;
-      if(cut)
-	{
-	  while(here != k)
-	    {
+    here = tangle->connections[k].forward;
+    next = tangle->connections[here].forward;
+    if(cut) {
+	    while(here != k) {
 	      remove_point(tangle, here);
 	      here = next;
 	      next = tangle->connections[here].forward;
 	    }
-	  remove_point(tangle, here);
-	}
-    }
+	    remove_point(tangle, here);
+	  }
+  }
 #undef Z_R
 }
 

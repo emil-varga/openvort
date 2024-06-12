@@ -141,41 +141,38 @@ int setup_external_velocity(config_setting_t *v_conf_setting, struct v_conf_t *v
 
   //v_confs declared in external_velocity.h
   struct v_conf_t *test = &v_confs[0];
-  for(;strlen(test->name) > 0; test++)
-    {
-      if(strcmp(test->name, str) == 0)
-	{
-	  *v_conf = *test;
-	  break;
-	}
-    }
+  for(;strlen(test->name) > 0; test++) {
+    if(strcmp(test->name, str) == 0)
+	  {
+	    *v_conf = *test;
+	    break;
+	  }
+  }
   if(strlen(test->name) == 0)
     return -1; //we did not find the requested config
 
   //we found the requested config, now load its parameters, if any
   //TODO: error checking
-  for(int k=0; k<(v_conf)->n_params; ++k)
+  for(int k=0; k<(v_conf)->n_params; ++k) {
+    switch((v_conf)->v_params[k].type)
     {
-      switch((v_conf)->v_params[k].type)
-      {
-        case scalar_param:
-          if(config_setting_lookup_float(v_conf_setting, (v_conf)->v_params[k].name, &dval))
-            (v_conf)->v_params[k].value.scalar = dval;
-          else
-          {
-              error("Could not find parameter %s.", v_conf->v_params[k].name);
-          }
-          break;
-        case vector_param:
-          vec_cfg = config_setting_lookup(v_conf_setting, (v_conf)->v_params[k].name);
-          for(int j = 0; j<3; ++j)
-            vval.p[j] = config_setting_get_float_elem(vec_cfg, j);
-          (v_conf)->v_params[k].value.vector = vval;
-          break;
-        default:
-          break;
-      }
+      case scalar_param:
+        if(config_setting_lookup_float(v_conf_setting, (v_conf)->v_params[k].name, &dval))
+          (v_conf)->v_params[k].value.scalar = dval;
+        else {
+          error("Could not find parameter %s.", v_conf->v_params[k].name);
+        }
+        break;
+      case vector_param:
+        vec_cfg = config_setting_lookup(v_conf_setting, (v_conf)->v_params[k].name);
+        for(int j = 0; j<3; ++j)
+          vval.p[j] = config_setting_get_float_elem(vec_cfg, j);
+        (v_conf)->v_params[k].value.vector = vval;
+        break;
+      default:
+        break;
     }
+  }
   return 0;
 }
 
@@ -267,6 +264,11 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
     eliminate_zaxis_loops = ival;
   if(config_lookup_float(&cfg, "eliminate_loops_zaxis_cutoff", &dval))
     eliminate_loops_zaxis_cutoff = dval;
+
+  if(config_lookup_bool(&cfg, "eliminate_outer_loops", &ival))
+    eliminate_outer_loops = ival;
+  if(config_lookup_float(&cfg, "eliminate_outer_loops_cutoff", &dval))
+    eliminate_outer_loops_cutoff = dval;
 
   if(config_lookup_bool(&cfg, "loop_injection", &ival)) {
     loop_injection = ival;
@@ -614,6 +616,7 @@ void print_config(const struct tangle_state *tangle)
       "number of threads          = %d\n"
       "loop removal near origin   = %s\n"
       "loop removal cutoff        = %g cm\n"
+      "loop remove outer          = %s\n"
       "domain = (%g, %g, %g), (%g, %g, %g)\n",
       global_dt,
       global_dl_min,
@@ -624,6 +627,7 @@ void print_config(const struct tangle_state *tangle)
       global_num_threads,
       eliminate_origin_loops ? "On" : "Off",
       eliminate_loops_origin_cutoff,
+      eliminate_outer_loops ? "On" : "Off",
       tangle->box.bottom_left_back.p[0],
       tangle->box.bottom_left_back.p[1],
       tangle->box.bottom_left_back.p[2],

@@ -50,6 +50,9 @@ extern double eliminate_loops_origin_cutoff;
 extern int eliminate_zaxis_loops;
 extern double eliminate_loops_zaxis_cutoff;
 
+extern int eliminate_outer_loops;
+extern double eliminate_outer_loops_cutoff;
+
 //injecting loops at upper z-plane
 extern int loop_injection; //bool, inject or not
 extern double loop_injection_frequency; //injections per second

@@ -230,6 +230,10 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
   if(config_lookup_float(&cfg, "alpha_p", &dval))
     alpha_p = dval;
 
+  //local induction approximation
+  if(config_lookup_bool(&cfg, "LIA", &ival))
+    LIA_only = ival;
+
   //hyperfriction
   if(config_lookup_bool(&cfg, "use_hyperfriction", &ival))
     hyperfriction = ival;
@@ -541,11 +545,17 @@ int setup_init(const char *conf_file, struct tangle_state *tangle)
     else if(strcmp(str, "single") == 0) {
       int points_per_line;
       int direction;
+      int k_KW;
+      double r_KW;
       if(!config_lookup_int(&cfg, "init_line_points", &points_per_line))
         goto failure;
       if(!config_lookup_int(&cfg, "init_line_direction", &direction))
         goto failure;
-      single_straight_line(tangle, points_per_line, direction);
+      if(!config_lookup_int(&cfg, "init_k_KW", &k_KW))
+        k_KW = 0;
+      if(!config_lookup_float(&cfg, "init_r_KW", &r_KW))
+        r_KW = 0;
+      single_straight_line(tangle, points_per_line, direction, k_KW, r_KW);
     }
     else {
       fprintf(stderr, "Error: unknown initialization mode: %s\n", str);

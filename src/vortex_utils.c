@@ -112,18 +112,26 @@ void add_wall_circle(struct tangle_state *tangle, struct vec3d *center, struct v
   return;
 }
 
-void add_line(struct tangle_state *tangle, double x, double y, int direction, int points)
+void add_line_KW(struct tangle_state *tangle, double x, double y, int direction, int points,
+                int k_KW, double r_KW)
 {
   double zmin = tangle->box.bottom_left_back.p[2];
   double zmax = tangle->box.top_right_front.p[2];
   double dz = (zmax - zmin) / points;
+  double z;
 
   double zstart = direction > 0 ? zmin : zmax;
   double zend = direction > 0 ? zmax : zmin;
+  double k = M_PI/dz*k_KW; //number of half-waves
 
-  struct vec3d s = vec3(x, y, zstart);
-  struct vec3d sp = vec3(0, 0, direction); //tangent
-  struct vec3d spp = vec3(0, 0, 0); //normal
+  struct vec3d s = vec3(x + r_KW*cos(k*zstart), y + r_KW*sin(k*zstart), zstart);
+  struct vec3d sp = vec3(-k*r_KW*sin(k*zstart), k*r_KW*cos(k*zstart), direction); //tangent
+  struct vec3d spp = vec3(-k*k*r_KW*cos(k*zstart), -k*k*r_KW*sin(k*zstart), 0); //normal
+
+  const double s_mag = vec3_d(&sp); //the magnitude of the derivative doesn't change, only its direction
+  vec3_mul(&sp, &sp, 1/s_mag);
+  vec3_mul(&spp, &spp, 1/s_mag);
+
 
   int new_pt = get_tangle_next_free(tangle);
   const int first_pt = new_pt;
@@ -148,7 +156,15 @@ void add_line(struct tangle_state *tangle, double x, double y, int direction, in
   for(int k=1; k<points-1; ++k) {
     last_pt = new_pt;
     new_pt = get_tangle_next_free(tangle);
-    s.p[2] = zstart + direction*k*dz;
+    z = zstart + direction*k*dz;
+
+    s = vec3(x + r_KW*cos(k*z), y + r_KW*sin(k*z), z);
+    sp = vec3(-k*r_KW*sin(k*z)/s_mag, 
+               k*r_KW*cos(k*z)/s_mag,
+               direction/s_mag); //tangent
+    spp = vec3(-k*k*r_KW*cos(k*z)/s_mag,
+               -k*k*r_KW*sin(k*z)/s_mag,
+               0); //normal
 
     tangle->vnodes[new_pt] = s;
     tangle->tangents[new_pt] = sp;
@@ -159,7 +175,14 @@ void add_line(struct tangle_state *tangle, double x, double y, int direction, in
     tangle->connections[last_pt].forward = new_pt;
   }
 
-  s.p[2] = zend;
+  z = zend;
+  s = vec3(x + r_KW*cos(k*z), y + r_KW*sin(k*z), z);
+  sp = vec3(-k*r_KW*sin(k*z)/s_mag, 
+              k*r_KW*cos(k*z)/s_mag,
+              direction/s_mag); //tangent
+  spp = vec3(-k*k*r_KW*cos(k*z)/s_mag,
+              -k*k*r_KW*sin(k*z)/s_mag,
+              0); //normal
   last_pt = new_pt;
   if(tangle->box.wall[end_wall] == WALL_MIRROR) {
     new_pt = get_tangle_next_free(tangle);
@@ -177,6 +200,11 @@ void add_line(struct tangle_state *tangle, double x, double y, int direction, in
   } else {
     error("only walls or periodic conditions for add_line");
   }
+}
+
+void add_line(struct tangle_state *tangle, double x, double y, int direction, int points)
+{
+  add_line_KW(tangle, x, y, direction, points, 0, 0);
 }
 
 /*
@@ -285,30 +313,27 @@ int load_tangle(const char *filename, struct tangle_state *tangle)
   int current_vidx; //index of vortex we are loading now
   int pidx = 0; //index of position to store a loaded point
   int pidx_start = 0; //where does the vortex begin
-  while((current_vidx = load_point(file, tangle, pidx)) >= 0)
-    {
-      tangle->connections[pidx].reverse = pidx - 1;
-      tangle->connections[pidx].forward = pidx + 1;
+  while((current_vidx = load_point(file, tangle, pidx)) >= 0) {
+    tangle->connections[pidx].reverse = pidx - 1;
+    tangle->connections[pidx].forward = pidx + 1;
 
+    if(current_vidx != vidx) {
+      //we are on a new vortex
+      //stitch together the vortex we finished
+      tangle->connections[pidx_start].reverse = pidx-1;
+      tangle->connections[pidx-1].forward = pidx_start;
+
+      //move on to the next
+      vidx++;
+      pidx_start = pidx;
       if(current_vidx != vidx)
-	{
-	  //we are on a new vortex
-	  //stitch together the vortex we finished
-	  tangle->connections[pidx_start].reverse = pidx-1;
-	  tangle->connections[pidx-1].forward = pidx_start;
+	      return -1; //something's wrong
+	  }
 
-	  //move on to the next
-	  vidx++;
-	  pidx_start = pidx;
-	  if(current_vidx != vidx)
-	    return -1; //something's wrong
-
-	}
-
-      pidx++;
-      if(pidx > tangle->N - 1)
-      	expand_tangle(tangle, 2*tangle->N);
-    }
+    pidx++;
+    if(pidx > tangle->N - 1)
+      expand_tangle(tangle, 2*tangle->N);
+  }
 
   //stitch the last vortex together because the inner if never ran
   tangle->connections[pidx_start].reverse = pidx-1;

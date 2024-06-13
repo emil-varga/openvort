@@ -395,40 +395,42 @@ void update_velocity(struct tangle_state *tangle, int k, double t, struct octree
   get_vs(&tangle->vnodes[k], t, &evs);
   vec3_add(&tangle->vs[k], &tangle->vs[k], &evs);
 
-  if(use_BH && tree) {
-    //use the Barnes-Hut approximation to the full Biot-Savart
-    struct vec3d v_tree;
-    octree_get_vs(tree, &tangle->vnodes[k], BH_resolution, &v_tree, k);
-    vec3_add(&tangle->vs[k], &tangle->vs[k], &v_tree);
+  if(!LIA_only) {
+    if(use_BH && tree) {
+      //use the Barnes-Hut approximation to the full Biot-Savart
+      struct vec3d v_tree;
+      octree_get_vs(tree, &tangle->vnodes[k], BH_resolution, &v_tree, k);
+      vec3_add(&tangle->vs[k], &tangle->vs[k], &v_tree);
+    }
+    else {
+      //integrate Biot-Savart as usual
+      for(m=0; m<tangle->N; ++m) {
+        if(tangle->connections[m].forward == -1 || m == k || k == tangle->connections[m].forward)
+          continue;
+
+        struct vec3d segment_vel = segment_field(tangle, m, tangle->vnodes[k]);
+        vec3_add(&tangle->vs[k], &tangle->vs[k], &segment_vel);
+      }
+    }
+
+    //calculate the velocity due to boundary images
+
+    struct vec3d shift_r, v_shift;
+    struct vec3d v_shift_total = vec3(0, 0, 0);
+
+    for(int j = 0; j < tangle->bimg.n; ++j) {
+      shift_r = shifted(&tangle->bimg.images[j], tangle, &tangle->vnodes[k]);
+      if(use_BH && tree)
+        octree_get_vs(tree, &shift_r, BH_resolution, &v_shift, -1);
+      else
+        v_shift = calculate_vs(tangle, shift_r, -1);
+      if(tangle->bimg.images[j].reflect > -1) //mirror wall
+        v_shift = mirror_dir_reflect(&v_shift, tangle->bimg.images[j].reflect);
+      vec3_add(&v_shift_total, &v_shift_total, &v_shift);
+    }
+    //add everything to the result
+    vec3_add(&tangle->vs[k], &tangle->vs[k], &v_shift_total);
   }
-  else {
-    //integrate Biot-Savart as usual
-    for(m=0; m<tangle->N; ++m) {
-	    if(tangle->connections[m].forward == -1 || m == k || k == tangle->connections[m].forward)
-	      continue;
-
-      struct vec3d segment_vel = segment_field(tangle, m, tangle->vnodes[k]);
-      vec3_add(&tangle->vs[k], &tangle->vs[k], &segment_vel);
-	  }
-  }
-
-  //calculate the velocity due to boundary images
-
-  struct vec3d shift_r, v_shift;
-  struct vec3d v_shift_total = vec3(0, 0, 0);
-
-  for(int j = 0; j < tangle->bimg.n; ++j) {
-    shift_r = shifted(&tangle->bimg.images[j], tangle, &tangle->vnodes[k]);
-    if(use_BH && tree)
-      octree_get_vs(tree, &shift_r, BH_resolution, &v_shift, -1);
-    else
-      v_shift = calculate_vs(tangle, shift_r, -1);
-    if(tangle->bimg.images[j].reflect > -1) //mirror wall
-	    v_shift = mirror_dir_reflect(&v_shift, tangle->bimg.images[j].reflect);
-    vec3_add(&v_shift_total, &v_shift_total, &v_shift);
-  }
-  //add everything to the result
-  vec3_add(&tangle->vs[k], &tangle->vs[k], &v_shift_total);
 
   tangle->vels[k] = tangle->vs[k];
 

@@ -27,6 +27,9 @@ double VORTEX_WIDTH = 1e-8; //cm
 //quantum of circulation
 double KAPPA = 9.97e-4; //cm^2/s
 
+//Local induction approximation
+int LIA_only = 0; //default false
+
 //mutual friction parameters
 double alpha = 0.1;
 double alpha_p = 0.01;

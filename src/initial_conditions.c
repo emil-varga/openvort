@@ -161,7 +161,8 @@ void triangular_lattice(struct tangle_state *tangle, int shells, int direction, 
 
 void quad_straight_lines(struct  tangle_state *tangle, int points_per_line, double separation)
 {
-  assert(tangle->box.wall[Z_L] == WALL_MIRROR && tangle->box.wall[Z_H] == WALL_MIRROR);
+  assert((tangle->box.wall[Z_L] == WALL_MIRROR && tangle->box.wall[Z_H] == WALL_MIRROR) ||
+         (tangle->box.wall[Z_L] == WALL_PERIODIC && tangle->box.wall[Z_H] == WALL_PERIODIC));
 
   add_line(tangle, separation/2, separation/2, +1, points_per_line);
   add_line(tangle, -separation/2, -separation/2, +1, points_per_line);
@@ -171,7 +172,8 @@ void quad_straight_lines(struct  tangle_state *tangle, int points_per_line, doub
 
 void dipole_straight_lines(struct  tangle_state *tangle, int points_per_line, int direction, double separation)
 {
-  assert(tangle->box.wall[Z_L] == WALL_MIRROR && tangle->box.wall[Z_H] == WALL_MIRROR);
+  assert((tangle->box.wall[Z_L] == WALL_MIRROR && tangle->box.wall[Z_H] == WALL_MIRROR) ||
+         (tangle->box.wall[Z_L] == WALL_PERIODIC && tangle->box.wall[Z_H] == WALL_PERIODIC));
  
   if(direction == 0) {
     add_line(tangle, separation/2, 0, +1, points_per_line);
@@ -182,8 +184,9 @@ void dipole_straight_lines(struct  tangle_state *tangle, int points_per_line, in
   }
 }
 
-void single_straight_line(struct tangle_state *tangle, int points_per_line, int direction)
+void single_straight_line(struct tangle_state *tangle, int points_per_line, int direction, int k_KW, double r_KW)
 {
-  assert(tangle->box.wall[Z_L] == WALL_MIRROR && tangle->box.wall[Z_H] == WALL_MIRROR);
-  add_line(tangle, 0, 0, direction, points_per_line);
+  assert((tangle->box.wall[Z_L] == WALL_MIRROR && tangle->box.wall[Z_H] == WALL_MIRROR) ||
+         (tangle->box.wall[Z_L] == WALL_PERIODIC && tangle->box.wall[Z_H] == WALL_PERIODIC));
+  add_line_KW(tangle, 0, 0, direction, points_per_line, k_KW, r_KW);
 }

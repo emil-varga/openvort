@@ -27,6 +27,8 @@ extern double KAPPA;
 
 extern int max_steps;
 
+extern int LIA_only;
+
 extern double alpha;
 extern double alpha_p;
 

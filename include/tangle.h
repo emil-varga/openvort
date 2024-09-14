@@ -90,6 +90,7 @@ struct tangle_state {
   struct vec3d *vs; //superfluid velocity at the node
   struct vec3d *tangents;
   struct vec3d *normals;
+  double *dxi; //arc length segments
 
   //flags that the properties of the points
   //need to be recalculated
@@ -166,7 +167,7 @@ static inline void update_tangle(struct tangle_state *tangle, double t)
   update_velocities(tangle, t, NULL);
 }
 
-void remove_point(struct tangle_state *tangle, int point_idx);
+void remove_point(struct tangle_state *tangle, int point_idx, int merge_direction);
 int add_point(struct tangle_state *tangle, int p);
 
 int curvature_smoothing(struct tangle_state *tangle, double max_spp, double damping);

@@ -192,7 +192,7 @@ int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec
 	      continue;
 
       if(wall_dist(tangle, k, wall) < 0) {
-          remove_point(tangle, k);
+          remove_point(tangle, k, 0);
           domain_killed++;
       }
 	  }

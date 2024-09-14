@@ -91,6 +91,7 @@ void create_tangle(struct tangle_state *tangle, size_t n)
   tangle->normals     = (struct vec3d*)malloc(sizeof(struct vec3d)*n);
   tangle->recalculate = (int*)malloc(sizeof(int)*n);
   tangle->status      = (node_status*)malloc(sizeof(node_status)*n);
+  tangle->dxi         = (double*)malloc(sizeof(double)*n);
 
   tangle->connections = (struct neighbour_t*)malloc(n*sizeof(struct neighbour_t));
   for(size_t k=0; k<n; ++k)
@@ -127,6 +128,7 @@ void expand_tangle(struct tangle_state *tangle, size_t n)
   tangle->normals     = (struct vec3d*)realloc(tangle->normals, sizeof(struct vec3d)*n);
   tangle->recalculate = (int*)realloc(tangle->recalculate, sizeof(int)*n);
   tangle->status      = (node_status*)realloc(tangle->status, sizeof(node_status)*n);
+  tangle->dxi         = (double*)realloc(tangle->dxi, sizeof(double)*n);
 
   tangle->connections = (struct neighbour_t*)realloc(tangle->connections, n*sizeof(struct neighbour_t));
 
@@ -159,6 +161,7 @@ void free_tangle(struct tangle_state *tangle)
   free(tangle->connections);
   free(tangle->recalculate);
   free(tangle->status);
+  free(tangle->dxi);
 }
 
 struct vec3d step_node(const struct tangle_state *tangle, int i, int where)
@@ -197,6 +200,94 @@ struct vec3d step_node(const struct tangle_state *tangle, int i, int where)
   return vec3(0,0,0);
 }
 
+/// @brief Similar to step_node, but integrates the distance along the vortex using arc length deltas from tangle state
+/// @param tangle the tangle
+/// @param k vortex node index from where we start
+/// @param dist how many steps to take, can be positive or negative
+/// @return the sum of arc length deltas along the vortex
+double arc_length(const struct tangle_state *tangle, int k, int dist)
+{
+  assert(tangle->status[k].status != EMPTY);
+
+  if(dist == 0)
+    return 0;
+
+  if(tangle->status[k].status == FREE) {
+    if(dist > 0)
+	    return tangle->dxi[k] + arc_length(tangle, tangle->connections[k].forward, dist-1);
+    else if (dist < 0)
+	    return arc_length(tangle, tangle->connections[k].reverse, +1) + arc_length(tangle, tangle->connections[k].reverse, dist+1);
+  } else if(tangle->status[k].status == PINNED || tangle->status[k].status == PINNED_SLIP) {
+    struct vec3d out;
+    if(dist > 0) {
+	    if(tangle->connections[k].forward < 0)
+	      return arc_length(tangle, k, -dist);
+	    else
+	      return tangle->dxi[k] + arc_length(tangle, tangle->connections[k].forward, dist-1);
+	  } else if(dist < 0) {
+	    if(tangle->connections[k].reverse < 0)
+	      return arc_length(tangle, k, -dist);
+	    else
+	      return tangle->dxi[k] + (tangle, tangle->connections[k].reverse, dist+1);
+	  }
+  } else {
+    error("Walking across empty node.");//we should never get here
+    return -1;
+  }
+
+  //to suppress warning
+  return 0;
+}
+
+void update_dxi_simple(struct tangle_state *tangle)
+{
+  struct vec3d s0, s1;
+
+  //vector differences
+  struct segment dseg;
+
+  for(int k=0; k<tangle->N; ++k) {
+    if(tangle->status[k].status == EMPTY)
+      continue;;
+
+    s0  = tangle->vnodes[k];
+    s1 = step_node(tangle, k, 1);
+
+    dseg = seg_pwrap(&s0, &s1, &tangle->box);
+    
+    tangle->dxi[k] = segment_len(&dseg);
+  }
+}
+
+void update_dxi_corrected(struct tangle_state *tangle) {
+  //TODO: first order simple correction to the arc length
+  for(int k=0; k<tangle->N; ++k) {
+    int next = tangle->connections[k].forward;
+
+    struct vec3d s0 = tangle->vnodes[k];
+    struct vec3d s1 = tangle->vnodes[next];
+    struct segment seg = seg_pwrap(&s0, &s1, &tangle->box);
+
+    struct vec3d s0pp = tangle->normals[k];
+    struct vec3d s1pp = tangle->normals[next];
+
+    double l0 = segment_len(&seg);
+
+    struct vec3d n;
+    vec3_add(&n, &s0pp, &s1pp);
+    vec3_mul(&n, &n, 0.5);
+    double nd = vec3_d(&n);
+    double l = l0;
+    if(nd > 1e-9 && l0*nd/2 <= 1) {
+      printf("L0 = %g\n", l0);
+      l = 2*asin(l0*nd/2)/nd;
+    } else {
+      l = l0 + 0.5*l0*l0*nd; //TODO: double check this expansion
+    }
+    tangle->dxi[k] = l;
+  }
+}
+
 void update_tangent_normal(struct tangle_state *tangle, size_t k)
 {
   struct vec3d s0, s1, sm1;
@@ -206,8 +297,6 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k)
   //vector differences
   struct vec3d ds[4];
   struct segment dseg[4];
-  struct segment dseg_12;
-  struct segment dseg_m12;
 
   if(tangle->status[k].status == EMPTY)
     return;
@@ -222,16 +311,14 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k)
   dseg[1] = seg_pwrap(&s0, &s1, &tangle->box);
   dseg[2] = seg_pwrap(&s0, &sm1, &tangle->box);
   dseg[3] = seg_pwrap(&s0, &sm2, &tangle->box);
-  dseg_12 = seg_pwrap(&s1, &s2, &tangle->box);
-  dseg_m12 = seg_pwrap(&sm1, &sm2, &tangle->box);
 
   for(int j = 0; j<4; ++j)
     ds[j] = segment_to_vec(&dseg[j]);
 
-  double d1 = segment_len(&dseg[1]);
-  double d2 = d1 + segment_len(&dseg_12);
-  double dm1 = segment_len(&dseg[2]);
-  double dm2 = dm1 + segment_len(&dseg_m12);
+  double d1 = arc_length(tangle, k, 1);
+  double d2 = arc_length(tangle, k, 2);
+  double dm1 = arc_length(tangle, k, -1);
+  double dm2 = arc_length(tangle, k, -2);
 
   //four point coefficients, denominators
   double d_s_diff[] = {
@@ -259,19 +346,18 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k)
     -2*((d2  + d1)*dm1 - d1*d2)
   };
   
-  for(i=0; i<3; ++i)
-    {
-      tangle->tangents[k].p[i] = 0;
-      tangle->normals[k].p[i]  = 0;
-      for(int z = 0; z<4; ++z)
-	{
-	  tangle->tangents[k].p[i] += s_1_cf[z]/d_s_diff[z]*ds[z].p[i];
-	  tangle->normals[k].p[i]  += s_2_cf[z]/d_s_diff[z]*ds[z].p[i];
-	}
+  for(i=0; i<3; ++i) {
+    tangle->tangents[k].p[i] = 0;
+    tangle->normals[k].p[i]  = 0;
+    for(int z = 0; z<4; ++z) {
+	    tangle->tangents[k].p[i] += s_1_cf[z]/d_s_diff[z]*ds[z].p[i];
+	    tangle->normals[k].p[i]  += s_2_cf[z]/d_s_diff[z]*ds[z].p[i];
     }
-  //double x = vec3_d(&tangle->tangents[k]);
-  //vec3_mul(&tangle->normals[k], &tangle->normals[k], 1/x/x);
-  vec3_normalize(&tangle->tangents[k]);
+  }
+  double x = vec3_d(&tangle->tangents[k]);
+  vec3_mul(&tangle->normals[k], &tangle->normals[k], 1/x/x);
+  vec3_mul(&tangle->tangents[k], &tangle->tangents[k], 1/x);
+  //vec3_normalize(&tangle->tangents[k]);
 }
 
 /*
@@ -497,6 +583,7 @@ void update_velocities(struct tangle_state *tangle, double t, struct octree *_tr
 void update_tangents_normals(struct tangle_state *tangle)
 {
   int i;
+  update_dxi_simple(tangle);
   for(i=0; i<tangle->N; ++i) {
       update_tangent_normal(tangle, i);
   }
@@ -597,7 +684,7 @@ void enforce_boundaries(struct tangle_state *tangle)
     }
 }
 
-void remove_point(struct tangle_state *tangle, int point_idx);
+void remove_point(struct tangle_state *tangle, int point_idx, int merge_direction);
 int add_point(struct tangle_state *tangle, int point_idx);
 void remesh(struct tangle_state *tangle, double min_dist, double max_dist)
 {
@@ -605,8 +692,8 @@ void remesh(struct tangle_state *tangle, double min_dist, double max_dist)
   for(int k=0; k<tangle->N; ++k) {
     if(tangle->status[k].status == EMPTY)
 	    continue;
-
-
+    
+    int change = 0;
     int next = tangle->connections[k].forward;
     int prev = tangle->connections[k].reverse;
 
@@ -627,15 +714,23 @@ void remesh(struct tangle_state *tangle, double min_dist, double max_dist)
 
     //can we remove point k?
     if(next >= 0 && prev >= 0 && ((lf < min_dist || lr < min_dist) && (lf + lr) < max_dist )) {
-      remove_point(tangle, k);
+      int merge_direction = 0;
+      // if(lf < min_dist)
+      //   merge_direction = +1;
+      // else
+      //   merge_direction -1;
+      remove_point(tangle, k, merge_direction);
+      change = 1;
     }
 
     //do we need an extra point?
     if(next >= 0 && (lf > max_dist)) { //since we are adding between k and next, check only lf
       added++;
       int new_pt = add_point(tangle, k);
-      update_tangent_normal(tangle, new_pt);
+      change = 1;
     }
+    if(change)
+      update_tangents_normals(tangle);
   }
   //we could have added points outside of the domain
   if(added)
@@ -737,11 +832,11 @@ void eliminate_loops_near_origin(struct tangle_state *tangle, double cutoff)
 	{
 	  while(here != k)
 	    {
-	      remove_point(tangle, here);
+	      remove_point(tangle, here, 0);
 	      here = next;
 	      next = tangle->connections[here].forward;
 	    }
-	  remove_point(tangle, here);
+	  remove_point(tangle, here, 0);
 	}
 
     }
@@ -777,20 +872,42 @@ void eliminate_loops_near_zaxis(struct tangle_state *tangle, double cutoff, cons
     next = tangle->connections[here].forward;
     if(cut) {
 	    while(here != k) {
-	      remove_point(tangle, here);
+	      remove_point(tangle, here, 0);
 	      here = next;
 	      next = tangle->connections[here].forward;
 	    }
-	    remove_point(tangle, here);
+	    remove_point(tangle, here, 0);
 	  }
   }
 #undef Z_R
 }
 
-void remove_point(struct tangle_state *tangle, int point_idx)
+void remove_point(struct tangle_state *tangle, int point_idx, int merge_direction)
 {
   int prev = tangle->connections[point_idx].reverse;
   int next = tangle->connections[point_idx].forward;
+
+  if(merge_direction != 0) {
+    int other;
+    if(merge_direction > 0)
+      other = next;
+    else
+      other = prev;
+
+    struct vec3d s0 = tangle->vnodes[point_idx];
+    struct vec3d s0p = tangle->tangents[point_idx];
+    struct vec3d s0pp = tangle->normals[point_idx];
+    
+    struct vec3d s1 = tangle->vnodes[prev];
+    struct vec3d s1p = tangle->tangents[prev];
+    struct vec3d s1pp = tangle->normals[prev];
+
+    struct vec3d s;
+      
+    vec3_add(&s, &s0, &s1);
+    vec3_mul(&s, &s, 0.5);
+    tangle->vnodes[other] = s;
+  }
 
   if(prev >= 0)
     tangle->connections[prev].forward = next;
@@ -801,6 +918,7 @@ void remove_point(struct tangle_state *tangle, int point_idx)
     tangle->connections[point_idx].forward = -1;
 
   tangle->status[point_idx].status = EMPTY;
+  printf("REMOVED POINT\n");
 }
 
 
@@ -812,53 +930,74 @@ int add_point(struct tangle_state *tangle, int p)
   tangle->status[new_pt].status = FREE;
   tangle->status[new_pt].pin_wall = NOT_A_FACE;
 
-  update_tangent_normal(tangle, p);
-  update_tangent_normal(tangle, next);
-
   struct vec3d s0 = tangle->vnodes[p];
   struct vec3d s1 = tangle->vnodes[next];
   struct segment seg = seg_pwrap(&s0, &s1, &tangle->box);
   s1 = seg.r2;
 
+  struct vec3d s0p = tangle->tangents[p];
+  struct vec3d s1p = tangle->tangents[next];
+
   struct vec3d s0pp = tangle->normals[p];
   struct vec3d s1pp = tangle->normals[next];
 
-  double l = vec3_dist(&s0, &s1);
+  double l0 = vec3_dist(&s0, &s1);
 
   struct vec3d a, b, new;
+  struct vec3d new0, new1;
 
   struct vec3d n;
   vec3_add(&n, &s0pp, &s1pp);
   vec3_mul(&n, &n, 0.5);
   double nd = vec3_d(&n);
+  double l = l0;
+  if(nd > 0 && l0*nd/2 <= 1) {
+    printf("L0 = %g\n", l0);
+    l = 2*asin(l0*nd/2)/nd;
+  }
   if(nd < max_curvature_scale/global_dl_max && nd > 1e-5) {
     //if the curvature is too high (can happen near walls due to numerical instability) this extrapolation places the
     //point too far and breaks the curvature calculation in the subsequent steps
-
     //n will be identically 0 for a straight vortex
     //for both of these cases it's better to just average s0 and s1
-    double R = 1/vec3_d(&n);
-    double dR = R*R - l*l/4;
-    //dR can become < 0 for sharp cusps
-    //simplest way to deal with it is to treat the s0 and s1 as sitting
-    //on opposite ends of a circle, for which dR = 0
-    //this does not preserve curvature, but this is below our resolution anyway
-    double delta = dR > 0 ? R - sqrt(dR) : R;
 
-    vec3_normalize(&n);
-    vec3_mul(&n, &n, -1);
+
+    // double R = 1/vec3_d(&n);
+    // double dR = R*R - l*l/4;
+    // //dR can become < 0 for sharp cusps
+    // //simplest way to deal with it is to treat the s0 and s1 as sitting
+    // //on opposite ends of a circle, for which dR = 0
+    // //this does not preserve curvature, but this is below our resolution anyway
+    // double delta = dR > 0 ? R - sqrt(dR) : R;
+
+    // vec3_normalize(&n);
+    // vec3_mul(&n, &n, -1);
+
+    // vec3_add(&a, &s0, &s1);
+    // vec3_mul(&a, &a, 0.5);
+
+    // vec3_mul(&b, &n, delta);
+
+    // vec3_add(&new, &a, &b);
 
     vec3_add(&a, &s0, &s1);
-    vec3_mul(&a, &a, 0.5);
+    vec3_mul(&new, &a, 0.5);
+    
+    vec3_sub(&a, &s0p, &s1p);
+    vec3_mul(&a, &a, l/2);
+    vec3_add(&new, &new, &a);
 
-    vec3_mul(&b, &n, delta);
-
-    vec3_add(&new, &a, &b);
+    vec3_add(&a, &s0pp, &s1pp);
+    vec3_mul(&a, &a, l*l/16.0);
+    vec3_add(&new, &new, &a);
   }
   else { //we basically have a straight vortex, just average s0 and s1
     vec3_add(&new, &s0, &s1);
     vec3_mul(&new, &new, 0.5);
   }
+
+  printf("ADDED POINT\n");
+  printf("(%d,%d): %g, %g, %g\n", p, next, new.p[0], new.p[1], new.p[2]);
 
   tangle->vnodes[new_pt] = new;
   tangle->connections[new_pt].reverse = p;

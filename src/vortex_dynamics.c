@@ -210,7 +210,7 @@ int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec
   /*
    * Now do standard vortex-vortex reconnections
    */
-  Nrecs = 0;
+  //Nrecs = 0;
   for(k=0; k < tangle->N; ++k)
     tangle->recalculate[k] = 0;
 

@@ -818,7 +818,7 @@ int add_point(struct tangle_state *tangle, int p)
   struct vec3d s0 = tangle->vnodes[p];
   struct vec3d s1 = tangle->vnodes[next];
   struct segment seg = seg_pwrap(&s0, &s1, &tangle->box);
-  s1 = seg.r2;
+  //s1 = seg.r2;
 
   struct vec3d s0pp = tangle->normals[p];
   struct vec3d s1pp = tangle->normals[next];
@@ -831,7 +831,25 @@ int add_point(struct tangle_state *tangle, int p)
   vec3_add(&n, &s0pp, &s1pp);
   vec3_mul(&n, &n, 0.5);
   double nd = vec3_d(&n);
-  if(nd < max_curvature_scale/global_dl_max && nd > 1e-5) {
+  if(tangle->status[p].status == PINNED) {
+    struct vec3d t = tangle->tangents[p];
+    struct vec3d n = tangle->normals[p];
+    vec3_mul(&t, &t, l/2);
+    vec3_mul(&n, &n, l*l/8);
+    vec3_add(&new, &t, &n);
+    vec3_add(&new, &new, &s0);
+    printf("ADDING AFTER WALL\n");
+  }
+  else if(tangle->status[next].status == PINNED) {
+    struct vec3d t = tangle->tangents[next];
+    struct vec3d n = tangle->normals[next];
+    vec3_mul(&t, &t, -l/2);
+    vec3_mul(&n, &n, l*l/8);
+    vec3_add(&new, &t, &n);
+    vec3_add(&new, &new, &s1);
+    printf("ADDING BEFORE WALL\n");
+  }
+  else if(nd < max_curvature_scale/global_dl_max && nd > 1e-5) {
     //if the curvature is too high (can happen near walls due to numerical instability) this extrapolation places the
     //point too far and breaks the curvature calculation in the subsequent steps
 
@@ -854,10 +872,12 @@ int add_point(struct tangle_state *tangle, int p)
     vec3_mul(&b, &n, delta);
 
     vec3_add(&new, &a, &b);
+    printf("ADDING FREE\n");
   }
   else { //we basically have a straight vortex, just average s0 and s1
     vec3_add(&new, &s0, &s1);
     vec3_mul(&new, &new, 0.5);
+    printf("ADDING AVERAGED\n");
   }
 
   tangle->vnodes[new_pt] = new;

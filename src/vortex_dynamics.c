@@ -175,8 +175,10 @@ int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec
    * Wall reconnection can create small loops that could be broken by the domain killing below
    * which can cause the simulation to crash. These loops need to be removed.
    */
-  if(Nrecs > 0)
+  if(Nrecs > 0) {
       eliminate_small_loops(tangle, small_loop_cutoff);
+      //update_tangents_normals(tangle);
+  }
 
   /*
    * Eliminate all points that are active and outside the walls. This can potentially happen
@@ -197,15 +199,16 @@ int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec
       }
 	  }
   }
-  if(domain_killed > 0)
-    printf("Removed %d points outside the domain.\n", domain_killed);
 
-  /*
+   /*
    * Some small loops might have been created by the removals above.
    * These can confuse the tangent calculation so they should be removed.
    */
-  if(domain_killed > 0)
+  if(domain_killed > 0) {
+    printf("Removed %d points outside the domain.\n", domain_killed);
     eliminate_small_loops(tangle, small_loop_cutoff);
+    //update_tangents_normals(tangle);
+  }
 
   /*
    * Now do standard vortex-vortex reconnections
@@ -214,99 +217,97 @@ int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec
   for(k=0; k < tangle->N; ++k)
     tangle->recalculate[k] = 0;
 
-  for(k=0; k<tangle->N; ++k)
-    {
-      //do not reconnect points attached to the walls
+  for(k=0; k<tangle->N; ++k) {
+    //do not reconnect points attached to the walls
 
-      if(tangle->status[k].status == EMPTY       ||
-	 tangle->status[k].status == PINNED      ||
-	 tangle->status[k].status == PINNED_SLIP ||
-	 tangle->recalculate[k])
-	continue; //skip empty nodes and nodes that reconnected in this pass
+    if(tangle->status[k].status == EMPTY       ||
+       tangle->status[k].status == PINNED      ||
+	     tangle->status[k].status == PINNED_SLIP ||
+	     tangle->recalculate[k])
+	    continue; //skip empty nodes and nodes that reconnected in this pass
       
-      for(l=k+1; l<tangle->N; ++l)
-	{
-	  if(tangle->status[l].status == EMPTY       ||
-	     tangle->status[l].status == PINNED      ||
-	     tangle->status[l].status == PINNED_SLIP ||
-	     tangle->connections[k].forward == l     ||
-	     tangle->connections[k].reverse == l     ||
-	     tangle->recalculate[l])
-	    continue; //skip empty nodes and neighbors of k
-	              //and nodes that went through a reconnection 
-	  struct segment seg = seg_pwrap(tangle->vnodes + k, tangle->vnodes + l, &tangle->box);
-	  v1 = &seg.r1;
-	  v2 = &seg.r2;
+    for(l=k+1; l<tangle->N; ++l) {
+	    if(tangle->status[l].status == EMPTY       ||
+	       tangle->status[l].status == PINNED      ||
+	       tangle->status[l].status == PINNED_SLIP ||
+	       tangle->connections[k].forward == l     ||
+	       tangle->connections[k].reverse == l     ||
+	       tangle->recalculate[l])
+	      continue; //skip empty nodes and neighbors of k
+	                //and nodes that went through a reconnection 
+	    struct segment seg = seg_pwrap(tangle->vnodes + k, tangle->vnodes + l, &tangle->box);
+	    v1 = &seg.r1;
+	    v2 = &seg.r2;
 
-	  if(vec3_dist(v1, v2) > rec_dist)
-	    continue;
-	  //the nodes are close and they are not neighbors
-	  //now check the angle
-
-	  update_tangent_normal(tangle, k);
-	  update_tangent_normal(tangle, l);
-
-	  d1 = tangle->tangents[k];
-	  d2 = tangle->tangents[l];
-
-	  //In some cases vortex-vortex reconnections can create tiny loops (n ~ 3)
-	  //pinned on the wall which have colinear points for which calculation of the tangents fails.
-	  //These result in tangents of 0 length. If the tangent (which should be 1) is small
-	  //we just ignore this point because this loop will be removed on the next sweep of eliminate_small_loops
-	  //The 0.5 threshold is arbitrary. It will always be roughly 1 or roughly 0.
-	  if(vec3_d(&d1) < 0.5 || vec3_d(&d2) < 0.5)
-	    continue;
-	  //normalized dot -- just the cosine of the angle between vectors
-	  calpha = vec3_ndot(&d1, &d2);
-
-	  //We want to reconnect for angles LARGER than rec_angle
-	  //(i.e., parallel lines do not reconnect) and cosine is
-	  //a decreasing function.
-	  if(calpha > cos(rec_angle))
-	    continue; //angle too small
-
-	  //Do not reconnect if the nodes are getting further apart from each other
-	  struct vec3d dx, dv;
-	  //we only update velocities if we really need them
-    //do not bother with the Barnes-Hut here, passing NULL for the tree turns it off even if enabled globally
-	  update_velocity(tangle, k, t, NULL);
-	  update_velocity(tangle, l, t, NULL);
-	  vec3_sub(&dx, v1, v2);
-	  vec3_sub(&dv, &tangle->vels[k], &tangle->vels[l]);
-
-	  if(vec3_dot(&dx, &dv) > 0)
-	    continue; //the points are getting further from each other
-
-	  //save the old connections because we might need them later
-	  int knext = tangle->connections[k].forward;
-	  int kprev = tangle->connections[k].reverse;
-	  int lnext = tangle->connections[l].forward;
-	  int lprev = tangle->connections[l].reverse;
-
-	  //angle is not too close and we can finally reconnect points k and l
-	  if(!do_reconnection(tangle, k, l))
-	    continue; //do_reconnect additionally checks if the total length doesn't increase
-
-	  //flag the neighbourhood as tainted so that it doesn't flash
-	  //back and forth in a single pass
-	  tangle->recalculate[k]++;
-	  tangle->recalculate[tangle->connections[k].forward]++;
-	  tangle->recalculate[tangle->connections[k].reverse]++;
-	  tangle->recalculate[knext]++;
-	  tangle->recalculate[kprev]++;
-
-	  tangle->recalculate[l]++;
-	  tangle->recalculate[tangle->connections[l].forward]++;
-	  tangle->recalculate[tangle->connections[l].reverse]++;
-	  tangle->recalculate[lnext]++;
-	  tangle->recalculate[lprev]++;
-
-	  Nrecs++;
-    //printf("vortex-vortex reconnection %d %d\n", k, l);
+	    if(vec3_dist(v1, v2) > rec_dist)
+	      continue;
 	  
-	  break; 
-	}
-    }
+      //the nodes are close and they are not neighbors
+      //now check the angle
+
+      //update_tangents_normals(tangle);
+
+      d1 = tangle->tangents[k];
+      d2 = tangle->tangents[l];
+
+      //In some cases vortex-vortex reconnections can create tiny loops (n ~ 3)
+      //pinned on the wall which have colinear points for which calculation of the tangents fails.
+      //These result in tangents of 0 length. If the tangent (which should be 1) is small
+      //we just ignore this point because this loop will be removed on the next sweep of eliminate_small_loops
+      //The 0.5 threshold is arbitrary. It will always be roughly 1 or roughly 0.
+      if(vec3_d(&d1) < 0.5 || vec3_d(&d2) < 0.5)
+        continue;
+      //normalized dot -- just the cosine of the angle between vectors
+      calpha = vec3_ndot(&d1, &d2);
+
+      //We want to reconnect for angles LARGER than rec_angle
+      //(i.e., parallel lines do not reconnect) and cosine is
+      //a decreasing function.
+      if(calpha > cos(rec_angle))
+        continue; //angle too small
+
+      //Do not reconnect if the nodes are getting further apart from each other
+      struct vec3d dx, dv;
+      //we only update velocities if we really need them
+      //do not bother with the Barnes-Hut here, passing NULL for the tree turns it off even if enabled globally
+      update_velocity(tangle, k, t, NULL);
+      update_velocity(tangle, l, t, NULL);
+      vec3_sub(&dx, v1, v2);
+      vec3_sub(&dv, &tangle->vels[k], &tangle->vels[l]);
+
+      if(vec3_dot(&dx, &dv) > 0)
+        continue; //the points are getting further from each other
+
+      //save the old connections because we might need them later
+      int knext = tangle->connections[k].forward;
+      int kprev = tangle->connections[k].reverse;
+      int lnext = tangle->connections[l].forward;
+      int lprev = tangle->connections[l].reverse;
+
+      //angle is not too close and we can finally reconnect points k and l
+      if(!do_reconnection(tangle, k, l))
+        continue; //do_reconnect additionally checks if the total length doesn't increase
+
+      //flag the neighbourhood as tainted so that it doesn't flash
+      //back and forth in a single pass
+      tangle->recalculate[k]++;
+      tangle->recalculate[tangle->connections[k].forward]++;
+      tangle->recalculate[tangle->connections[k].reverse]++;
+      tangle->recalculate[knext]++;
+      tangle->recalculate[kprev]++;
+
+      tangle->recalculate[l]++;
+      tangle->recalculate[tangle->connections[l].forward]++;
+      tangle->recalculate[tangle->connections[l].reverse]++;
+      tangle->recalculate[lnext]++;
+      tangle->recalculate[lprev]++;
+
+      Nrecs++;
+      //printf("vortex-vortex reconnection %d %d\n", k, l);
+      
+      break; 
+	  }
+  }
   return Nrecs;
 }
 
@@ -395,7 +396,6 @@ int check_wall(struct tangle_state *tangle, int k, int wall, double rdist)
 
 int connect_to_wall(struct tangle_state *tangle, int k, int wall, node_status_t pin_mode, double time)
 {
-  update_tangent_normal(tangle, k);
   update_velocity(tangle, k, time, NULL); //do not bother with B-H for a small number of points
   double d0 = wall_dist(tangle, k, wall);
   //check that the node is actually getting closer to the wall

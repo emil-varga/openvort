@@ -112,14 +112,15 @@ int main(int argc, char **argv)
     inject_vortices(tangle, time);
     update_tangle(tangle, time);
     rk4_step(tangle, time, global_dt);
+    update_tangents_normals(tangle);
     remesh(tangle, global_dl_min, global_dl_max);
     eliminate_small_loops(tangle, small_loop_cutoff);
     enforce_boundaries(tangle);
     //curvature_smoothing(tangle, 0.5/global_dl_max, 0.1);
 
     // #ifdef _DEBUG_
-    // printf("Checking tangle integrity.");
-    // check_integrity(tangle);
+    printf("Checking tangle integrity.");
+    check_integrity(tangle);
     // #endif
 
     Np = tangle_total_points(tangle);

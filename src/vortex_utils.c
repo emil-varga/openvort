@@ -228,11 +228,13 @@ void save_point(FILE *stream, int vort_idx,
   write_vector(stream, tangle->tangents + i);
   fprintf(stream, "\t");
   write_vector(stream, tangle->normals + i);
-  fprintf(stream, "\t%d\t%d\t%d\t%d\t%d", i,
+  fprintf(stream, "\t%d\t%d\t%d\t%d\t%d\t%.15g",
+    i,
 	  tangle->connections[i].reverse,
 	  tangle->connections[i].forward,
 	  tangle->status[i].status,
-	  tangle->status[i].pin_wall);
+	  tangle->status[i].pin_wall,
+    tangle->dxi[i]);
   fprintf(stream, "\n");
 }
 
@@ -438,15 +440,17 @@ int is_empty(const struct tangle_state *tangle, int k)
 {
   struct neighbour_t nb = tangle->connections[k];
 
-  if(nb.forward == -1 &&
-     nb.reverse == -1)
+  if(nb.forward == -1 && nb.reverse == -1)
     return 1; //point is empty
 
-  if(nb.forward >= 0 &&
-     nb.reverse >= 0)
+  if(nb.forward >= 0 && nb.reverse >= 0)
     return 0; //both links are valid, point is not empty
 
-  //one of the links is >= 0, the other is ==-1
+  //one of the connections is negative, but the point is pinned so it's OK
+  if(tangle->status[k].status == PINNED || tangle->status[k].status == PINNED_SLIP)
+    return 0;
+
+  //one of the links is >= 0, the other is ==-1 and it is not pinned
   //point is corrupted
   #ifdef _DEBUG_
   printf("Corrupted links in point %d (%d, %d)\n",

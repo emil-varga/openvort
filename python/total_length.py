@@ -63,18 +63,7 @@ if __name__ == '__main__':
         print(fn)
         d = np.loadtxt(fn)
         vidx = 0
-        l = 0
-        while True:
-            ix = d[:,0] == vidx;
-            if not any(ix):
-                break
-
-            rs = d[ix, 1:4]
-            dr = np.diff(rs, axis=0)
-            dls = np.sqrt(np.sum(dr**2, axis=1))
-            
-            l += np.sum(dls[dls < 2*config['dl_max']])
-            vidx += 1
+        l = np.sum(d[:,-1])
         lengths.append(l)
         times.append(time)
         time += dt

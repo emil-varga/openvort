@@ -537,7 +537,7 @@ void initialize_dxi(struct tangle_state *tangle)
     if(tangle->status[k].status == EMPTY)
       continue;;
 
-    s0  = tangle->vnodes[k];
+    s0 = tangle->vnodes[k];
     s1 = step_node(tangle, k, 1);
 
     dseg = seg_pwrap(&s0, &s1, &tangle->box);
@@ -551,17 +551,22 @@ void update_tangents_normals(struct tangle_state *tangle)
   initialize_dxi(tangle);
   //recalculate the tangents and normals 3 times to iteratively
   //aproximate the actual differentiation by arc length
-  for(int r=0; r < 5; r++) {
+  while(1) {
     int i;
-    for(i=0; i<tangle->N; ++i) {
+    for(i=0; i<tangle->N; ++i)
       update_tangent_normal(tangle, i);
-    }
+
+    double max_x = 0;
     for(i=0; i<tangle->N; ++i) {
       if(tangle->status[i].status == EMPTY)
         continue;
       double x = vec3_d(&tangle->tangents[i]);
       tangle->dxi[i] *= x;
+      if(abs(x - 1) > max_x)
+        max_x = abs(x-1);
     }
+    if(max_x < 1e-8)
+      break;
   }
 }
 
@@ -678,23 +683,19 @@ void remesh(struct tangle_state *tangle, double min_dist, double max_dist)
     double lf = 0;
     double lr = 0;
 
-    if(next >= 0) {
-      sf = seg_pwrap(&tangle->vnodes[k], &tangle->vnodes[next], &tangle->box);
-      lf = segment_len(&sf);
-    }
+    if(next >= 0)
+      lf = arc_length(tangle, k, 1);
 
-    if(prev >= 0) {
-      sr = seg_pwrap(&tangle->vnodes[k], &tangle->vnodes[prev], &tangle->box);
-      lr = segment_len(&sr);
-    }
+    if(prev >= 0)
+      lr = arc_length(tangle, k, -1);
 
     //can we remove point k?
     if(next >= 0 && prev >= 0 && ((lf < min_dist || lr < min_dist) && (lf + lr) < max_dist )) {
       int merge_direction = 0;
-      // if(lf < min_dist)
-      //   merge_direction = +1;
-      // else
-      //   merge_direction -1;
+      if(lf < min_dist)
+        merge_direction = +1;
+      else
+        merge_direction -1;
       remove_point(tangle, k, merge_direction);
       change = 1;
     }
@@ -865,24 +866,40 @@ void remove_point(struct tangle_state *tangle, int point_idx, int merge_directio
 
   if(merge_direction != 0) {
     int other;
-    if(merge_direction > 0)
+    double l;
+    if(merge_direction > 0) {
       other = next;
-    else
+      l = tangle->dxi[point_idx];
+    }
+    else {
       other = prev;
+      l = -tangle->dxi[prev];
+    }
 
-    struct vec3d s0 = tangle->vnodes[point_idx];
-    struct vec3d s0p = tangle->tangents[point_idx];
-    struct vec3d s0pp = tangle->normals[point_idx];
-    
-    struct vec3d s1 = tangle->vnodes[prev];
-    struct vec3d s1p = tangle->tangents[prev];
-    struct vec3d s1pp = tangle->normals[prev];
-
-    struct vec3d s;
+    if(tangle->status[other].status == FREE) {
+      struct vec3d s0 = tangle->vnodes[point_idx];
+      struct vec3d s0p = tangle->tangents[point_idx];
+      struct vec3d s0pp = tangle->normals[point_idx];
       
-    vec3_add(&s, &s0, &s1);
-    vec3_mul(&s, &s, 0.5);
-    tangle->vnodes[other] = s;
+      struct vec3d s1 = tangle->vnodes[other];
+      struct vec3d s1p = tangle->tangents[other];
+      struct vec3d s1pp = tangle->normals[other];
+
+      struct vec3d a, new;
+
+      vec3_add(&a, &s0, &s1);
+      vec3_mul(&new, &a, 0.5);
+      
+      vec3_sub(&a, &s0p, &s1p);
+      vec3_mul(&a, &a, l/2);
+      vec3_add(&new, &new, &a);
+
+      vec3_add(&a, &s0pp, &s1pp);
+      vec3_mul(&a, &a, l*l/16.0);
+      vec3_add(&new, &new, &a);
+
+      tangle->vnodes[other] = new;
+    }
   }
 
   if(prev >= 0)
@@ -926,59 +943,59 @@ int add_point(struct tangle_state *tangle, int p)
   double nd = vec3_d(&n);
   double l = tangle->dxi[p];
 
-  if(tangle->status[p].status == PINNED) {
-    struct vec3d t = tangle->tangents[p];
-    struct vec3d n = tangle->normals[p];
-    vec3_mul(&t, &t, l/2);
-    vec3_mul(&n, &n, l*l/8);
-    vec3_add(&new, &t, &n);
-    vec3_add(&new, &new, &s0);
-    printf("ADDING AFTER WALL\n");
-  }
-  else if(tangle->status[next].status == PINNED) {
-    struct vec3d t = tangle->tangents[next];
-    struct vec3d n = tangle->normals[next];
-    vec3_mul(&t, &t, -l/2);
-    vec3_mul(&n, &n, l*l/8);
-    vec3_add(&new, &t, &n);
-    vec3_add(&new, &new, &s1);
-    printf("ADDING BEFORE WALL\n");
-  }
-  else if(nd < max_curvature_scale/global_dl_max && nd > 1e-5) {
+  // if(tangle->status[p].status == PINNED) {
+  //   struct vec3d t = tangle->tangents[p];
+  //   struct vec3d n = tangle->normals[p];
+  //   vec3_mul(&t, &t, l/2);
+  //   vec3_mul(&n, &n, l*l/8);
+  //   vec3_add(&new, &t, &n);
+  //   vec3_add(&new, &new, &s0);
+  //   printf("ADDING AFTER WALL\n");
+  // }
+  // else if(tangle->status[next].status == PINNED) {
+  //   struct vec3d t = tangle->tangents[next];
+  //   struct vec3d n = tangle->normals[next];
+  //   vec3_mul(&t, &t, -l/2);
+  //   vec3_mul(&n, &n, l*l/8);
+  //   vec3_add(&new, &t, &n);
+  //   vec3_add(&new, &new, &s1);
+  //   printf("ADDING BEFORE WALL\n");
+  // }
+  if(nd < max_curvature_scale/global_dl_max && nd > 1e-5) {
     //if the curvature is too high (can happen near walls due to numerical instability) this extrapolation places the
     //point too far and breaks the curvature calculation in the subsequent steps
     //n will be identically 0 for a straight vortex
     //for both of these cases it's better to just average s0 and s1
 
 
-    double R = 1/vec3_d(&n);
-    double dR = R*R - l*l/4;
-    //dR can become < 0 for sharp cusps
-    //simplest way to deal with it is to treat the s0 and s1 as sitting
-    //on opposite ends of a circle, for which dR = 0
-    //this does not preserve curvature, but this is below our resolution anyway
-    double delta = dR > 0 ? R - sqrt(dR) : R;
+    // double R = 1/vec3_d(&n);
+    // double dR = R*R - l*l/4;
+    // //dR can become < 0 for sharp cusps
+    // //simplest way to deal with it is to treat the s0 and s1 as sitting
+    // //on opposite ends of a circle, for which dR = 0
+    // //this does not preserve curvature, but this is below our resolution anyway
+    // double delta = dR > 0 ? R - sqrt(dR) : R;
 
-    vec3_normalize(&n);
-    vec3_mul(&n, &n, -1);
-
-    vec3_add(&a, &s0, &s1);
-    vec3_mul(&a, &a, 0.5);
-
-    vec3_mul(&b, &n, delta);
-
-    vec3_add(&new, &a, &b);
+    // vec3_normalize(&n);
+    // vec3_mul(&n, &n, -1);
 
     // vec3_add(&a, &s0, &s1);
-    // vec3_mul(&new, &a, 0.5);
-    
-    // vec3_sub(&a, &s0p, &s1p);
-    // vec3_mul(&a, &a, l/2);
-    // vec3_add(&new, &new, &a);
+    // vec3_mul(&a, &a, 0.5);
 
-    // vec3_add(&a, &s0pp, &s1pp);
-    // vec3_mul(&a, &a, l*l/16.0);
-    // vec3_add(&new, &new, &a);
+    // vec3_mul(&b, &n, delta);
+
+    // vec3_add(&new, &a, &b);
+
+    vec3_add(&a, &s0, &s1);
+    vec3_mul(&new, &a, 0.5);
+    
+    vec3_sub(&a, &s0p, &s1p);
+    vec3_mul(&a, &a, l/2);
+    vec3_add(&new, &new, &a);
+
+    vec3_add(&a, &s0pp, &s1pp);
+    vec3_mul(&a, &a, l*l/16.0);
+    vec3_add(&new, &new, &a);
     printf("ADDING FREE\n");
   }
   else { //we basically have a straight vortex, just average s0 and s1

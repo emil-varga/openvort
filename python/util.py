@@ -35,11 +35,11 @@ def build_vortex(frame_data, vortex_idx, max_l=None):
     #print(vortex_idx, sum(vidx == vortex_idx), frame_data.shape, vortex_data.shape)
     
     xs = vortex_data[:,1:4]
-#    pin_wall = vortex_data[:,-1]
-#    status_flag = vortex_data[:,-2]
-    forward = vortex_data[:,-3]
-    reverse = vortex_data[:,-4]
-    node_i = vortex_data[:,-5]
+#    pin_wall = vortex_data[:,-2]
+#    status_flag = vortex_data[:,-3]
+    forward = vortex_data[:,-4]
+    reverse = vortex_data[:,-5]
+    node_i = vortex_data[:,-6]
     
     vxs = []
 

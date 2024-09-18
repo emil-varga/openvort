@@ -189,12 +189,12 @@ struct vec3d step_node(const struct tangle_state *tangle, int i, int where)
 	    else
 	      return step_node(tangle, tangle->connections[i].reverse, where+1);
 	  }
-      //if we are here it means we have ran into a wall and we need to flip the node
-      return mirror_shift(&out, &tangle->box, tangle->status[i].pin_wall);
-    } else {
-      error("Walking across empty node.");//we should never get here
-      return vec3(0,0,0);
-    }
+    //if we are here it means we have ran into a wall and we need to flip the node
+    return mirror_shift(&out, &tangle->box, tangle->status[i].pin_wall);
+  } else {
+    error("Walking across empty node.");//we should never get here
+    return vec3(0,0,0);
+  }
 
   //to suppress warning
   return vec3(0,0,0);
@@ -551,7 +551,9 @@ void update_tangents_normals(struct tangle_state *tangle)
   initialize_dxi(tangle);
   //recalculate the tangents and normals 3 times to iteratively
   //aproximate the actual differentiation by arc length
-  while(1) {
+  int iterations = 0;
+  while(iterations < 10) {
+    iterations++;
     int i;
     for(i=0; i<tangle->N; ++i)
       update_tangent_normal(tangle, i);
@@ -562,11 +564,16 @@ void update_tangents_normals(struct tangle_state *tangle)
         continue;
       double x = vec3_d(&tangle->tangents[i]);
       tangle->dxi[i] *= x;
-      if(abs(x - 1) > max_x)
-        max_x = abs(x-1);
+      printf("(%d) node %d, x=%g (%g), lim=%g\n", iterations, i, x, fabs(x-1), max_x);
+      if(fabs(x - 1) > max_x) {
+        max_x = fabs(x-1);
+        printf("Max x update %g\n", max_x);
+      }
     }
-    if(max_x < 1e-8)
+    if(max_x < 1e-3) {
+      printf("Ending iteration (%d) %g\n", iterations, max_x);
       break;
+    }
   }
 }
 
@@ -941,7 +948,8 @@ int add_point(struct tangle_state *tangle, int p)
   vec3_add(&n, &s0pp, &s1pp);
   vec3_mul(&n, &n, 0.5);
   double nd = vec3_d(&n);
-  double l = tangle->dxi[p];
+  double lf = tangle->dxi[p];
+  double lb = tangle->dxi[next];
 
   // if(tangle->status[p].status == PINNED) {
   //   struct vec3d t = tangle->tangents[p];
@@ -961,7 +969,7 @@ int add_point(struct tangle_state *tangle, int p)
   //   vec3_add(&new, &new, &s1);
   //   printf("ADDING BEFORE WALL\n");
   // }
-  if(nd < max_curvature_scale/global_dl_max && nd > 1e-5) {
+  if(nd < max_curvature_scale/global_dl_max && nd > 1e-8) {
     //if the curvature is too high (can happen near walls due to numerical instability) this extrapolation places the
     //point too far and breaks the curvature calculation in the subsequent steps
     //n will be identically 0 for a straight vortex
@@ -989,12 +997,14 @@ int add_point(struct tangle_state *tangle, int p)
     vec3_add(&a, &s0, &s1);
     vec3_mul(&new, &a, 0.5);
     
-    vec3_sub(&a, &s0p, &s1p);
-    vec3_mul(&a, &a, l/2);
+    vec3_mul(&a, &s0p, lf/4.0);
+    vec3_add(&new, &new, &a);
+    vec3_mul(&a, &s1p, -lb/4.0);
     vec3_add(&new, &new, &a);
 
-    vec3_add(&a, &s0pp, &s1pp);
-    vec3_mul(&a, &a, l*l/16.0);
+    vec3_mul(&a, &s0pp, lf*lf/16.0);
+    vec3_add(&new, &new, &a);
+    vec3_mul(&a, &s1pp, lb*lb/16.0);
     vec3_add(&new, &new, &a);
     printf("ADDING FREE\n");
   }

@@ -58,8 +58,7 @@ void euler_step(struct tangle_state *tangle, double dt)
   euler_step2(tangle, tangle, dt, NULL);
 }
 
-void rk4_step2(struct tangle_state *result,
-	       const struct tangle_state *tangle, double t, double dt)
+void rk4_step2(struct tangle_state *result, const struct tangle_state *tangle, double t, double dt)
 {
   int N;
   struct tangle_state rk_state[3]; //k2 through k4, we already have k1 in tangle
@@ -78,19 +77,19 @@ void rk4_step2(struct tangle_state *result,
 
   //calculate k2
   euler_step2(&rk_state[0], tangle, dt/2, NULL);
-  enforce_boundaries(&rk_state[0]);
+  // enforce_boundaries(&rk_state[0]);
   update_tangents_normals(&rk_state[0]);
   update_velocities(&rk_state[0], t + dt/2, NULL);
 
   //calculate k3
   euler_step2(&rk_state[1], tangle, dt/2, rk_state[0].vels);
-  enforce_boundaries(&rk_state[1]);
+  // enforce_boundaries(&rk_state[1]);
   update_tangents_normals(&rk_state[1]);
   update_velocities(&rk_state[1], t+dt/2, NULL);
 
   //calculate k4
   euler_step2(&rk_state[2], tangle, dt/2, rk_state[1].vels);
-  enforce_boundaries(&rk_state[2]);
+  // enforce_boundaries(&rk_state[2]);
   update_tangents_normals(&rk_state[2]);
   update_velocities(&rk_state[2], t + dt, NULL);
 

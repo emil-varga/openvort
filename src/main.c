@@ -119,8 +119,8 @@ int main(int argc, char **argv)
     //curvature_smoothing(tangle, 0.5/global_dl_max, 0.1);
 
     // #ifdef _DEBUG_
-    printf("Checking tangle integrity.");
-    check_integrity(tangle);
+    // printf("Checking tangle integrity.");
+    // check_integrity(tangle);
     // #endif
 
     Np = tangle_total_points(tangle);

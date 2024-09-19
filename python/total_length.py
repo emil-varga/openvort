@@ -63,7 +63,8 @@ if __name__ == '__main__':
         print(fn)
         d = np.loadtxt(fn)
         vidx = 0
-        l = np.sum(d[:,-1])
+        fwd = d[:,-4]
+        l = np.sum(d[fwd>=0,-1])
         lengths.append(l)
         times.append(time)
         time += dt

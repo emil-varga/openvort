@@ -242,7 +242,6 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k)
 {
   struct vec3d s0, s1, sm1;
   struct vec3d s2, sm2;
-  size_t i;
 
   //vector differences
   struct vec3d ds[4];
@@ -270,6 +269,32 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k)
   double dm1 = arc_length(tangle, k, -1);
   double dm2 = arc_length(tangle, k, -2);
 
+  if(tangle->status[k].status == PINNED) {
+    struct vec3d t = boundary_normals[tangle->status[k].pin_wall];
+    struct vec3d n;
+    struct vec3d tmp;
+    double at, a1, a2;
+    if(tangle->connections[k].forward < 0) {
+      vec3_mul(&t, &t, -1);
+      at = 2/dm2 + 2/dm1;
+      a1 = -2*dm2/(dm1*dm1*2*(dm1 - dm2));
+      a2 = 2*dm1/(dm2*dm2*2*(dm1 - dm2));
+    } else {
+      at = -2/d2 - 2/d1;
+      a1 = -2*d2/(d1*d1*2*(d1 - d2));
+      a2 = -2*d1/(d2*d2*2*(d1 - d2));
+    }
+
+    tangle->tangents[k] = t;
+    vec3_mul(&n, &t, at);
+    vec3_mul(&tmp, &ds[1], a1);
+    vec3_add(&n, &n, &tmp);
+    vec3_mul(&tmp, &ds[0], a2);
+    vec3_add(&n, &n, &tmp);
+    tangle->normals[k] = n;
+  }
+
+  //a free point
   //four point coefficients, denominators
   double d_s_diff[] = {
     d2*(d2 - d1)*(dm1 + d2)*(dm2 + d2),
@@ -296,7 +321,7 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k)
     -2*((d2  + d1)*dm1 - d1*d2)
   };
   
-  for(i=0; i<3; ++i) {
+  for(int i=0; i<3; ++i) {
     tangle->tangents[k].p[i] = 0;
     tangle->normals[k].p[i]  = 0;
     for(int z = 0; z<4; ++z) {
@@ -535,7 +560,7 @@ void initialize_dxi(struct tangle_state *tangle)
 
   for(int k=0; k<tangle->N; ++k) {
     if(tangle->status[k].status == EMPTY)
-      continue;;
+      continue;
 
     s0 = tangle->vnodes[k];
     s1 = step_node(tangle, k, 1);
@@ -552,7 +577,7 @@ void update_tangents_normals(struct tangle_state *tangle)
   //recalculate the tangents and normals 3 times to iteratively
   //aproximate the actual differentiation by arc length
   int iterations = 0;
-  while(iterations < 10) {
+  while(iterations < 50) {
     iterations++;
     int i;
     for(i=0; i<tangle->N; ++i)
@@ -564,13 +589,13 @@ void update_tangents_normals(struct tangle_state *tangle)
         continue;
       double x = vec3_d(&tangle->tangents[i]);
       tangle->dxi[i] *= x;
-      printf("(%d) node %d, x=%g (%g), lim=%g\n", iterations, i, x, fabs(x-1), max_x);
+      printf("(%02d) node %d, x=%g (%g), lim=%g\n", iterations, i, x, x-1, max_x);
       if(fabs(x - 1) > max_x) {
         max_x = fabs(x-1);
         printf("Max x update %g\n", max_x);
       }
     }
-    if(max_x < 1e-3) {
+    if(max_x < 1e-4) {
       printf("Ending iteration (%d) %g\n", iterations, max_x);
       break;
     }
@@ -654,22 +679,20 @@ static inline int out_of_box(const struct tangle_state *tangle, const struct vec
 void enforce_boundaries(struct tangle_state *tangle)
 {
   int face;
-  for(int k=0; k < tangle->N; ++k)
-    {
-      if(tangle->status[k].status == EMPTY)
-	continue;
-      face = out_of_box(tangle, &tangle->vnodes[k]);
-      if(face >= 0)
-	  {
+  for(int k=0; k < tangle->N; ++k) {
+    if(tangle->status[k].status == EMPTY)
+	    continue;
+    face = out_of_box(tangle, &tangle->vnodes[k]);
+    if(face >= 0) {
 	    //this should be only possible with periodic faces
 	    assert_msg(tangle->status[k].status != PINNED ||
-		       tangle->status[k].status != PINNED_SLIP,
-		       "pinned node outside of the box\n"
-		       "this should have been caught with reconnections")
-	    while((face=out_of_box(tangle, &tangle->vnodes[k])) >= 0)
-	      tangle->vnodes[k] = periodic_shift(&tangle->vnodes[k], &tangle->box, face);
+		             tangle->status[k].status != PINNED_SLIP,
+		             "pinned node outside of the box\n"
+		             "this should have been caught with reconnections")
+      while((face=out_of_box(tangle, &tangle->vnodes[k])) >= 0)
+        tangle->vnodes[k] = periodic_shift(&tangle->vnodes[k], &tangle->box, face);
 	  }
-    }
+  }
 }
 
 void remove_point(struct tangle_state *tangle, int point_idx, int merge_direction);
@@ -976,36 +999,36 @@ int add_point(struct tangle_state *tangle, int p)
     //for both of these cases it's better to just average s0 and s1
 
 
-    // double R = 1/vec3_d(&n);
-    // double dR = R*R - l*l/4;
-    // //dR can become < 0 for sharp cusps
-    // //simplest way to deal with it is to treat the s0 and s1 as sitting
-    // //on opposite ends of a circle, for which dR = 0
-    // //this does not preserve curvature, but this is below our resolution anyway
-    // double delta = dR > 0 ? R - sqrt(dR) : R;
+    double R = 1/vec3_d(&n);
+    double dR = R*R - lf*lf/4;
+    //dR can become < 0 for sharp cusps
+    //simplest way to deal with it is to treat the s0 and s1 as sitting
+    //on opposite ends of a circle, for which dR = 0
+    //this does not preserve curvature, but this is below our resolution anyway
+    double delta = dR > 0 ? R - sqrt(dR) : R;
 
-    // vec3_normalize(&n);
-    // vec3_mul(&n, &n, -1);
-
-    // vec3_add(&a, &s0, &s1);
-    // vec3_mul(&a, &a, 0.5);
-
-    // vec3_mul(&b, &n, delta);
-
-    // vec3_add(&new, &a, &b);
+    vec3_normalize(&n);
+    vec3_mul(&n, &n, -1);
 
     vec3_add(&a, &s0, &s1);
-    vec3_mul(&new, &a, 0.5);
-    
-    vec3_mul(&a, &s0p, lf/4.0);
-    vec3_add(&new, &new, &a);
-    vec3_mul(&a, &s1p, -lb/4.0);
-    vec3_add(&new, &new, &a);
+    vec3_mul(&a, &a, 0.5);
 
-    vec3_mul(&a, &s0pp, lf*lf/16.0);
-    vec3_add(&new, &new, &a);
-    vec3_mul(&a, &s1pp, lb*lb/16.0);
-    vec3_add(&new, &new, &a);
+    vec3_mul(&b, &n, delta);
+
+    vec3_add(&new, &a, &b);
+
+    // vec3_add(&a, &s0, &s1);
+    // vec3_mul(&new, &a, 0.5);
+    
+    // vec3_mul(&a, &s0p, lf/4.0);
+    // vec3_add(&new, &new, &a);
+    // vec3_mul(&a, &s1p, -lb/4.0);
+    // vec3_add(&new, &new, &a);
+
+    // vec3_mul(&a, &s0pp, lf*lf/16.0);
+    // vec3_add(&new, &new, &a);
+    // vec3_mul(&a, &s1pp, lb*lb/16.0);
+    // vec3_add(&new, &new, &a);
     printf("ADDING FREE\n");
   }
   else { //we basically have a straight vortex, just average s0 and s1

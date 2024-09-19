@@ -292,6 +292,7 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k)
     vec3_mul(&tmp, &ds[0], a2);
     vec3_add(&n, &n, &tmp);
     tangle->normals[k] = n;
+    return;
   }
 
   //a free point

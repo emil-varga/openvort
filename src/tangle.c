@@ -272,26 +272,56 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k)
   if(tangle->status[k].status == PINNED) {
     struct vec3d t = boundary_normals[tangle->status[k].pin_wall];
     struct vec3d n;
-    struct vec3d tmp;
-    double at, a1, a2;
+    struct vec3d tmp, ds1, ds2;
+    double a1, a2, an1, an2;
     if(tangle->connections[k].forward < 0) {
-      vec3_mul(&t, &t, -1);
-      at = 2/dm2 + 2/dm1;
-      a1 = -2*dm2/(dm1*dm1*2*(dm1 - dm2));
-      a2 = 2*dm1/(dm2*dm2*2*(dm1 - dm2));
+      a1 = -dm2/(dm1*dm1 - dm1*dm2);
+      a2 = dm1/(dm1*dm2 - dm2*dm2);
+      an1 = 2/(dm1*dm1 - dm1*dm2);
+      an2 = -2/(dm1*dm2 - dm2*dm2);
+      ds1 = ds[2];
+      ds2 = ds[3];
     } else {
-      at = -2/d2 - 2/d1;
-      a1 = -2*d2/(d1*d1*2*(d1 - d2));
-      a2 = -2*d1/(d2*d2*2*(d1 - d2));
+      a1 = d2/(d1*d1 - d1*d2);
+      a2 = -d1/(d1*d2 - d2*d2);
+      an1 = -2/(d1*d1 - d1*d2);
+      an2 = 2/(d1*d2 - d2*d2);
+      ds1 = ds[1];
+      ds2 = ds[0];
     }
 
+    vec3_mul(&t, &ds1, a1);
+    vec3_mul(&tmp, &ds2, a2);
+    vec3_add(&t, &t, &tmp);
+
+    vec3_mul(&n, &ds1, an1);
+    vec3_mul(&tmp, &ds2, an2);
+    vec3_add(&n, &n, &tmp);
+    
     tangle->tangents[k] = t;
-    vec3_mul(&n, &t, at);
-    vec3_mul(&tmp, &ds[1], a1);
-    vec3_add(&n, &n, &tmp);
-    vec3_mul(&tmp, &ds[0], a2);
-    vec3_add(&n, &n, &tmp);
     tangle->normals[k] = n;
+    return;
+  }
+
+  int next = tangle->connections[k].forward;
+  int prev = tangle->connections[k].reverse;
+  if(tangle->status[next].status == PINNED || tangle->status[prev].status == PINNED) {
+    struct vec3d tmp;
+    double a1, am1, an1, anm1;
+    a1 = -dm1/(d1*d1 + d1*dm1);
+    am1 = d1/(dm1*d1 + dm1*dm1);
+
+    an1 = -2/(d1*d1 + d1*dm1);
+    anm1 = -2/(dm1*d1 + dm1*dm1);
+
+    vec3_mul(&tangle->tangents[k], &ds[1], a1);
+    vec3_mul(&tmp, &ds[2], am1);
+    vec3_add(&tangle->tangents[k], &tangle->tangents[k], &tmp);
+
+    vec3_mul(&tangle->normals[k], &ds[1], an1);
+    vec3_mul(&tmp, &ds[2], anm1);
+    vec3_add(&tangle->normals[k], &tangle->normals[k], &tmp);
+
     return;
   }
 

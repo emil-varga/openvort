@@ -270,15 +270,15 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k)
   double dm2 = arc_length(tangle, k, -2);
 
   if(tangle->status[k].status == PINNED) {
-    struct vec3d t = boundary_normals[tangle->status[k].pin_wall];
+    struct vec3d t;
     struct vec3d n;
     struct vec3d tmp, ds1, ds2;
     double a1, a2, an1, an2;
     if(tangle->connections[k].forward < 0) {
       a1 = -dm2/(dm1*dm1 - dm1*dm2);
       a2 = dm1/(dm1*dm2 - dm2*dm2);
-      an1 = 2/(dm1*dm1 - dm1*dm2);
-      an2 = -2/(dm1*dm2 - dm2*dm2);
+      an1 = -2/(dm1*dm1 - dm1*dm2);
+      an2 = +2/(dm1*dm2 - dm2*dm2);
       ds1 = ds[2];
       ds2 = ds[3];
     } else {
@@ -608,7 +608,7 @@ void update_tangents_normals(struct tangle_state *tangle)
   //recalculate the tangents and normals 3 times to iteratively
   //aproximate the actual differentiation by arc length
   int iterations = 0;
-  while(iterations < 50) {
+  while(iterations < 1) {
     iterations++;
     int i;
     for(i=0; i<tangle->N; ++i)

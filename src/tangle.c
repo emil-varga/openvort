@@ -620,14 +620,14 @@ void update_tangents_normals(struct tangle_state *tangle)
         continue;
       double x = vec3_d(&tangle->tangents[i]);
       tangle->dxi[i] *= x;
-      printf("(%02d) node %d, x=%g (%g), lim=%g\n", iterations, i, x, x-1, max_x);
+      // printf("(%02d) node %d, x=%g (%g), lim=%g\n", iterations, i, x, x-1, max_x);
       if(fabs(x - 1) > max_x) {
         max_x = fabs(x-1);
-        printf("Max x update %g\n", max_x);
+        // printf("Max x update %g\n", max_x);
       }
     }
     if(max_x < 1e-4) {
-      printf("Ending iteration (%d) %g\n", iterations, max_x);
+      // printf("Ending iteration (%d) %g\n", iterations, max_x);
       break;
     }
   }
@@ -972,7 +972,7 @@ void remove_point(struct tangle_state *tangle, int point_idx, int merge_directio
     tangle->connections[point_idx].forward = -1;
 
   tangle->status[point_idx].status = EMPTY;
-  printf("REMOVED POINT\n");
+  // printf("REMOVED POINT\n");
 }
 
 
@@ -1060,16 +1060,16 @@ int add_point(struct tangle_state *tangle, int p)
     // vec3_add(&new, &new, &a);
     // vec3_mul(&a, &s1pp, lb*lb/16.0);
     // vec3_add(&new, &new, &a);
-    printf("ADDING FREE\n");
+    // printf("ADDING FREE\n");
   }
   else { //we basically have a straight vortex, just average s0 and s1
     vec3_add(&new, &s0, &s1);
     vec3_mul(&new, &new, 0.5);
-    printf("ADDING AVERAGED\n");
+    // printf("ADDING AVERAGED\n");
   }
 
-  printf("ADDED POINT\n");
-  printf("(%d,%d): %g, %g, %g\n", p, next, new.p[0], new.p[1], new.p[2]);
+  // printf("ADDED POINT\n");
+  // printf("(%d,%d): %g, %g, %g\n", p, next, new.p[0], new.p[1], new.p[2]);
 
   tangle->vnodes[new_pt] = new;
   tangle->connections[new_pt].reverse = p;

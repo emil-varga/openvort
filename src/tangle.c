@@ -298,6 +298,8 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k)
     vec3_mul(&tmp, &ds2, an2);
     vec3_add(&n, &n, &tmp);
     
+    vec3_mul(&n, &n, -1);
+    
     tangle->tangents[k] = t;
     tangle->normals[k] = n;
     return;

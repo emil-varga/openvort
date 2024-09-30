@@ -298,6 +298,7 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k)
     vec3_mul(&tmp, &ds2, an2);
     vec3_add(&n, &n, &tmp);
     
+    vec3_mul(&t, &t, -1);
     vec3_mul(&n, &n, -1);
     
     tangle->tangents[k] = t;
@@ -324,6 +325,7 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k)
     vec3_mul(&tmp, &ds[2], anm1);
     vec3_add(&tangle->normals[k], &tangle->normals[k], &tmp);
 
+    vec3_mul(&tangle->tangents[k], &tangle->tangents[k], -1);
     vec3_mul(&tangle->normals[k], &tangle->normals[k], -1);
 
     return;

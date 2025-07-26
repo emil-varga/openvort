@@ -17,6 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
 
+#define _GNU_SOURCE
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -142,7 +143,7 @@ void add_line_KW(struct tangle_state *tangle, double x, double y, int direction,
   tangle->tangents[new_pt] = sp;
   tangle->normals[new_pt] = spp;
   if(tangle->box.wall[start_wall] == WALL_MIRROR) {
-    tangle->status[new_pt].status = pin_mode;
+    tangle->status[new_pt].status = global_pin_mode;
     tangle->status[new_pt].pin_wall = start_wall;
     tangle->connections[new_pt].reverse = -1;
   } else if(tangle->box.wall[start_wall] == WALL_PERIODIC) {
@@ -189,7 +190,7 @@ void add_line_KW(struct tangle_state *tangle, double x, double y, int direction,
     tangle->vnodes[new_pt] = s;
     tangle->tangents[new_pt] = sp;
     tangle->normals[new_pt] = spp;
-    tangle->status[new_pt].status = pin_mode;
+    tangle->status[new_pt].status = global_pin_mode;
     tangle->status[new_pt].pin_wall = end_wall;
     tangle->connections[new_pt].reverse = last_pt;
     tangle->connections[new_pt].forward = -1;
@@ -561,25 +562,25 @@ void clip_at_wall(struct tangle_state *tangle)
 	case EDGE_REVERSE_L:
 	  tangle->connections[kk].reverse = -1;
 	  tangle->vnodes[kk].p[2] = llimit;
-	  tangle->status[kk].status = pin_mode;
+	  tangle->status[kk].status = global_pin_mode;
 	  tangle->status[kk].pin_wall = Z_L;
 	  break;
 	case EDGE_FORWARD_L:
 	  tangle->connections[kk].forward = -1;
 	  tangle->vnodes[kk].p[2] = llimit;
-	  tangle->status[kk].status = pin_mode;
+	  tangle->status[kk].status = global_pin_mode;
 	  tangle->status[kk].pin_wall = Z_L;
 	  break;
 	case EDGE_REVERSE_H:
 	  tangle->connections[kk].reverse = -1;
 	  tangle->vnodes[kk].p[2] = ulimit;
-	  tangle->status[kk].status = pin_mode;
+	  tangle->status[kk].status = global_pin_mode;
 	  tangle->status[kk].pin_wall = Z_H;
 	  break;
 	case EDGE_FORWARD_H:
 	  tangle->connections[kk].forward = -1;
 	  tangle->vnodes[kk].p[2] = ulimit;
-	  tangle->status[kk].status = pin_mode;
+	  tangle->status[kk].status = global_pin_mode;
 	  tangle->status[kk].pin_wall = Z_H;
 	  break;
 	case KILL:

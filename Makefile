@@ -20,14 +20,16 @@
 CC=gcc -fopenmp
 #CFLAGS=  -O2 -fsanitize=undefined -fsanitize=float-divide-by-zero -fsanitize=leak `pkg-config --cflags libconfig`
 CFLAGS = -O2 `pkg-config --cflags libconfig`
-DEBUG = -Wall -Wextra -pedantic -ggdb -D_DEBUG_
+WARNINGS = -Wall -Wextra -pedantic
+DEBUG = -ggdb -D_DEBUG_
 INCLUDE = include
+BUILD = build
 
-COMPILE = $(CC) $(CFLAGS) $(DEBUG) -I$(INCLUDE)
+COMPILE = $(CC) $(CFLAGS) $(WARNINGS) $(DEBUG) -I$(INCLUDE)
 LIBS=-lm `pkg-config --libs libconfig`
 
 src = $(wildcard src/*.c)
-obj = $(src:.c=.o)
+obj = $(patsubst src/%.c, $(BUILD)/%.o, $(src))
 dep = $(obj:.o=.d)
 
 all: vortices
@@ -37,12 +39,15 @@ vortices: $(obj)
 
 -include $(dep)
 
-%.d: %.c
+$(BUILD)/%.d: src/%.c | $(BUILD)
 	$(CPP) $(CFLAGS) $< -I$(INCLUDE) -MM -MT $(@:.d=.o) >$@
 
-%.o: %.c
+$(BUILD)/%.o: src/%.c | $(BUILD)
 	$(COMPILE) -c $< -o $@
+
+$(BUILD):
+	mkdir -p $(BUILD)
 
 .PHONY: clean
 clean:
-	rm vortices $(obj) $(dep)
+	rm -rf vortices $(BUILD) $(dep)

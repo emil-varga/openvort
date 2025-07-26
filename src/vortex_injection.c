@@ -24,11 +24,11 @@
 
 void inject_vortices(struct tangle_state *tangle, double t)
 {
-  if(loop_injection)
-    inject_loop(tangle, t, loop_injection_frequency);
-  if(line_injection)
-    inject_line_pairs(tangle, t, line_injection_frequency, line_injection_n,
-		      line_injection_polarized);
+  if(global_loop_injection)
+    inject_loop(tangle, t, global_loop_injection_frequency);
+  if(global_line_injection)
+    inject_line_pairs(tangle, t, global_line_injection_frequency, global_line_injection_n,
+		      global_line_injection_polarized);
 }
 
 void inject_loop(struct tangle_state *tangle, double t, double frequency)

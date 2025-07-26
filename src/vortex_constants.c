@@ -21,73 +21,73 @@
 #include "tangle.h"
 //declared as extern in vortex_constants.h
 
-int max_steps = -1;
+int global_max_steps = -1;
 
 double VORTEX_WIDTH = 1e-8; //cm
 //quantum of circulation
 double KAPPA = 9.97e-4; //cm^2/s
 
 //Local induction approximation
-int LIA_only = 0; //default false
+int global_LIA_only = 0; //default false
 
 //mutual friction parameters
-double alpha = 0.1;
-double alpha_p = 0.01;
+double global_alpha = 0.1;
+double global_alpha_p = 0.01;
 
 //densities, g/cm^3
-double rho_n = 1.0; //normal fluid
-double rho_s = 0.45; //superfluid
+double global_rho_n = 1.0; //normal fluid
+double global_rho_s = 0.45; //superfluid
 
 //discretisation and stepping
 double global_dt = 1e-3;
 double global_dl_min = 1e-3;
 double global_dl_max = 5e-3;
-double reconnection_angle_cutoff = 0.087; //in radians, about 5 deg
+double global_reconnection_angle_cutoff = 0.087; //in radians, about 5 deg
 double rec_dist = 1e-3;
 
-int small_loop_cutoff = 5;
-int frame_shot = 100;
+int global_small_loop_cutoff = 5;
+int global_frame_shot = 100;
 int global_num_threads = 4;
 
 //switch mutual friction on/off
-int use_mutual_friction = 1;
+int global_use_mutual_friction = 1;
 
-int hyperfriction = 1;
-double max_curvature_scale = 0.2;
-double hyperalpha = 0.5;
+int global_hyperfriction = 1;
+double global_max_curvature_scale = 0.2;
+double global_hyperalpha = 0.5;
 
 /*
  * Pinning mode
  */
-int pin_mode = PINNED;
+int global_pin_mode = PINNED;
 
 //elimination of loops near the origin (for spherical flows)
-int eliminate_origin_loops = 0; //default off
-double eliminate_loops_origin_cutoff = 3e-2;
+int global_eliminate_origin_loops = 0; //default off
+double global_eliminate_loops_origin_cutoff = 3e-2;
 
 //similar to the spherical case, but for cylinder around zaxis
-int eliminate_zaxis_loops = 0;
-double eliminate_loops_zaxis_cutoff = 2e-2;
+int global_eliminate_zaxis_loops = 0;
+double global_eliminate_loops_zaxis_cutoff = 2e-2;
 
 //remove loops further from the z-axis than the given cutoff
-int eliminate_outer_loops = 0; //default off
-double eliminate_outer_loops_cutoff = 1; //cm
+int global_eliminate_outer_loops = 0; //default off
+double global_eliminate_outer_loops_cutoff = 1; //cm
 
 /*
  * configuration of vortex injection
  */
 //injecting loops at upper z-plane
-int loop_injection = 0; //bool, inject or not
-double loop_injection_frequency = 1; //injections per second
+int global_loop_injection = 0; //bool, inject or not
+double global_loop_injection_frequency = 1; //injections per second
 
 //line pair injection
-int line_injection = 0; //bool, inject or not
-int line_injection_n = 1; //how many pairs to inject
-double line_injection_frequency; //injections per second
-int line_injection_polarized = 0; //whether to inject the vortices in a polarized way, off by default
+int global_line_injection = 0; //bool, inject or not
+int global_line_injection_n = 1; //how many pairs to inject
+double global_line_injection_frequency; //injections per second
+int global_line_injection_polarized = 0; //whether to inject the vortices in a polarized way, off by default
 
 //Barnes-Hut approximation
-int use_BH = 0; //false by default
-int BH_quadtree = 0; //3D octree by default
-double BH_resolution = 0.1; //maximum allowed ratio of BH box size to distance to center of mass
-double BH_grain = 1e-8; //minimum size of the BH box
+int global_use_BH = 0; //false by default
+int global_BH_quadtree = 0; //3D octree by default
+double global_BH_resolution = 0.1; //maximum allowed ratio of BH box size to distance to center of mass
+double global_BH_grain = 1e-8; //minimum size of the BH box

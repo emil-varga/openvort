@@ -165,7 +165,7 @@ int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec
 	      continue;
 
 	    if(check_wall(tangle, k, wall, rec_dist/2)) {
-        Nrecs += connect_to_wall(tangle, k, wall, pin_mode, t);
+        Nrecs += connect_to_wall(tangle, k, wall, global_pin_mode, t);
 	    }
 	  }
   }
@@ -175,7 +175,7 @@ int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec
    * which can cause the simulation to crash. These loops need to be removed.
    */
   if(Nrecs > 0) {
-      eliminate_small_loops(tangle, small_loop_cutoff);
+      eliminate_small_loops(tangle, global_small_loop_cutoff);
       //update_tangents_normals(tangle);
   }
 
@@ -205,7 +205,7 @@ int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec
    */
   if(domain_killed > 0) {
     printf("Removed %d points outside the domain.\n", domain_killed);
-    eliminate_small_loops(tangle, small_loop_cutoff);
+    eliminate_small_loops(tangle, global_small_loop_cutoff);
     //update_tangents_normals(tangle);
   }
 

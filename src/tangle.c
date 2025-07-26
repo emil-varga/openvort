@@ -17,6 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
 
+ #define _GNU_SOURCE
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
@@ -33,7 +34,6 @@
 #include <stdio.h>
 #endif
 
-#define _GNU_SOURCE
 #include <fenv.h>
 
 struct vec3d shifted(const struct image_tangle *shift, const struct tangle_state *tangle,
@@ -538,11 +538,11 @@ void update_velocity(struct tangle_state *tangle, int k, double t, struct octree
   get_vs(&tangle->vnodes[k], t, &evs);
   vec3_add(&tangle->vs[k], &tangle->vs[k], &evs);
 
-  if(!LIA_only) {
-    if(use_BH && tree) {
+  if(!global_LIA_only) {
+    if(global_use_BH && tree) {
       //use the Barnes-Hut approximation to the full Biot-Savart
       struct vec3d v_tree;
-      octree_get_vs(tree, &tangle->vnodes[k], BH_resolution, &v_tree, k);
+      octree_get_vs(tree, &tangle->vnodes[k], global_BH_resolution, &v_tree, k);
       vec3_add(&tangle->vs[k], &tangle->vs[k], &v_tree);
     }
     else {
@@ -563,8 +563,8 @@ void update_velocity(struct tangle_state *tangle, int k, double t, struct octree
 
     for(int j = 0; j < tangle->bimg.n; ++j) {
       shift_r = shifted(&tangle->bimg.images[j], tangle, &tangle->vnodes[k]);
-      if(use_BH && tree)
-        octree_get_vs(tree, &shift_r, BH_resolution, &v_shift, -1);
+      if(global_use_BH && tree)
+        octree_get_vs(tree, &shift_r, global_BH_resolution, &v_shift, -1);
       else
         v_shift = calculate_vs(tangle, shift_r, -1);
       if(tangle->bimg.images[j].reflect > -1) //mirror wall
@@ -577,21 +577,21 @@ void update_velocity(struct tangle_state *tangle, int k, double t, struct octree
 
   tangle->vels[k] = tangle->vs[k];
 
-  if(hyperfriction) {
+  if(global_hyperfriction) {
     //hyperfriction damps segments of vortices with very high curvature, idea is similar to hyperviscosity
     //dissipation similar to mutual friction is applied with high alpha (~0.5 -- 1)
     //but only to parts where curvature is higher than settable threshold
     //and only through the (curvature-sensitive) locally induced velocity 
     struct vec3d tmp;
     double spp = vec3_d(&tangle->normals[k]);
-    if(spp > max_curvature_scale/global_dl_max) {
+    if(spp > global_max_curvature_scale/global_dl_max) {
       vec3_cross(&tmp, &tangle->tangents[k], &lia_v);
-      vec3_mul(&tmp, &tmp, -hyperalpha);
+      vec3_mul(&tmp, &tmp, -global_hyperalpha);
       vec3_add(&tangle->vels[k], &tangle->vels[k], &tmp);
     }
   }
 
-  if(use_mutual_friction) {
+  if(global_use_mutual_friction) {
     struct vec3d tmp, dv;
 
     //the velocity difference
@@ -600,13 +600,13 @@ void update_velocity(struct tangle_state *tangle, int k, double t, struct octree
 
     //the dissipative term
     vec3_cross(&tmp, &tangle->tangents[k], &dv);
-    vec3_mul(&tmp, &tmp, alpha);
+    vec3_mul(&tmp, &tmp, global_alpha);
     vec3_add(&tangle->vels[k], &tangle->vels[k], &tmp);
 
     //the non-dissipative term
     vec3_cross(&tmp, &tangle->tangents[k], &dv);
     vec3_cross(&tmp, &tangle->tangents[k], &tmp);
-    vec3_mul(&tmp, &tmp, -alpha_p);
+    vec3_mul(&tmp, &tmp, -global_alpha_p);
     vec3_add(&tangle->vels[k], &tangle->vels[k], &tmp);
   }
 
@@ -622,8 +622,8 @@ void update_velocity(struct tangle_state *tangle, int k, double t, struct octree
 void update_velocities(struct tangle_state *tangle, double t, struct octree *_tree)
 {
   struct octree *tree = _tree;
-  if(!tree && use_BH)
-    tree = octree_build(tangle, BH_quadtree);
+  if(!tree && global_use_BH)
+    tree = octree_build(tangle, global_BH_quadtree);
 
   int i;
   #pragma omp parallel private(i) num_threads(global_num_threads)
@@ -810,12 +810,12 @@ void eliminate_loops_near_origin(struct tangle_state *tangle, double cutoff);
 void eliminate_loops_near_zaxis(struct tangle_state *tangle, double cutoff, const int inside_outside);
 void eliminate_small_loops(struct tangle_state *tangle, int loop_length)
 {
-  if(eliminate_origin_loops)
-    eliminate_loops_near_origin(tangle, eliminate_loops_origin_cutoff);
-  if(eliminate_zaxis_loops)
-    eliminate_loops_near_zaxis(tangle, eliminate_loops_zaxis_cutoff, 1); //inside removal
-  if(eliminate_outer_loops)
-    eliminate_loops_near_zaxis(tangle, eliminate_outer_loops_cutoff, 0); // outside removal
+  if(global_eliminate_origin_loops)
+    eliminate_loops_near_origin(tangle, global_eliminate_loops_origin_cutoff);
+  if(global_eliminate_zaxis_loops)
+    eliminate_loops_near_zaxis(tangle, global_eliminate_loops_zaxis_cutoff, 1); //inside removal
+  if(global_eliminate_outer_loops)
+    eliminate_loops_near_zaxis(tangle, global_eliminate_outer_loops_cutoff, 0); // outside removal
 
   int killed = 0;
 
@@ -1054,7 +1054,7 @@ int add_point(struct tangle_state *tangle, int p)
   //   vec3_add(&new, &new, &s1);
   //   printf("ADDING BEFORE WALL\n");
   // }
-  if(nd < max_curvature_scale/global_dl_max && nd > 1e-8) {
+  if(nd < global_max_curvature_scale/global_dl_max && nd > 1e-8) {
     //if the curvature is too high (can happen near walls due to numerical instability) this extrapolation places the
     //point too far and breaks the curvature calculation in the subsequent steps
     //n will be identically 0 for a straight vortex

@@ -9,6 +9,7 @@ python/__pycache__/
 python/tcal/__pycache__/
 *.pdf
 .vscode
+build
 
 # Created by https://www.gitignore.io/api/c
 .depend

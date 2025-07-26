@@ -77,11 +77,11 @@ int main(int argc, char **argv)
 
   remesh(tangle, global_dl_min, global_dl_max);
 
-  eliminate_small_loops(tangle, small_loop_cutoff);
+  eliminate_small_loops(tangle, global_small_loop_cutoff);
 
   update_tangle(tangle, 0);
 
-  int shot = frame_shot - 1;
+  int shot = global_frame_shot - 1;
   int frame = 0;
   int recs = 0;
   int nrec = 0;
@@ -96,17 +96,17 @@ int main(int argc, char **argv)
   save_tangle(filename, tangle);
   for(int k=0; Np > 0; ++k) {
     printf("Step %d, time = %g, recs: %d, Np: %d\n", k, time, recs, Np);
-    nrec = reconnect(tangle, time, rec_dist, reconnection_angle_cutoff);
+    nrec = reconnect(tangle, time, rec_dist, global_reconnection_angle_cutoff);
 
     recs += nrec;
-    eliminate_small_loops(tangle, small_loop_cutoff);
+    eliminate_small_loops(tangle, global_small_loop_cutoff);
     if(shot <= 0)	{
       update_tangle(tangle, time);
       //output_dir declared extern in configuration.h
       sprintf(filename, "%s/frame%08d.dat", output_dir, frame);
       save_tangle(filename, tangle);
       frame++;
-      shot = frame_shot;
+      shot = global_frame_shot;
     }
 
     inject_vortices(tangle, time);
@@ -114,7 +114,7 @@ int main(int argc, char **argv)
     rk4_step(tangle, time, global_dt);
     update_tangents_normals(tangle);
     remesh(tangle, global_dl_min, global_dl_max);
-    eliminate_small_loops(tangle, small_loop_cutoff);
+    eliminate_small_loops(tangle, global_small_loop_cutoff);
     enforce_boundaries(tangle);
     //curvature_smoothing(tangle, 0.5/global_dl_max, 0.1);
 
@@ -127,7 +127,7 @@ int main(int argc, char **argv)
     shot--;
     time += global_dt;
     fflush(stdout);
-    if(max_steps > 0 && k > max_steps)
+    if(global_max_steps > 0 && k > global_max_steps)
       break;
   }
   clock_gettime(clock, &ti);

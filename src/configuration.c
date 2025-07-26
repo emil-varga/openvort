@@ -194,53 +194,53 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
 
   //general properties
   if(config_lookup_int(&cfg, "max_steps", &ival))
-    max_steps = ival;
+    global_max_steps = ival;
   if(config_lookup_int(&cfg, "frame_shots", &ival))
-    frame_shot = ival;
+    global_frame_shot = ival;
   if(config_lookup_float(&cfg, "KAPPA", &dval))
       KAPPA = dval;
   if(config_lookup_int(&cfg, "num_threads", &ival))
       global_num_threads = ival;
   if(config_lookup_string(&cfg, "wall_type", &str)) {
     if(strcmp(str, "pin") == 0)
-	    pin_mode = PINNED;
+	    global_pin_mode = PINNED;
     else if(strcmp(str, "slip") == 0)
-	    pin_mode = PINNED_SLIP;
+	    global_pin_mode = PINNED_SLIP;
     else
 	    error("Unknown wall type. Possible options are 'pin' or 'slip'.");
 
-    printf("Using pin mode %d\n", pin_mode);
+    printf("Using pin mode %d\n", global_pin_mode);
   }
 
   //Barnes-Hut approximation
   if(config_lookup_bool(&cfg, "use_BH", &ival))
-    use_BH = ival;
+    global_use_BH = ival;
   if(config_lookup_float(&cfg, "BH_resolution", &dval))
-    BH_resolution = dval;
+    global_BH_resolution = dval;
   if(config_lookup_bool(&cfg, "BH_quadtree", &ival))
-    BH_quadtree = ival;
+    global_BH_quadtree = ival;
   if(config_lookup_float(&cfg, "BH_grain", &dval))
-    BH_grain = dval;
+    global_BH_grain = dval;
 
   //mutual friction
   if(config_lookup_bool(&cfg, "use_mutual_friction", &ival))
-    use_mutual_friction = ival;
+    global_use_mutual_friction = ival;
   if(config_lookup_float(&cfg, "alpha", &dval))
-    alpha = dval;
+    global_alpha = dval;
   if(config_lookup_float(&cfg, "alpha_p", &dval))
-    alpha_p = dval;
+    global_alpha_p = dval;
 
   //local induction approximation
   if(config_lookup_bool(&cfg, "LIA", &ival))
-    LIA_only = ival;
+    global_LIA_only = ival;
 
   //hyperfriction
   if(config_lookup_bool(&cfg, "use_hyperfriction", &ival))
-    hyperfriction = ival;
+    global_hyperfriction = ival;
   if(config_lookup_float(&cfg, "hyperalpha", &dval))
-    hyperalpha = dval;
+    global_hyperalpha = dval;
   if(config_lookup_float(&cfg, "max_curvature_scale", &dval))
-    max_curvature_scale = dval;
+    global_max_curvature_scale = dval;
 
   //resolution
   if(config_lookup_float(&cfg, "dt", &dval))
@@ -252,58 +252,58 @@ int load_conf(const char *conf_file, struct tangle_state *tangle)
 
   //reconnections and small loop cutoff
   if(config_lookup_int(&cfg, "small_loop_cutoff", &ival))
-    small_loop_cutoff = ival;
+    global_small_loop_cutoff = ival;
   if(config_lookup_float(&cfg, "reconnection_angle_cutoff", &dval))
-    reconnection_angle_cutoff = M_PI/180.0 * dval;
+    global_reconnection_angle_cutoff = M_PI/180.0 * dval;
   if(config_lookup_float(&cfg, "reconnection_distance", &dval))
      rec_dist = dval;
 
   //spherical and cylindrical cutoff
   if(config_lookup_bool(&cfg, "eliminate_origin_loops", &ival))
-      eliminate_origin_loops = ival;
+      global_eliminate_origin_loops = ival;
   if(config_lookup_float(&cfg, "eliminate_loops_origin_cutoff", &dval))
-      eliminate_loops_origin_cutoff = dval;
+      global_eliminate_loops_origin_cutoff = dval;
 
   if(config_lookup_bool(&cfg, "eliminate_zaxis_loops", &ival))
-    eliminate_zaxis_loops = ival;
+    global_eliminate_zaxis_loops = ival;
   if(config_lookup_float(&cfg, "eliminate_loops_zaxis_cutoff", &dval))
-    eliminate_loops_zaxis_cutoff = dval;
+    global_eliminate_loops_zaxis_cutoff = dval;
 
   if(config_lookup_bool(&cfg, "eliminate_outer_loops", &ival))
-    eliminate_outer_loops = ival;
+    global_eliminate_outer_loops = ival;
   if(config_lookup_float(&cfg, "eliminate_outer_loops_cutoff", &dval))
-    eliminate_outer_loops_cutoff = dval;
+    global_eliminate_outer_loops_cutoff = dval;
 
   if(config_lookup_bool(&cfg, "loop_injection", &ival)) {
-    loop_injection = ival;
-    if(loop_injection) {
+    global_loop_injection = ival;
+    if(global_loop_injection) {
 	    if(config_lookup_float(&cfg, "loop_injection_frequency", &dval))
-	      loop_injection_frequency = dval;
+	      global_loop_injection_frequency = dval;
 	    else
 	      error("Specify loop_injection_frequency in the config.");
 	  }
   }
 
   if(config_lookup_bool(&cfg, "line_injection", &ival)) {
-    line_injection = ival;
-    if(line_injection) {
+    global_line_injection = ival;
+    if(global_line_injection) {
 	    //injection frequency
 	    if(config_lookup_float(&cfg, "line_injection_frequency", &dval))
-	      line_injection_frequency = dval;
+	      global_line_injection_frequency = dval;
 	    else
 	      error("Specify line_injection_frequency in the config.");
 
 	    //number of injected pairs
 	    if(config_lookup_int(&cfg, "line_injection_n", &ival))
-	      line_injection_n = ival;
+	      global_line_injection_n = ival;
 	    else
-	      line_injection_n = 1;
+	      global_line_injection_n = 1;
 
 	    //injection polarization
 	    if(config_lookup_bool(&cfg, "line_injection_polarized", &ival))
-	      line_injection_polarized = ival;
+	      global_line_injection_polarized = ival;
 	    else
-	      line_injection_polarized = 0;
+	      global_line_injection_polarized = 0;
     }
   }
 
@@ -631,13 +631,13 @@ void print_config(const struct tangle_state *tangle)
       global_dt,
       global_dl_min,
       global_dl_max,
-      reconnection_angle_cutoff,
-      small_loop_cutoff,
-      frame_shot,
+      global_reconnection_angle_cutoff,
+      global_small_loop_cutoff,
+      global_frame_shot,
       global_num_threads,
-      eliminate_origin_loops ? "On" : "Off",
-      eliminate_loops_origin_cutoff,
-      eliminate_outer_loops ? "On" : "Off",
+      global_eliminate_origin_loops ? "On" : "Off",
+      global_eliminate_loops_origin_cutoff,
+      global_eliminate_outer_loops ? "On" : "Off",
       tangle->box.bottom_left_back.p[0],
       tangle->box.bottom_left_back.p[1],
       tangle->box.bottom_left_back.p[2],
@@ -645,33 +645,33 @@ void print_config(const struct tangle_state *tangle)
       tangle->box.top_right_front.p[1],
       tangle->box.top_right_front.p[2]);
   printf("Mutual friction: \n");
-  if(use_mutual_friction) {
+  if(global_use_mutual_friction) {
       printf(
 	  "\talpha                    = %g\n"
 	  "\talpha_p                  = %g\n",
-	  alpha, alpha_p);
+	  global_alpha, global_alpha_p);
   }
   else
     printf("\tNot using mutual friction\n.");
-  if(hyperfriction) {
+  if(global_hyperfriction) {
     printf("Hyperfritcion:\n");
     printf(
       "\thyperalpha             = %g\n"
       "\tmax_curvature_scale    = %g\n",
-      hyperalpha, max_curvature_scale
+      global_hyperalpha, global_max_curvature_scale
     );
   }
   else {
     printf("\tNot using hyperfriction.");
   }
 
-  if(use_BH) {
+  if(global_use_BH) {
     printf("Barnes-Hut approximation:\n");
     printf(
       "\tresolution        = %g\n"
       "\tquadtree          = %s\n"
       "\tgrain             = %g\n",
-      BH_resolution, BH_quadtree ? "True" : "False", BH_grain
+      global_BH_resolution, global_BH_quadtree ? "True" : "False", global_BH_grain
     );
   }
   else {

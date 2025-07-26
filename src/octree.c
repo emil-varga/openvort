@@ -5,6 +5,7 @@
  *      Author: emil
  */
 
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <math.h>
 #include <stdio.h>
@@ -103,7 +104,7 @@ int octree_inner_sort(struct octree *tree, const struct tangle_state *tangle)
   if(!tree || tree->N <= 1) //there is only one node, we do not need to split further
     return 0;
   
-  if(min_box_size(&tree->box) < BH_grain*global_dl_max) {
+  if(min_box_size(&tree->box) < global_BH_grain*global_dl_max) {
     //the tree is already quite fine, don't split further
     //this is also necessary for consistency when using 2D tree
     return 0;
@@ -280,7 +281,7 @@ void octree_get_vs(const struct octree *tree, const struct vec3d *r, double reso
   struct segment seg = seg_pwrap(r, &tree->centre_of_mass, &tree->tangle->box);
   double d = segment_len(&seg);
 
-  if(tree->N == 1 || Lmin < BH_grain) {
+  if(tree->N == 1 || Lmin < global_BH_grain) {
     //end leaf or the box is already small, integrate the BS directly
     *res = calculate_vs_shift(tree->tangle, *r, skip, NULL, tree->node_ids, tree->N);
     return;

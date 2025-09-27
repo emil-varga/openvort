@@ -162,6 +162,10 @@ if __name__ == '__main__':
             ax.set_ylim(Dls[axids[1]], Dhs[axids[1]])
         else:
             ax.set_ylim(*args.ylim)
+        if args.zlim is None:
+            ax.set_ylim(Dls[axids[2]], Dhs[axids[2]])
+        else:
+            ax.set_ylim(*args.zlim)
         ax.set_aspect('equal')
         axnames = ['x', 'y', 'z']
         ax.set_xlabel(f"${axnames[axids[0]]}$ (mm)")

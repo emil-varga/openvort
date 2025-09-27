@@ -762,6 +762,7 @@ int add_point(struct tangle_state *tangle, int point_idx);
 void remesh(struct tangle_state *tangle, double min_dist, double max_dist)
 {
   int added = 0;
+  initialize_dxi(tangle);
   for(int k=0; k<tangle->N; ++k) {
     if(tangle->status[k].status == EMPTY)
 	    continue;
@@ -962,8 +963,7 @@ void remove_point(struct tangle_state *tangle, int point_idx, int merge_directio
     if(merge_direction > 0) {
       other = next;
       l = tangle->dxi[point_idx];
-    }
-    else {
+    } else {
       other = prev;
       l = -tangle->dxi[prev];
     }

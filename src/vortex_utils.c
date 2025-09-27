@@ -123,15 +123,14 @@ void add_line_KW(struct tangle_state *tangle, double x, double y, int direction,
 
   double zstart = direction > 0 ? zmin : zmax;
   double zend = direction > 0 ? zmax : zmin;
-  double k = M_PI/dz*k_KW; //number of half-waves
 
-  struct vec3d s = vec3(x + r_KW*cos(k*zstart), y + r_KW*sin(k*zstart), zstart);
-  struct vec3d sp = vec3(-k*r_KW*sin(k*zstart), k*r_KW*cos(k*zstart), direction); //tangent
-  struct vec3d spp = vec3(-k*k*r_KW*cos(k*zstart), -k*k*r_KW*sin(k*zstart), 0); //normal
+  struct vec3d s = vec3(x + r_KW*cos(k_KW*zstart), y + r_KW*sin(k_KW*zstart), zstart);
+  struct vec3d sp = vec3(-k_KW*r_KW*sin(k_KW*zstart), k_KW*r_KW*cos(k_KW*zstart), direction); //tangent
+  struct vec3d spp = vec3(-k_KW*k_KW*r_KW*cos(k_KW*zstart), -k_KW*k_KW*r_KW*sin(k_KW*zstart), 0); //normal
 
   const double s_mag = vec3_d(&sp); //the magnitude of the derivative doesn't change, only its direction
   vec3_mul(&sp, &sp, 1/s_mag);
-  vec3_mul(&spp, &spp, 1/s_mag);
+  vec3_mul(&spp, &spp, 1/s_mag/s_mag);
 
 
   int new_pt = get_tangle_next_free(tangle);
@@ -159,12 +158,12 @@ void add_line_KW(struct tangle_state *tangle, double x, double y, int direction,
     new_pt = get_tangle_next_free(tangle);
     z = zstart + direction*k*dz;
 
-    s = vec3(x + r_KW*cos(k*z), y + r_KW*sin(k*z), z);
-    sp = vec3(-k*r_KW*sin(k*z)/s_mag, 
-               k*r_KW*cos(k*z)/s_mag,
+    s = vec3(x + r_KW*cos(k_KW*z), y + r_KW*sin(k_KW*z), z);
+    sp = vec3(-k_KW*r_KW*sin(k_KW*z)/s_mag, 
+               k_KW*r_KW*cos(k_KW*z)/s_mag,
                direction/s_mag); //tangent
-    spp = vec3(-k*k*r_KW*cos(k*z)/s_mag,
-               -k*k*r_KW*sin(k*z)/s_mag,
+    spp = vec3(-k_KW*k_KW*r_KW*cos(k_KW*z)/s_mag/s_mag,
+               -k_KW*k_KW*r_KW*sin(k_KW*z)/s_mag/s_mag,
                0); //normal
 
     tangle->vnodes[new_pt] = s;
@@ -177,12 +176,12 @@ void add_line_KW(struct tangle_state *tangle, double x, double y, int direction,
   }
 
   z = zend;
-  s = vec3(x + r_KW*cos(k*z), y + r_KW*sin(k*z), z);
-  sp = vec3(-k*r_KW*sin(k*z)/s_mag, 
-              k*r_KW*cos(k*z)/s_mag,
+  s = vec3(x + r_KW*cos(k_KW*z), y + r_KW*sin(k_KW*z), z);
+  sp = vec3(-k_KW*r_KW*sin(k_KW*z)/s_mag, 
+              k_KW*r_KW*cos(k_KW*z)/s_mag,
               direction/s_mag); //tangent
-  spp = vec3(-k*k*r_KW*cos(k*z)/s_mag,
-              -k*k*r_KW*sin(k*z)/s_mag,
+  spp = vec3(-k_KW*k_KW*r_KW*cos(k_KW*z)/s_mag/s_mag,
+              -k_KW*k_KW*r_KW*sin(k_KW*z)/s_mag/s_mag,
               0); //normal
   last_pt = new_pt;
   if(tangle->box.wall[end_wall] == WALL_MIRROR) {

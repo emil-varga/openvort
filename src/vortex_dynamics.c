@@ -234,7 +234,7 @@ int reconnect(struct tangle_state *tangle, double t, double rec_dist, double rec
 	       tangle->recalculate[l])
 	      continue; //skip empty nodes and neighbors of k
 	                //and nodes that went through a reconnection 
-	    struct segment seg = seg_pwrap(tangle->vnodes + k, tangle->vnodes + l, &tangle->box);
+	    struct segment seg = seg_pwrap(&(tangle->vnodes[k]), &(tangle->vnodes[l]), &tangle->box);
 	    v1 = &seg.r1;
 	    v2 = &seg.r2;
 
@@ -346,22 +346,19 @@ int do_reconnection(struct tangle_state *tangle, size_t k, size_t l)
   if(cf1 > 0 && cf2 > 0)
     return 0; //the reconnection increases the size, don't do it;
 
-  if(cf1 < cf2)
-    {
-      tangle->connections[k].forward = l;
-      tangle->connections[l].reverse = k;
+  if(cf1 < cf2) {
+    tangle->connections[k].forward = l;
+    tangle->connections[l].reverse = k;
 
-      tangle->connections[kf].reverse = lr;
-      tangle->connections[lr].forward = kf;
-    }
-  else
-    {
-      tangle->connections[l].forward = k;
-      tangle->connections[k].reverse = l;
+    tangle->connections[kf].reverse = lr;
+    tangle->connections[lr].forward = kf;
+  } else {
+    tangle->connections[l].forward = k;
+    tangle->connections[k].reverse = l;
 
-      tangle->connections[lf].reverse = kr;
-      tangle->connections[kr].forward = lf;
-    }
+    tangle->connections[lf].reverse = kr;
+    tangle->connections[kr].forward = lf;
+  }
 
   return 1;
 }

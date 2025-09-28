@@ -123,28 +123,26 @@ struct segment seg_pwrap(const struct vec3d *r1, const struct vec3d *r2,
   double dy = seg.r2.p[1] - seg.r1.p[1];
   double dz = seg.r2.p[2] - seg.r1.p[2];
 
-  if(box->wall[X_L] == WALL_PERIODIC)
-    {
-      if(dx > Lx/2)
-	seg.r2.p[0] -= Lx;
-      else if(dx < -Lx/2)
-	seg.r2.p[0] += Lx;
-    }
-  if(box->wall[Y_L] == WALL_PERIODIC)
-    {
-      if(dy > Ly/2)
-	seg.r2.p[1] -= Ly;
-      else if(dy < -Ly/2)
-	seg.r2.p[1] += Ly;
-    }
-  if(box->wall[Z_L] == WALL_PERIODIC)
-    {
-      if(dz > Lz/2)
-	seg.r2.p[2] -= Lz;
-      else if(dz < -Lz/2)
-	seg.r2.p[2] += Lz;
-    }
+  if(box->wall[X_L] == WALL_PERIODIC) {
+    if(dx > Lx/2)
+	    seg.r2.p[0] -= Lx;
+    else if(dx < -Lx/2)
+	    seg.r2.p[0] += Lx;
+  }
 
+  if(box->wall[Y_L] == WALL_PERIODIC) {
+    if(dy > Ly/2)
+	    seg.r2.p[1] -= Ly;
+    else if(dy < -Ly/2)
+	    seg.r2.p[1] += Ly;
+  }
+
+  if(box->wall[Z_L] == WALL_PERIODIC) {
+    if(dz > Lz/2)
+	    seg.r2.p[2] -= Lz;
+    else if(dz < -Lz/2)
+	    seg.r2.p[2] += Lz;
+  }
   return seg;
 }
 
@@ -283,6 +281,7 @@ double vec3_dot(const struct vec3d *u, const struct vec3d *v)
   return out;
 }
 
+/// @brief res = dot(u, v)/|u|/|v|
 double vec3_ndot(const struct vec3d *u, const struct vec3d *v)
 {
   double dot = vec3_dot(u, v);
@@ -292,6 +291,7 @@ double vec3_ndot(const struct vec3d *u, const struct vec3d *v)
   return dot/d1/d2;
 }
 
+/// @brief res = u x v
 void vec3_cross(struct vec3d *res,
 		const struct vec3d *u, const struct vec3d *v)
 {
@@ -302,6 +302,7 @@ void vec3_cross(struct vec3d *res,
   res->p[2] = uu.p[0] * vv.p[1] - uu.p[1] * vv.p[0];
 }
 
+/// @brief res = u*m
 void vec3_mul(struct vec3d *res,
 	      const struct vec3d *u, double m)
 {
@@ -309,6 +310,7 @@ void vec3_mul(struct vec3d *res,
     res->p[k] = u->p[k]*m;
 }
 
+/// @brief res = u - v
 void vec3_sub(struct vec3d *res,
 	      const struct vec3d *u, const struct vec3d *v)
 {
@@ -316,6 +318,7 @@ void vec3_sub(struct vec3d *res,
     res->p[k] = u->p[k] - v->p[k];
 }
 
+/// @brief res = u + v
 void vec3_add(struct vec3d *res,
 	      const struct vec3d *u, const struct vec3d *v)
 {

@@ -762,7 +762,6 @@ int add_point(struct tangle_state *tangle, int point_idx);
 void remesh(struct tangle_state *tangle, double min_dist, double max_dist)
 {
   int added = 0;
-  initialize_dxi(tangle);
   for(int k=0; k<tangle->N; ++k) {
     if(tangle->status[k].status == EMPTY)
 	    continue;
@@ -880,36 +879,31 @@ void eliminate_loops_near_origin(struct tangle_state *tangle, double cutoff)
   for(int k=0; k < tangle->N; ++k)
     tangle->recalculate[k] = 0;
 
-  for(int k=0; k < tangle->N; ++k)
-    {
-      if(tangle->status[k].status == EMPTY ||
-	 tangle->recalculate[k] > 0)
-	continue;
+  for(int k=0; k < tangle->N; ++k) {
+    if(tangle->status[k].status == EMPTY ||
+	     tangle->recalculate[k] > 0)
+	    continue;
 
-      int here = tangle->connections[k].forward;
-      int next = tangle->connections[here].forward;
-      int cut = vec3_d(&tangle->vnodes[k]) < cutoff;
-      while(here != k)
-	{
-	  cut = cut && (vec3_d(&tangle->vnodes[here]) < cutoff);
-	  here = next;
-	  next = tangle->connections[here].forward;
-	}
+    int here = tangle->connections[k].forward;
+    int next = tangle->connections[here].forward;
+    int cut = vec3_d(&tangle->vnodes[k]) < cutoff;
+    while(here != k) {
+	    cut = cut && (vec3_d(&tangle->vnodes[here]) < cutoff);
+	    here = next;
+	    next = tangle->connections[here].forward;
+	  }
 
-      here = tangle->connections[k].forward;
-      next = tangle->connections[here].forward;
-      if(cut) // all the points are within cutoff
-	{
-	  while(here != k)
-	    {
-	      remove_point(tangle, here, 0);
-	      here = next;
-	      next = tangle->connections[here].forward;
-	    }
-	  remove_point(tangle, here, 0);
-	}
-
-    }
+    here = tangle->connections[k].forward;
+    next = tangle->connections[here].forward;
+    if(cut) { // all the points are within cutoff 
+      while(here != k) {
+        remove_point(tangle, here, 0);
+        here = next;
+        next = tangle->connections[here].forward;
+      }
+      remove_point(tangle, here, 0);
+	  }
+  }
 }
 
 void eliminate_loops_near_zaxis(struct tangle_state *tangle, double cutoff, const int inside_outside)
@@ -1018,7 +1012,7 @@ int add_point(struct tangle_state *tangle, int p)
   struct vec3d s0 = tangle->vnodes[p];
   struct vec3d s1 = tangle->vnodes[next];
   struct segment seg = seg_pwrap(&s0, &s1, &tangle->box);
-  //s1 = seg.r2;
+  s1 = seg.r2;
 
   struct vec3d s0p = tangle->tangents[p];
   struct vec3d s1p = tangle->tangents[next];

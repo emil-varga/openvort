@@ -75,6 +75,8 @@ int main(int argc, char **argv)
 
   enforce_boundaries(tangle);
 
+  update_tangents_normals(tangle);
+
   remesh(tangle, global_dl_min, global_dl_max);
 
   eliminate_small_loops(tangle, global_small_loop_cutoff);

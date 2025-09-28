@@ -124,7 +124,7 @@ if __name__ == '__main__':
     elif args.projection == 'x':
         axids = (1, 2)
     elif args.projection == 'y':
-        axids = (0,2)
+        axids = (0, 2)
     else:
         raise RuntimeError('Only x, y, z projections are possible.')
 
@@ -154,17 +154,13 @@ if __name__ == '__main__':
             txt = fig.text(0.05, 0.05, "$t$ = {:.06f} s".format(time), fontsize=18)
         draw_vortices(fn, ax, slow=slow, max_len=dl_max, color=color, projection=axids, colorcode_z=args.colorcode_z,
                       directional_z_color=args.dir_z_color)
-        if args.xlim is None:
-            ax.set_xlim(Dls[axids[0]], Dhs[axids[0]])
-        else:
+        ax.set_xlim(Dls[axids[0]], Dhs[axids[0]])
+        ax.set_ylim(Dls[axids[1]], Dhs[axids[1]])
+        if args.xlim is not None:
             ax.set_xlim(*args.xlim)
-        if args.ylim is None:
-            ax.set_ylim(Dls[axids[1]], Dhs[axids[1]])
-        else:
+        if args.ylim is not None:
             ax.set_ylim(*args.ylim)
-        if args.zlim is None:
-            ax.set_ylim(Dls[axids[2]], Dhs[axids[2]])
-        else:
+        if args.zlim is not None:
             ax.set_ylim(*args.zlim)
         ax.set_aspect('equal')
         axnames = ['x', 'y', 'z']

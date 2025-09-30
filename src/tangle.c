@@ -782,12 +782,14 @@ void remesh(struct tangle_state *tangle, double min_dist, double max_dist)
       lr = arc_length(tangle, k, -1);
 
     //can we remove point k?
-    if(next >= 0 && prev >= 0 && ((lf < min_dist || lr < min_dist) && (lf + lr) < max_dist )) {
+    if(next >= 0 && prev >= 0 &&
+       !(tangle->connections[prev].reverse < 0 && tangle->connections[next].forward < 0) &&
+       ((lf < min_dist || lr < min_dist) && (lf + lr) < max_dist )) {
       int merge_direction = 0;
       if(lf < min_dist)
         merge_direction = +1;
       else
-        merge_direction -1;
+        merge_direction = -1;
       remove_point(tangle, k, merge_direction);
       change = 1;
     }

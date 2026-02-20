@@ -10,6 +10,11 @@ python/tcal/__pycache__/
 *.pdf
 .vscode
 build
+CMakeFiles
+CMakeCache.txt
+cmake_install.cmake
+install_manifest.txt
+Makefile
 
 # Created by https://www.gitignore.io/api/c
 .depend

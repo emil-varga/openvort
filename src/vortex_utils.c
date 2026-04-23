@@ -98,10 +98,67 @@ void add_circle(struct tangle_state *tangle, struct vec3d *center,
   tangle->connections[first_point].reverse = curr_point;
 }
 
+/*
+ * Add a half-circle attached to a wall.
+ *
+ * @param tangle: the tangle state
+ * @param center: the center of the half-circle
+ * @param dir: the direction of the half-circle
+ * @param r: the radius of the half-circle
+ * @param Npoints: the number of points in the half-circle
+ * @param wall: the wall to which the half-circle is attached
+ */
 void add_wall_circle(struct tangle_state *tangle, struct vec3d *center,
-                     struct vec3d *dir, double r, int Npoints) {
-  // TODO
-  return;
+                     struct vec3d *dir, double r, int Npoints, int wall) {
+  if (Npoints == 0)
+    return;
+
+  if (num_free_points(tangle) < Npoints) {
+    expand_tangle(tangle, tangle->N + Npoints);
+  }
+
+  struct vec3d u, v, p, ptmp;
+  int curr_point, last_point, first_point;
+  struct vec3d zdir = perpendicular(dir);
+
+  vec3_cross(&u, &zdir, dir);
+  vec3_cross(&v, dir, &u);
+
+  vec3_normalize(&u);
+  vec3_normalize(&v);
+
+  first_point = -1;
+  curr_point = -1;
+
+  for (int k = 0; k < Npoints; ++k) {
+    double phi = M_PI / Npoints * k;
+    double c = cos(phi);
+    double s = sin(phi);
+    vec3_mul(&p, &u, r * c);
+    vec3_mul(&ptmp, &v, r * s);
+
+    vec3_add(&p, &p, &ptmp);
+    vec3_add(&p, &p, center);
+    curr_point = get_tangle_next_free(tangle);
+
+    tangle->status[curr_point].status = FREE;
+    if (first_point < 0)
+      first_point = curr_point;
+
+    tangle->vnodes[curr_point] = p;
+    if (curr_point != first_point) {
+      tangle->connections[curr_point].reverse = last_point;
+      tangle->connections[last_point].forward = curr_point;
+    }
+
+    last_point = curr_point;
+  }
+  tangle->connections[curr_point].forward = -1;
+  tangle->status[curr_point].status = PINNED;
+  tangle->status[curr_point].pin_wall = wall;
+  tangle->connections[first_point].reverse = -1;
+  tangle->status[first_point].status = PINNED;
+  tangle->status[first_point].pin_wall = wall;
 }
 
 void add_line_KW(struct tangle_state *tangle, double x, double y, int direction,

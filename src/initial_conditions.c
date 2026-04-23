@@ -18,6 +18,7 @@
  ******************************************************************************/
 
 #include "tangle.h"
+#include "vec3_maths.h"
 #include "vortex_utils.h"
 #include <assert.h>
 #include <math.h>
@@ -74,7 +75,7 @@ void insert_wall_bound_loops(struct tangle_state *tangle, int N) {
     else
       c.p[2] = tangle->box.top_right_front.p[2];
 
-    add_wall_circle(tangle, &c, &dir, r, 256);
+    add_wall_circle(tangle, &c, &dir, r, 256, Z_L);
   }
 }
 

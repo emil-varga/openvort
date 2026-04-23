@@ -1,18 +1,18 @@
 /*******************************************************************************
  * Copyright (C) 2018 Emil Varga <varga.emil@gmail.com>
- * 
+ *
  * This file is part of OpenVort
- * 
+ *
  * OpenVort is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
@@ -20,26 +20,26 @@
 #ifndef VORTEX_UTILS_H
 #define VORTEX_UTILS_H
 
-//This file contains miscellaneous utilities related to
-//the handling of the tangle. Actual calculations belong to tangle.h.
+// This file contains miscellaneous utilities related to
+// the handling of the tangle. Actual calculations belong to tangle.h.
 
-//This contains routines for creating basic vortex geometries and
-//handling file I/O
+// This contains routines for creating basic vortex geometries and
+// handling file I/O
 
-#include <stdlib.h>
-#include <stdio.h>
-#include "vec3_maths.h"
 #include "tangle.h"
+#include "vec3_maths.h"
 
 /*
  * Primitive shapes
  */
-void add_circle(struct tangle_state *tangle,
-		struct vec3d *center, struct vec3d *dir, double r,
-		int Npoints);
-void add_line_KW(struct tangle_state *tangle, double x, double y, int direction, int points, int k_KW, double r_KW);
-void add_line(struct tangle_state *tangle, double x, double y, int direction, int points);
-void add_wall_circle(struct tangle_state *tangle, struct vec3d *center, struct vec3d *dir, double r, int Npoints);
+void add_circle(struct tangle_state *tangle, struct vec3d *center,
+                struct vec3d *dir, double r, int Npoints);
+void add_line_KW(struct tangle_state *tangle, double x, double y, int direction,
+                 int points, int k_KW, double r_KW);
+void add_line(struct tangle_state *tangle, double x, double y, int direction,
+              int points);
+void add_wall_circle(struct tangle_state *tangle, struct vec3d *center,
+                     struct vec3d *dir, double r, int Npoints, int wall);
 
 /*
  * File I/O

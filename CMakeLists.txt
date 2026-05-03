@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.23)
 project(OpenVort C)
 
 # Find OpenMP
@@ -10,12 +10,15 @@ pkg_check_modules(LIBCONFIG REQUIRED libconfig)
 
 # Compiler flags
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Wextra -pedantic -ggdb")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Include directories
 include_directories(include ${LIBCONFIG_INCLUDE_DIRS})
 
-# Source files
-set(SOURCES
+add_executable(vortices)
+
+target_sources(vortices
+    PRIVATE
     src/boundary_images.c
     src/configuration.c
     src/external_velocity.c
@@ -30,9 +33,6 @@ set(SOURCES
     src/vortex_injection.c
     src/vortex_utils.c
 )
-
-# Executable
-add_executable(vortices ${SOURCES})
 
 # Compile definitions
 target_compile_definitions(vortices PRIVATE _DEBUG_)

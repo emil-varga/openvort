@@ -242,6 +242,162 @@ double arc_length(const struct tangle_state *tangle, int k, int dist) {
   return 0;
 }
 
+static void update_pinned_node_tangent_normal(struct tangle_state *tangle,
+                                              size_t k) {
+  struct vec3d s0 = tangle->vnodes[k];
+  struct vec3d t;
+  struct vec3d n;
+  struct vec3d s1, s2, s3, s4, ds1, ds2, ds3, ds4;
+  double d1, d2, d3, d4;
+  if (tangle->connections[k].forward > 0) {
+    d1 = arc_length(tangle, k, 1);
+    d2 = arc_length(tangle, k, 2);
+    d3 = arc_length(tangle, k, 3);
+    d4 = arc_length(tangle, k, 4);
+
+    s1 = step_node(tangle, k, 1);
+    s2 = step_node(tangle, k, 2);
+    s3 = step_node(tangle, k, 3);
+    s4 = step_node(tangle, k, 4);
+  } else {
+    d1 = -arc_length(tangle, k, -1);
+    d2 = -arc_length(tangle, k, -2);
+    d3 = -arc_length(tangle, k, -3);
+    d4 = -arc_length(tangle, k, -4);
+
+    s1 = step_node(tangle, k, -1);
+    s2 = step_node(tangle, k, -2);
+    s3 = step_node(tangle, k, -3);
+    s4 = step_node(tangle, k, -4);
+  }
+
+  struct segment stmp;
+  stmp = seg_pwrap(&s1, &s0, &tangle->box);
+  ds1 = segment_to_vec(&stmp);
+  stmp = seg_pwrap(&s2, &s0, &tangle->box);
+  ds2 = segment_to_vec(&stmp);
+  stmp = seg_pwrap(&s3, &s0, &tangle->box);
+  ds3 = segment_to_vec(&stmp);
+  stmp = seg_pwrap(&s4, &s0, &tangle->box);
+  ds4 = segment_to_vec(&stmp);
+
+  double c1 =
+      d2 * d3 * d4 /
+      (d1 * (d1 * d1 * d1 - d1 * d1 * d2 - d1 * d1 * d3 - d1 * d1 * d4 +
+             d1 * d2 * d3 + d1 * d2 * d4 + d1 * d3 * d4 - d2 * d3 * d4));
+  double c2 =
+      -d1 * d3 * d4 /
+      (d2 * (d1 * d2 * d2 - d1 * d2 * d3 - d1 * d2 * d4 + d1 * d3 * d4 -
+             d2 * d2 * d2 + d2 * d2 * d3 + d2 * d2 * d4 - d2 * d3 * d4));
+  double c3 =
+      d1 * d2 * d4 /
+      (d3 * (d1 * d2 * d3 - d1 * d2 * d4 - d1 * d3 * d3 + d1 * d3 * d4 -
+             d2 * d3 * d3 + d2 * d3 * d4 + d3 * d3 * d3 - d3 * d3 * d4));
+  double c4 =
+      -d1 * d2 * d3 /
+      (d4 * (d1 * d2 * d3 - d1 * d2 * d4 - d1 * d3 * d4 + d1 * d4 * d4 -
+             d2 * d3 * d4 + d2 * d4 * d4 + d3 * d4 * d4 - d4 * d4 * d4));
+
+  double cn1 =
+      2 * (-d2 * d3 - d2 * d4 - d3 * d4) /
+      (d1 * (d1 * d1 * d1 - d1 * d1 * d2 - d1 * d1 * d3 - d1 * d1 * d4 +
+             d1 * d2 * d3 + d1 * d2 * d4 + d1 * d3 * d4 - d2 * d3 * d4));
+  double cn2 =
+      2 * (d1 * d3 + d1 * d4 + d3 * d4) /
+      (d2 * (d1 * d2 * d2 - d1 * d2 * d3 - d1 * d2 * d4 + d1 * d3 * d4 -
+             d2 * d2 * d2 + d2 * d2 * d3 + d2 * d2 * d4 - d2 * d3 * d4));
+  double cn3 =
+      2 * (-d1 * d2 - d1 * d4 - d2 * d4) /
+      (d3 * (d1 * d2 * d3 - d1 * d2 * d4 - d1 * d3 * d3 + d1 * d3 * d4 -
+             d2 * d3 * d3 + d2 * d3 * d4 + d3 * d3 * d3 - d3 * d3 * d4));
+  double cn4 =
+      2 * (d1 * d2 + d1 * d3 + d2 * d3) /
+      (d4 * (d1 * d2 * d3 - d1 * d2 * d4 - d1 * d3 * d4 + d1 * d4 * d4 -
+             d2 * d3 * d4 + d2 * d4 * d4 + d3 * d4 * d4 - d4 * d4 * d4));
+
+  double cs[] = {c1, c2, c3, c4};
+  double cns[] = {cn1, cn2, cn3, cn4};
+  const struct vec3d *ds[] = {&ds1, &ds2, &ds3, &ds4};
+
+  struct vec3d tmp;
+  t = vec3(0, 0, 0);
+  n = vec3(0, 0, 0);
+  for (int j = 0; j < 4; ++j) {
+    vec3_mul(&tmp, ds[j], cs[j]);
+    vec3_add(&t, &t, &tmp);
+
+    vec3_mul(&tmp, ds[j], cns[j]);
+    vec3_add(&n, &n, &tmp);
+  }
+
+  tangle->tangents[k] = t;
+  tangle->normals[k] = n;
+}
+
+static void update_pinned_neighbor_tangent_normal(struct tangle_state *tangle,
+                                                  size_t k, int next, int prev,
+                                                  double d1, double dm1,
+                                                  const struct vec3d ds[4]) {
+  // make sure the surrounding points are updated
+  update_tangent_normal(tangle, next);
+  update_tangent_normal(tangle, prev);
+
+  const struct vec3d *t1 = &tangle->tangents[next];
+  const struct vec3d *tm1 = &tangle->tangents[prev];
+
+  const struct vec3d *ds1 = &ds[1];
+  const struct vec3d *dsm1 = &ds[2];
+
+  double ct1 = -dm1 * dm1 / (d1 * d1 - 2 * d1 * dm1 + dm1 * dm1);
+  double ctm1 = -d1 * d1 / (d1 * d1 - 2 * d1 * dm1 + dm1 * dm1);
+
+  double ct_ds1 = 2 * dm1 * dm1 * (-2 * d1 + dm1) /
+                  (d1 * (d1 * d1 * d1 - 3 * d1 * d1 * dm1 + 3 * d1 * dm1 * dm1 -
+                         dm1 * dm1 * dm1));
+  double ct_dsm1 = 2 * d1 * d1 * (-d1 + 2 * dm1) /
+                   (dm1 * (d1 * d1 * d1 - 3 * d1 * d1 * dm1 +
+                           3 * d1 * dm1 * dm1 - dm1 * dm1 * dm1));
+
+  double cn_ds1 = 2 * dm1 * (8 * d1 * d1 - d1 * dm1 - dm1 * dm1) /
+                  (d1 * d1 *
+                   (d1 * d1 * d1 - 3 * d1 * d1 * dm1 + 3 * d1 * dm1 * dm1 -
+                    dm1 * dm1 * dm1));
+  double cn_dsm1 = 2 * d1 * (d1 * d1 + d1 * dm1 - 8 * dm1 * dm1) /
+                   (dm1 * dm1 *
+                    (d1 * d1 * d1 - 3 * d1 * d1 * dm1 + 3 * d1 * dm1 * dm1 -
+                     dm1 * dm1 * dm1));
+
+  double cn_t1 =
+      2 * dm1 * (2 * d1 + dm1) / (d1 * (d1 * d1 - 2 * d1 * dm1 + dm1 * dm1));
+  double cn_tm1 =
+      2 * d1 * (d1 + 2 * dm1) / (dm1 * (d1 * d1 - 2 * d1 * dm1 + dm1 * dm1));
+
+  struct vec3d tmp, t, n;
+  t = vec3(0, 0, 0);
+  n = vec3(0, 0, 0);
+  vec3_mul(&tmp, t1, ct1);
+  vec3_add(&t, &t, &tmp);
+  vec3_mul(&tmp, tm1, ctm1);
+  vec3_add(&t, &t, &tmp);
+  vec3_mul(&tmp, ds1, ct_ds1);
+  vec3_add(&t, &t, &tmp);
+  vec3_mul(&tmp, dsm1, ct_dsm1);
+  vec3_add(&t, &t, &tmp);
+
+  vec3_mul(&tmp, t1, cn_t1);
+  vec3_add(&n, &n, &tmp);
+  vec3_mul(&tmp, tm1, cn_tm1);
+  vec3_add(&n, &n, &tmp);
+
+  vec3_mul(&tmp, ds1, cn_ds1);
+  vec3_add(&n, &n, &tmp);
+  vec3_mul(&tmp, dsm1, cn_dsm1);
+  vec3_add(&n, &n, &tmp);
+
+  tangle->tangents[k] = t;
+  tangle->normals[k] = n;
+}
+
 void update_tangent_normal(struct tangle_state *tangle, size_t k) {
   struct vec3d s0, s1, sm1;
   struct vec3d s2, sm2;
@@ -273,93 +429,7 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k) {
   double dm2 = -arc_length(tangle, k, -2);
 
   if (tangle->status[k].status == PINNED) {
-    struct vec3d t;
-    struct vec3d n;
-    struct vec3d s1, s2, s3, s4, ds1, ds2, ds3, ds4;
-    double d1, d2, d3, d4;
-    if (tangle->connections[k].forward > 0) {
-      d1 = arc_length(tangle, k, 1);
-      d2 = arc_length(tangle, k, 2);
-      d3 = arc_length(tangle, k, 3);
-      d4 = arc_length(tangle, k, 4);
-
-      s1 = step_node(tangle, k, 1);
-      s2 = step_node(tangle, k, 2);
-      s3 = step_node(tangle, k, 3);
-      s4 = step_node(tangle, k, 4);
-    } else {
-      d1 = -arc_length(tangle, k, -1);
-      d2 = -arc_length(tangle, k, -2);
-      d3 = -arc_length(tangle, k, -3);
-      d4 = -arc_length(tangle, k, -4);
-
-      s1 = step_node(tangle, k, -1);
-      s2 = step_node(tangle, k, -2);
-      s3 = step_node(tangle, k, -3);
-      s4 = step_node(tangle, k, -4);
-    }
-
-    struct segment stmp;
-    stmp = seg_pwrap(&s1, &s0, &tangle->box);
-    ds1 = segment_to_vec(&stmp);
-    stmp = seg_pwrap(&s2, &s0, &tangle->box);
-    ds2 = segment_to_vec(&stmp);
-    stmp = seg_pwrap(&s3, &s0, &tangle->box);
-    ds3 = segment_to_vec(&stmp);
-    stmp = seg_pwrap(&s4, &s0, &tangle->box);
-    ds4 = segment_to_vec(&stmp);
-
-    double c1 =
-        d2 * d3 * d4 /
-        (d1 * (d1 * d1 * d1 - d1 * d1 * d2 - d1 * d1 * d3 - d1 * d1 * d4 +
-               d1 * d2 * d3 + d1 * d2 * d4 + d1 * d3 * d4 - d2 * d3 * d4));
-    double c2 =
-        -d1 * d3 * d4 /
-        (d2 * (d1 * d2 * d2 - d1 * d2 * d3 - d1 * d2 * d4 + d1 * d3 * d4 -
-               d2 * d2 * d2 + d2 * d2 * d3 + d2 * d2 * d4 - d2 * d3 * d4));
-    double c3 =
-        d1 * d2 * d4 /
-        (d3 * (d1 * d2 * d3 - d1 * d2 * d4 - d1 * d3 * d3 + d1 * d3 * d4 -
-               d2 * d3 * d3 + d2 * d3 * d4 + d3 * d3 * d3 - d3 * d3 * d4));
-    double c4 =
-        -d1 * d2 * d3 /
-        (d4 * (d1 * d2 * d3 - d1 * d2 * d4 - d1 * d3 * d4 + d1 * d4 * d4 -
-               d2 * d3 * d4 + d2 * d4 * d4 + d3 * d4 * d4 - d4 * d4 * d4));
-
-    double cn1 =
-        2 * (-d2 * d3 - d2 * d4 - d3 * d4) /
-        (d1 * (d1 * d1 * d1 - d1 * d1 * d2 - d1 * d1 * d3 - d1 * d1 * d4 +
-               d1 * d2 * d3 + d1 * d2 * d4 + d1 * d3 * d4 - d2 * d3 * d4));
-    double cn2 =
-        2 * (d1 * d3 + d1 * d4 + d3 * d4) /
-        (d2 * (d1 * d2 * d2 - d1 * d2 * d3 - d1 * d2 * d4 + d1 * d3 * d4 -
-               d2 * d2 * d2 + d2 * d2 * d3 + d2 * d2 * d4 - d2 * d3 * d4));
-    double cn3 =
-        2 * (-d1 * d2 - d1 * d4 - d2 * d4) /
-        (d3 * (d1 * d2 * d3 - d1 * d2 * d4 - d1 * d3 * d3 + d1 * d3 * d4 -
-               d2 * d3 * d3 + d2 * d3 * d4 + d3 * d3 * d3 - d3 * d3 * d4));
-    double cn4 =
-        2 * (d1 * d2 + d1 * d3 + d2 * d3) /
-        (d4 * (d1 * d2 * d3 - d1 * d2 * d4 - d1 * d3 * d4 + d1 * d4 * d4 -
-               d2 * d3 * d4 + d2 * d4 * d4 + d3 * d4 * d4 - d4 * d4 * d4));
-
-    double cs[] = {c1, c2, c3, c4};
-    double cns[] = {cn1, cn2, cn3, cn4};
-    const struct vec3d *ds[] = {&ds1, &ds2, &ds3, &ds4};
-
-    struct vec3d tmp;
-    t = vec3(0, 0, 0);
-    n = vec3(0, 0, 0);
-    for (int k = 0; k < 4; ++k) {
-      vec3_mul(&tmp, ds[k], cs[k]);
-      vec3_add(&t, &t, &tmp);
-
-      vec3_mul(&tmp, ds[k], cns[k]);
-      vec3_add(&n, &n, &tmp);
-    }
-
-    tangle->tangents[k] = t;
-    tangle->normals[k] = n;
+    update_pinned_node_tangent_normal(tangle, k);
     return;
   }
 
@@ -367,65 +437,7 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k) {
   int prev = tangle->connections[k].reverse;
   if (tangle->status[next].status == PINNED ||
       tangle->status[prev].status == PINNED) {
-    // make sure the surrounding points are updated
-    update_tangent_normal(tangle, next);
-    update_tangent_normal(tangle, prev);
-
-    const struct vec3d *t1 = &tangle->tangents[next];
-    const struct vec3d *tm1 = &tangle->tangents[prev];
-
-    const struct vec3d *ds1 = &ds[1];
-    const struct vec3d *dsm1 = &ds[2];
-
-    double ct1 = -dm1 * dm1 / (d1 * d1 - 2 * d1 * dm1 + dm1 * dm1);
-    double ctm1 = -d1 * d1 / (d1 * d1 - 2 * d1 * dm1 + dm1 * dm1);
-
-    double ct_ds1 = 2 * dm1 * dm1 * (-2 * d1 + dm1) /
-                    (d1 * (d1 * d1 * d1 - 3 * d1 * d1 * dm1 +
-                           3 * d1 * dm1 * dm1 - dm1 * dm1 * dm1));
-    double ct_dsm1 = 2 * d1 * d1 * (-d1 + 2 * dm1) /
-                     (dm1 * (d1 * d1 * d1 - 3 * d1 * d1 * dm1 +
-                             3 * d1 * dm1 * dm1 - dm1 * dm1 * dm1));
-
-    double cn_ds1 = 2 * dm1 * (8 * d1 * d1 - d1 * dm1 - dm1 * dm1) /
-                    (d1 * d1 *
-                     (d1 * d1 * d1 - 3 * d1 * d1 * dm1 + 3 * d1 * dm1 * dm1 -
-                      dm1 * dm1 * dm1));
-    double cn_dsm1 = 2 * d1 * (d1 * d1 + d1 * dm1 - 8 * dm1 * dm1) /
-                     (dm1 * dm1 *
-                      (d1 * d1 * d1 - 3 * d1 * d1 * dm1 + 3 * d1 * dm1 * dm1 -
-                       dm1 * dm1 * dm1));
-
-    double cn_t1 =
-        2 * dm1 * (2 * d1 + dm1) / (d1 * (d1 * d1 - 2 * d1 * dm1 + dm1 * dm1));
-    double cn_tm1 =
-        2 * d1 * (d1 + 2 * dm1) / (dm1 * (d1 * d1 - 2 * d1 * dm1 + dm1 * dm1));
-
-    struct vec3d tmp, t, n;
-    t = vec3(0, 0, 0);
-    n = vec3(0, 0, 0);
-    vec3_mul(&tmp, t1, ct1);
-    vec3_add(&t, &t, &tmp);
-    vec3_mul(&tmp, tm1, ctm1);
-    vec3_add(&t, &t, &tmp);
-    vec3_mul(&tmp, ds1, ct_ds1);
-    vec3_add(&t, &t, &tmp);
-    vec3_mul(&tmp, dsm1, ct_dsm1);
-    vec3_add(&t, &t, &tmp);
-
-    vec3_mul(&tmp, t1, cn_t1);
-    vec3_add(&n, &n, &tmp);
-    vec3_mul(&tmp, tm1, cn_tm1);
-    vec3_add(&n, &n, &tmp);
-
-    vec3_mul(&tmp, ds1, cn_ds1);
-    vec3_add(&n, &n, &tmp);
-    vec3_mul(&tmp, dsm1, cn_dsm1);
-    vec3_add(&n, &n, &tmp);
-
-    tangle->tangents[k] = t;
-    tangle->normals[k] = n;
-
+    update_pinned_neighbor_tangent_normal(tangle, k, next, prev, d1, dm1, ds);
     return;
   }
 

@@ -72,7 +72,7 @@ if __name__ == '__main__':
     out = np.column_stack((times, lengths))
     
     if path.isfile(output_file):
-        out = np.row_stack((Lt, out))
+        out = np.vstack((Lt, out))
 
     f, ax = plt.subplots(1,1)
     ax.plot(out[:,0], out[:,1])

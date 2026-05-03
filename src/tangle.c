@@ -498,6 +498,7 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k) {
 static inline struct vec3d segment_field1(struct segment *seg, struct vec3d r) {
   struct vec3d R;
   struct vec3d Rp1;
+  int mask;
 
   vec3_sub(&R, &seg->r1, &r);
   vec3_sub(&Rp1, &seg->r2, &r);
@@ -509,18 +510,16 @@ static inline struct vec3d segment_field1(struct segment *seg, struct vec3d r) {
 
   // this can happen in periodic boundary conditions
   // TODO: the logic should be moved higher
-  if (lR < 1e-8 || lRp1 < 1e-8)
-    return vec3(0, 0, 0);
+  mask = lR < 1e-8 || lRp1 < 1e-8;
 
   // if R and Rp1 are colinear, the result is 0
   // but code below would try to calculate 0/0
-  if (fabs(vec3_ndot(&R, &Rp1) - 1) < 1e-8)
-    return vec3(0, 0, 0);
+  mask = mask || (fabs(vec3_ndot(&R, &Rp1) - 1) < 1e-8);
 
   struct vec3d vv;
 
   vec3_cross(&vv, &R, &Rp1);
-  vec3_mul(&vv, &vv, f * (lR + lRp1) / denom);
+  vec3_mul(&vv, &vv, f * (lR + lRp1) / denom * !mask);
 
   return vv;
 }

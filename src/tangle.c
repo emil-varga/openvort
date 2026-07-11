@@ -88,6 +88,12 @@ void create_tangle(struct tangle_state *tangle, size_t n) {
   tangle->recalculate = (int *)malloc(sizeof(int) * n);
   tangle->status = (node_status *)malloc(sizeof(node_status) * n);
   tangle->dxi = (double *)malloc(sizeof(double) * n);
+  tangle->seg_r1x = (double *)malloc(sizeof(double) * n);
+  tangle->seg_r1y = (double *)malloc(sizeof(double) * n);
+  tangle->seg_r1z = (double *)malloc(sizeof(double) * n);
+  tangle->seg_r2x = (double *)malloc(sizeof(double) * n);
+  tangle->seg_r2y = (double *)malloc(sizeof(double) * n);
+  tangle->seg_r2z = (double *)malloc(sizeof(double) * n);
 
   tangle->connections =
       (struct neighbour_t *)malloc(n * sizeof(struct neighbour_t));
@@ -129,6 +135,12 @@ void expand_tangle(struct tangle_state *tangle, size_t n) {
   tangle->status =
       (node_status *)realloc(tangle->status, sizeof(node_status) * n);
   tangle->dxi = (double *)realloc(tangle->dxi, sizeof(double) * n);
+  tangle->seg_r1x = (double *)realloc(tangle->seg_r1x, sizeof(double) * n);
+  tangle->seg_r1y = (double *)realloc(tangle->seg_r1y, sizeof(double) * n);
+  tangle->seg_r1z = (double *)realloc(tangle->seg_r1z, sizeof(double) * n);
+  tangle->seg_r2x = (double *)realloc(tangle->seg_r2x, sizeof(double) * n);
+  tangle->seg_r2y = (double *)realloc(tangle->seg_r2y, sizeof(double) * n);
+  tangle->seg_r2z = (double *)realloc(tangle->seg_r2z, sizeof(double) * n);
 
   tangle->connections = (struct neighbour_t *)realloc(
       tangle->connections, n * sizeof(struct neighbour_t));
@@ -160,6 +172,12 @@ void free_tangle(struct tangle_state *tangle) {
   free(tangle->recalculate);
   free(tangle->status);
   free(tangle->dxi);
+  free(tangle->seg_r1x);
+  free(tangle->seg_r1y);
+  free(tangle->seg_r1z);
+  free(tangle->seg_r2x);
+  free(tangle->seg_r2y);
+  free(tangle->seg_r2z);
 }
 
 struct vec3d step_node(const struct tangle_state *tangle, int i, int where) {
@@ -498,28 +516,29 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k) {
 static inline struct vec3d segment_field1(struct segment *seg, struct vec3d r) {
   struct vec3d R;
   struct vec3d Rp1;
-  int mask;
 
   vec3_sub(&R, &seg->r1, &r);
   vec3_sub(&Rp1, &seg->r2, &r);
 
   double lR = vec3_d(&R);
   double lRp1 = vec3_d(&Rp1);
-  double denom = lR * lRp1 * (lR * lRp1 + vec3_dot(&R, &Rp1));
-  double f = KAPPA / 4 / M_PI;
+  if (lR < 1e-8 || lRp1 < 1e-8) {
+    return vec3(0, 0, 0);
+  }
 
-  // this can happen in periodic boundary conditions
-  // TODO: the logic should be moved higher
-  mask = lR < 1e-8 || lRp1 < 1e-8;
+  double R_dot_Rp1 = vec3_dot(&R, &Rp1);
+  double denom = lR * lRp1 * (lR * lRp1 + R_dot_Rp1);
 
-  // if R and Rp1 are colinear, the result is 0
-  // but code below would try to calculate 0/0
-  mask = mask || (fabs(vec3_ndot(&R, &Rp1) - 1) < 1e-8);
+  double lR_lRp1 = lR * lRp1;
+  double safe_lR_lRp1 = (lR_lRp1 < 1e-16) ? 1.0 : lR_lRp1;
+  if (denom < 1e-15 || fabs(R_dot_Rp1 / safe_lR_lRp1 - 1.0) < 1e-8) {
+    return vec3(0, 0, 0);
+  }
 
+  double f = (KAPPA / 4.0 / M_PI) * (lR + lRp1) / denom;
   struct vec3d vv;
-
   vec3_cross(&vv, &R, &Rp1);
-  vec3_mul(&vv, &vv, f * (lR + lRp1) / denom * !mask);
+  vec3_mul(&vv, &vv, f);
 
   return vv;
 }
@@ -532,8 +551,11 @@ static inline struct vec3d segment_field(const struct tangle_state *tangle,
   int next = tangle->connections[i].forward;
   if (next == -1) // this is an edge point on a wall
     return vec3(0, 0, 0);
-  struct segment seg =
-      seg_pwrap(tangle->vnodes + i, tangle->vnodes + next, &tangle->box);
+
+  struct segment seg = {
+    .r1 = {{tangle->seg_r1x[i], tangle->seg_r1y[i], tangle->seg_r1z[i]}},
+    .r2 = {{tangle->seg_r2x[i], tangle->seg_r2y[i], tangle->seg_r2z[i]}}
+  };
 
   return segment_field1(&seg, r);
 }
@@ -566,24 +588,110 @@ struct vec3d calculate_vs_shift(const struct tangle_state *tangle,
                                 const struct vec3d *shift,
                                 const int *use_only_points, const int Npoints) {
   int m;
-  struct vec3d vs = vec3(0, 0, 0);
+  double vs_x = 0.0;
+  double vs_y = 0.0;
+  double vs_z = 0.0;
 
   if (shift)
     vec3_add(&r, &r, shift);
 
-  const int N = use_only_points ? Npoints : tangle->N;
+  const double rx = r.p[0];
+  const double ry = r.p[1];
+  const double rz = r.p[2];
 
-  for (m = 0; m < N; ++m) {
-    const int k = use_only_points ? use_only_points[m] : m;
-    if (tangle->connections[k].forward == -1 || skip == k ||
-        skip == tangle->connections[k].forward)
-      continue;
+  if (use_only_points) {
+    #pragma omp simd reduction(+:vs_x, vs_y, vs_z)
+    for (m = 0; m < Npoints; ++m) {
+      const int k = use_only_points[m];
+      int k_next = tangle->connections[k].forward;
 
-    struct vec3d ivs = segment_field(tangle, k, r);
-    vec3_add(&vs, &vs, &ivs);
+      double r1x = tangle->seg_r1x[k];
+      double r1y = tangle->seg_r1y[k];
+      double r1z = tangle->seg_r1z[k];
+
+      double r2x = tangle->seg_r2x[k];
+      double r2y = tangle->seg_r2y[k];
+      double r2z = tangle->seg_r2z[k];
+
+      double Rx = r1x - rx;
+      double Ry = r1y - ry;
+      double Rz = r1z - rz;
+
+      double Rp1x = r2x - rx;
+      double Rp1y = r2y - ry;
+      double Rp1z = r2z - rz;
+
+      double lR = sqrt(Rx*Rx + Ry*Ry + Rz*Rz);
+      double lRp1 = sqrt(Rp1x*Rp1x + Rp1y*Rp1y + Rp1z*Rp1z);
+
+      double R_dot_Rp1 = Rx*Rp1x + Ry*Rp1y + Rz*Rp1z;
+      double denom = lR * lRp1 * (lR * lRp1 + R_dot_Rp1);
+
+      int skip_mask = (k_next == -1 || k == skip || k_next == skip);
+
+      double lR_lRp1 = lR * lRp1;
+      double safe_lR_lRp1 = (lR_lRp1 < 1e-16) ? 1.0 : lR_lRp1;
+      int invalid = (lR < 1e-8 || lRp1 < 1e-8 || fabs(R_dot_Rp1 / safe_lR_lRp1 - 1.0) < 1e-8 || denom < 1e-15 || skip_mask);
+
+      double safe_denom = invalid ? 1.0 : denom;
+      double f = invalid ? 0.0 : ((KAPPA / 4.0 / M_PI) * (lR + lRp1) / safe_denom);
+
+      double vvx = Ry*Rp1z - Rz*Rp1y;
+      double vvy = Rz*Rp1x - Rx*Rp1z;
+      double vvz = Rx*Rp1y - Ry*Rp1x;
+
+      vs_x += vvx * f;
+      vs_y += vvy * f;
+      vs_z += vvz * f;
+    }
+  } else {
+    const int N = tangle->N;
+    #pragma omp simd reduction(+:vs_x, vs_y, vs_z)
+    for (m = 0; m < N; ++m) {
+      int m_next = tangle->connections[m].forward;
+
+      double r1x = tangle->seg_r1x[m];
+      double r1y = tangle->seg_r1y[m];
+      double r1z = tangle->seg_r1z[m];
+
+      double r2x = tangle->seg_r2x[m];
+      double r2y = tangle->seg_r2y[m];
+      double r2z = tangle->seg_r2z[m];
+
+      double Rx = r1x - rx;
+      double Ry = r1y - ry;
+      double Rz = r1z - rz;
+
+      double Rp1x = r2x - rx;
+      double Rp1y = r2y - ry;
+      double Rp1z = r2z - rz;
+
+      double lR = sqrt(Rx*Rx + Ry*Ry + Rz*Rz);
+      double lRp1 = sqrt(Rp1x*Rp1x + Rp1y*Rp1y + Rp1z*Rp1z);
+
+      double R_dot_Rp1 = Rx*Rp1x + Ry*Rp1y + Rz*Rp1z;
+      double denom = lR * lRp1 * (lR * lRp1 + R_dot_Rp1);
+
+      int skip_mask = (m_next == -1 || m == skip || m_next == skip);
+
+      double lR_lRp1 = lR * lRp1;
+      double safe_lR_lRp1 = (lR_lRp1 < 1e-16) ? 1.0 : lR_lRp1;
+      int invalid = (lR < 1e-8 || lRp1 < 1e-8 || fabs(R_dot_Rp1 / safe_lR_lRp1 - 1.0) < 1e-8 || denom < 1e-15 || skip_mask);
+
+      double safe_denom = invalid ? 1.0 : denom;
+      double f = invalid ? 0.0 : ((KAPPA / 4.0 / M_PI) * (lR + lRp1) / safe_denom);
+
+      double vvx = Ry*Rp1z - Rz*Rp1y;
+      double vvy = Rz*Rp1x - Rx*Rp1z;
+      double vvz = Rx*Rp1y - Ry*Rp1x;
+
+      vs_x += vvx * f;
+      vs_y += vvy * f;
+      vs_z += vvz * f;
+    }
   }
 
-  return vs;
+  return vec3(vs_x, vs_y, vs_z);
 }
 
 struct vec3d calculate_vs(struct tangle_state *tangle, struct vec3d r,
@@ -593,7 +701,6 @@ struct vec3d calculate_vs(struct tangle_state *tangle, struct vec3d r,
 
 void update_velocity(struct tangle_state *tangle, int k, double t,
                      struct octree *tree) {
-  int m;
   if (tangle->status[k].status == EMPTY)
     return;
 
@@ -620,14 +727,8 @@ void update_velocity(struct tangle_state *tangle, int k, double t,
       vec3_add(&tangle->vs[k], &tangle->vs[k], &v_tree);
     } else {
       // integrate Biot-Savart as usual
-      for (m = 0; m < tangle->N; ++m) {
-        if (tangle->connections[m].forward == -1 || m == k ||
-            k == tangle->connections[m].forward)
-          continue;
-
-        struct vec3d segment_vel = segment_field(tangle, m, tangle->vnodes[k]);
-        vec3_add(&tangle->vs[k], &tangle->vs[k], &segment_vel);
-      }
+      struct vec3d v_direct = calculate_vs_shift(tangle, tangle->vnodes[k], k, NULL, NULL, 0);
+      vec3_add(&tangle->vs[k], &tangle->vs[k], &v_direct);
     }
 
     // calculate the velocity due to boundary images
@@ -694,8 +795,36 @@ void update_velocity(struct tangle_state *tangle, int k, double t,
   }
 }
 
+void precompute_segments(struct tangle_state *tangle) {
+  int i;
+#pragma omp parallel private(i) num_threads(global_num_threads)
+  {
+#pragma omp for
+    for (i = 0; i < tangle->N; ++i) {
+      int next = tangle->connections[i].forward;
+      if (tangle->status[i].status == EMPTY || next == -1) {
+        tangle->seg_r1x[i] = 0.0;
+        tangle->seg_r1y[i] = 0.0;
+        tangle->seg_r1z[i] = 0.0;
+        tangle->seg_r2x[i] = 0.0;
+        tangle->seg_r2y[i] = 0.0;
+        tangle->seg_r2z[i] = 0.0;
+      } else {
+        struct segment seg = seg_pwrap(&tangle->vnodes[i], &tangle->vnodes[next], &tangle->box);
+        tangle->seg_r1x[i] = seg.r1.p[0];
+        tangle->seg_r1y[i] = seg.r1.p[1];
+        tangle->seg_r1z[i] = seg.r1.p[2];
+        tangle->seg_r2x[i] = seg.r2.p[0];
+        tangle->seg_r2y[i] = seg.r2.p[1];
+        tangle->seg_r2z[i] = seg.r2.p[2];
+      }
+    }
+  }
+}
+
 void update_velocities(struct tangle_state *tangle, double t,
                        struct octree *_tree) {
+  precompute_segments(tangle);
   struct octree *tree = _tree;
   if (!tree && global_use_BH)
     tree = octree_build(tangle, global_BH_quadtree);

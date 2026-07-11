@@ -87,6 +87,8 @@ struct tangle_state {
   struct vec3d *tangents;
   struct vec3d *normals;
   double *dxi; //arc length segments
+  double *seg_r1x, *seg_r1y, *seg_r1z;
+  double *seg_r2x, *seg_r2y, *seg_r2z;
 
   //flags that the properties of the points
   //need to be recalculated

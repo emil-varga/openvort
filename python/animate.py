@@ -84,12 +84,15 @@ if __name__ == '__main__':
         with io.open(args.config) as f:
             config = libconf.load(f)
         domain = config['domain']
+        print(domain)
         LBB = np.array(domain[0])
         RFT = np.array(domain[1])
 
         if args.fix_plot_box:
-            Dxl, Dyl, Dzl = LBB*10
-            Dxh, Dyh, Dzh = RFT*10
+            Dxl, Dyl, Dzl = LBB
+            Dxh, Dyh, Dzh = RFT
+            print(Dxl, Dyl, Dzl)
+            print(Dxh, Dyh, Dzh)
         else:
             Lmax = np.abs(LBB - RFT).max()
             mids = 0.5*(LBB + RFT)
@@ -119,7 +122,7 @@ if __name__ == '__main__':
     if args.just_one >= 0:
         just_one = args.just_one
     else:
-        just_one = None
+        just_one = None      
         
     if args.xlim is not None:
         Dxl, Dxh = args.xlim
@@ -143,7 +146,7 @@ if __name__ == '__main__':
         ax.clear()
         ax.auto_scale_xyz(1, 1, 1)
         draw_vortices(fn, ax, slow=slow, max_len=dl_max, color=color,
-                      just_one=just_one)
+                      just_one=just_one, scale=1)
         if not args.auto_ax:
             ax.set_xlim(Dxl, Dxh)
             ax.set_ylim(Dyl, Dyh)

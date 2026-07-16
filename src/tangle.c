@@ -352,13 +352,16 @@ static void update_pinned_node_tangent_normal(struct tangle_state *tangle,
   tangle->normals[k] = n;
 }
 
+static void update_tangent_normal_internal(struct tangle_state *tangle, size_t k, char *visited);
+
 static void update_pinned_neighbor_tangent_normal(struct tangle_state *tangle,
                                                   size_t k, int next, int prev,
                                                   double d1, double dm1,
-                                                  const struct vec3d ds[4]) {
+                                                  const struct vec3d ds[4],
+                                                  char *visited) {
   // make sure the surrounding points are updated
-  update_tangent_normal(tangle, next);
-  update_tangent_normal(tangle, prev);
+  update_tangent_normal_internal(tangle, next, visited);
+  update_tangent_normal_internal(tangle, prev, visited);
 
   const struct vec3d *t1 = &tangle->tangents[next];
   const struct vec3d *tm1 = &tangle->tangents[prev];
@@ -416,16 +419,26 @@ static void update_pinned_neighbor_tangent_normal(struct tangle_state *tangle,
   tangle->normals[k] = n;
 }
 
-void update_tangent_normal(struct tangle_state *tangle, size_t k) {
+static void update_tangent_normal_internal(struct tangle_state *tangle, size_t k, char *visited) {
+  if (tangle->status[k].status == EMPTY) {
+    visited[k] = 2;
+    return;
+  }
+
+  if (visited[k] == 2)
+    return;
+
+  if (visited[k] == 1)
+    return;
+
+  visited[k] = 1;
+
   struct vec3d s0, s1, sm1;
   struct vec3d s2, sm2;
 
   // vector differences
   struct vec3d ds[4];
   struct segment dseg[4];
-
-  if (tangle->status[k].status == EMPTY)
-    return;
 
   s0 = tangle->vnodes[k];
   s1 = step_node(tangle, k, 1);
@@ -448,6 +461,7 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k) {
 
   if (tangle->status[k].status == PINNED) {
     update_pinned_node_tangent_normal(tangle, k);
+    visited[k] = 2;
     return;
   }
 
@@ -455,7 +469,8 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k) {
   int prev = tangle->connections[k].reverse;
   if (tangle->status[next].status == PINNED ||
       tangle->status[prev].status == PINNED) {
-    update_pinned_neighbor_tangent_normal(tangle, k, next, prev, d1, dm1, ds);
+    update_pinned_neighbor_tangent_normal(tangle, k, next, prev, d1, dm1, ds, visited);
+    visited[k] = 2;
     return;
   }
 
@@ -506,6 +521,16 @@ void update_tangent_normal(struct tangle_state *tangle, size_t k) {
       tangle->tangents[k].p[i] += s_1_cf[z] * ds[z].p[i];
       tangle->normals[k].p[i] += s_2_cf[z] * ds[z].p[i];
     }
+  }
+
+  visited[k] = 2;
+}
+
+void update_tangent_normal(struct tangle_state *tangle, size_t k) {
+  char *visited = (char *)calloc(tangle->N, sizeof(char));
+  if (visited) {
+    update_tangent_normal_internal(tangle, k, visited);
+    free(visited);
   }
 }
 
@@ -862,8 +887,12 @@ void initialize_dxi(struct tangle_state *tangle) {
 
 void update_tangents_normals(struct tangle_state *tangle) {
   initialize_dxi(tangle);
-  for (int i = 0; i < tangle->N; ++i)
-    update_tangent_normal(tangle, i);
+  char *visited = (char *)calloc(tangle->N, sizeof(char));
+  if (visited) {
+    for (int i = 0; i < tangle->N; ++i)
+      update_tangent_normal_internal(tangle, i, visited);
+    free(visited);
+  }
 }
 
 static inline int search_next_free(struct tangle_state *tangle) {
@@ -971,8 +1000,6 @@ void remesh(struct tangle_state *tangle, double min_dist, double max_dist) {
     int next = tangle->connections[k].forward;
     int prev = tangle->connections[k].reverse;
 
-    struct segment sf;
-    struct segment sr;
     double lf = 0;
     double lr = 0;
 
@@ -1001,7 +1028,7 @@ void remesh(struct tangle_state *tangle, double min_dist, double max_dist) {
         (lf >
          max_dist)) { // since we are adding between k and next, check only lf
       added++;
-      int new_pt = add_point(tangle, k);
+      add_point(tangle, k);
       change = 1;
     }
     if (change)
@@ -1024,8 +1051,6 @@ void eliminate_small_loops(struct tangle_state *tangle, int loop_length) {
   if (global_eliminate_outer_loops)
     eliminate_loops_near_zaxis(tangle, global_eliminate_outer_loops_cutoff,
                                0); // outside removal
-
-  int killed = 0;
 
   for (int k = 0; k < tangle->N; ++k)
     tangle->recalculate[k] = 0;
@@ -1067,7 +1092,6 @@ void eliminate_small_loops(struct tangle_state *tangle, int loop_length) {
        * forward, so we have to start at the end facing away from
        * the wall
        */
-      killed++;
       next = here;
       while (1) {
         int tmp = next;
@@ -1081,7 +1105,6 @@ void eliminate_small_loops(struct tangle_state *tangle, int loop_length) {
       }
     }
   }
-  // printf("Killed %d loops.\n", killed);
 }
 
 void eliminate_loops_near_origin(struct tangle_state *tangle, double cutoff) {
@@ -1220,21 +1243,16 @@ int add_point(struct tangle_state *tangle, int p) {
   struct segment seg = seg_pwrap(&s0, &s1, &tangle->box);
   s1 = seg.r2;
 
-  struct vec3d s0p = tangle->tangents[p];
-  struct vec3d s1p = tangle->tangents[next];
-
   struct vec3d s0pp = tangle->normals[p];
   struct vec3d s1pp = tangle->normals[next];
 
   struct vec3d a, b, new;
-  struct vec3d new0, new1;
 
   struct vec3d n;
   vec3_add(&n, &s0pp, &s1pp);
   vec3_mul(&n, &n, 0.5);
   double nd = vec3_d(&n);
   double lf = tangle->dxi[p];
-  double lb = tangle->dxi[next];
 
   // if(tangle->status[p].status == PINNED) {
   //   struct vec3d t = tangle->tangents[p];

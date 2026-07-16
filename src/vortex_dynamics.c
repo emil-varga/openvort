@@ -402,19 +402,49 @@ int connect_to_wall(struct tangle_state *tangle, int k, int wall,
 
   int next = tangle->connections[k].forward;
   int prev = tangle->connections[k].reverse;
-  double d1 = wall_dist(tangle, next, wall);
-  double dm1 = wall_dist(tangle, prev, wall);
+  double d1 = (next >= 0) ? wall_dist(tangle, next, wall) : 0.0;
+  double dm1 = (prev >= 0) ? wall_dist(tangle, prev, wall) : 0.0;
 
-  struct segment s1 =
-      seg_pwrap(&tangle->vnodes[k], &tangle->vnodes[next], &tangle->box);
-  struct segment sm1 =
-      seg_pwrap(&tangle->vnodes[k], &tangle->vnodes[prev], &tangle->box);
-  double vd1 = segment_len(&s1);
-  double vdm1 = segment_len(&sm1);
+  double vd1 = 0.0;
+  double vdm1 = 0.0;
 
-  // check that the total length does not increase
-  if (vd1 < d0 + d1 && vdm1 < d0 + dm1)
+  if (next >= 0) {
+    struct segment s1 = seg_pwrap(&tangle->vnodes[k], &tangle->vnodes[next], &tangle->box);
+    vd1 = segment_len(&s1);
+  }
+  if (prev >= 0) {
+    struct segment sm1 = seg_pwrap(&tangle->vnodes[k], &tangle->vnodes[prev], &tangle->box);
+    vdm1 = segment_len(&sm1);
+  }
+
+  int next_pinned = (next >= 0) &&
+                    (tangle->status[next].status == PINNED ||
+                     tangle->status[next].status == PINNED_SLIP) &&
+                    (tangle->status[next].pin_wall == wall);
+
+  int prev_pinned = (prev >= 0) &&
+                    (tangle->status[prev].status == PINNED ||
+                     tangle->status[prev].status == PINNED_SLIP) &&
+                    (tangle->status[prev].pin_wall == wall);
+
+  int can_split_next = (next >= 0) && !next_pinned && (vd1 >= d0 + d1);
+  int can_split_prev = (prev >= 0) && !prev_pinned && (vdm1 >= d0 + dm1);
+
+  if (!can_split_next && !can_split_prev)
     return 0;
+
+  int split_next = 0;
+  if (can_split_next && can_split_prev) {
+    if (d1 < dm1) {
+      split_next = 1;
+    } else {
+      split_next = 0;
+    }
+  } else if (can_split_next) {
+    split_next = 1;
+  } else {
+    split_next = 0;
+  }
 
   // printf("Pinning %d %d %d\n", prev, k, next);
 
@@ -439,10 +469,10 @@ int connect_to_wall(struct tangle_state *tangle, int k, int wall,
   tangle->recalculate[k]++;
   tangle->recalculate[new_pt]++;
   tangle->recalculate[new_pt2]++;
-  tangle->recalculate[next]++;
-  tangle->recalculate[prev]++;
+  if (next >= 0) tangle->recalculate[next]++;
+  if (prev >= 0) tangle->recalculate[prev]++;
 
-  if (d1 < dm1) {
+  if (split_next) {
     vec3_mul(&tmp, &boundary_normals[wall], -d1);
     vec3_add(&tangle->vnodes[new_pt2], &tangle->vnodes[next], &tmp);
 

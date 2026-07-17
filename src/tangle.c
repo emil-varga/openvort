@@ -556,7 +556,13 @@ static inline struct vec3d segment_field1(struct segment *seg, struct vec3d r) {
 
   double lR_lRp1 = lR * lRp1;
   double safe_lR_lRp1 = (lR_lRp1 < 1e-16) ? 1.0 : lR_lRp1;
-  if (denom < 1e-15 || fabs(R_dot_Rp1 / safe_lR_lRp1 - 1.0) < 1e-8) {
+  // the guard must be dimensionless: denom = (lR*lRp1)^2 * (1 + cos), so an
+  // absolute threshold on denom silently zeroes every contribution once the
+  // box is small enough. The kernel is singular only at cos = -1 (the point
+  // r lies on the segment); at cos = +1 the cross product vanishes smoothly
+  // and no guard is needed.
+  double cosRRp1 = R_dot_Rp1 / safe_lR_lRp1;
+  if (cosRRp1 + 1.0 < 1e-8) {
     return vec3(0, 0, 0);
   }
 
@@ -656,7 +662,9 @@ struct vec3d calculate_vs_shift(const struct tangle_state *tangle,
 
       double lR_lRp1 = lR * lRp1;
       double safe_lR_lRp1 = (lR_lRp1 < 1e-16) ? 1.0 : lR_lRp1;
-      int invalid = (lR < 1e-8 || lRp1 < 1e-8 || fabs(R_dot_Rp1 / safe_lR_lRp1 - 1.0) < 1e-8 || denom < 1e-15 || skip_mask);
+      // only cos = -1 is singular, see segment_field1
+      double cosRRp1 = R_dot_Rp1 / safe_lR_lRp1;
+      int invalid = (lR < 1e-8 || lRp1 < 1e-8 || cosRRp1 + 1.0 < 1e-8 || skip_mask);
 
       double safe_denom = invalid ? 1.0 : denom;
       double f = invalid ? 0.0 : ((KAPPA / 4.0 / M_PI) * (lR + lRp1) / safe_denom);
@@ -701,7 +709,9 @@ struct vec3d calculate_vs_shift(const struct tangle_state *tangle,
 
       double lR_lRp1 = lR * lRp1;
       double safe_lR_lRp1 = (lR_lRp1 < 1e-16) ? 1.0 : lR_lRp1;
-      int invalid = (lR < 1e-8 || lRp1 < 1e-8 || fabs(R_dot_Rp1 / safe_lR_lRp1 - 1.0) < 1e-8 || denom < 1e-15 || skip_mask);
+      // only cos = -1 is singular, see segment_field1
+      double cosRRp1 = R_dot_Rp1 / safe_lR_lRp1;
+      int invalid = (lR < 1e-8 || lRp1 < 1e-8 || cosRRp1 + 1.0 < 1e-8 || skip_mask);
 
       double safe_denom = invalid ? 1.0 : denom;
       double f = invalid ? 0.0 : ((KAPPA / 4.0 / M_PI) * (lR + lRp1) / safe_denom);

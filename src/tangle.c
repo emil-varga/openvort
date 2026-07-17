@@ -942,24 +942,21 @@ static inline int out_of_box(const struct tangle_state *tangle,
       tangle->box.bottom_left_back.p[1], tangle->box.top_right_front.p[1],
       tangle->box.bottom_left_back.p[2], tangle->box.top_right_front.p[2]};
 
-  int face = -1;
-  if (x < bounds[X_L])
-    face = X_L;
-  if (x > bounds[X_H])
-    face = X_H;
-  if (y < bounds[Y_L])
-    face = Y_L;
-  if (y > bounds[Y_H])
-    face = Y_H;
-  if (z < bounds[Z_L])
-    face = Z_L;
-  if (z > bounds[Z_H])
-    face = Z_H;
+  const double pos[] = {x, x, y, y, z, z};
 
-  if (face > -1 && tangle->box.wall[face] != WALL_PERIODIC)
-    face = -1;
+  // return the first violated periodic face; a non-periodic face must not
+  // mask a violation on another axis, so skip rather than bail out
+  for (int face = X_L; face <= Z_H; ++face) {
+    if (tangle->box.wall[face] != WALL_PERIODIC)
+      continue;
 
-  return face;
+    // low faces are violated from below, high faces from above
+    int low = (face % 2) == 0;
+    if (low ? pos[face] < bounds[face] : pos[face] > bounds[face])
+      return face;
+  }
+
+  return NOT_A_FACE;
 }
 
 void enforce_boundaries(struct tangle_state *tangle) {
@@ -970,19 +967,13 @@ void enforce_boundaries(struct tangle_state *tangle) {
     face = out_of_box(tangle, &tangle->vnodes[k]);
     if (face >= 0) {
       // this should be only possible with periodic faces
-      assert_msg(
-          tangle->status[k].status != PINNED ||
-              tangle->status[k].status != PINNED_SLIP,
-          "pinned node outside of the box\n"
-          "this should have been caught with reconnections") while ((face =
-                                                                         out_of_box(
-                                                                             tangle,
-                                                                             &tangle
-                                                                                  ->vnodes
-                                                                                      [k])) >=
-                                                                    0)
-          tangle->vnodes[k] =
-          periodic_shift(&tangle->vnodes[k], &tangle->box, face);
+      assert_msg(tangle->status[k].status != PINNED &&
+                     tangle->status[k].status != PINNED_SLIP,
+                 "pinned node outside of the box\n"
+                 "this should have been caught with reconnections");
+      while ((face = out_of_box(tangle, &tangle->vnodes[k])) >= 0)
+        tangle->vnodes[k] =
+            periodic_shift(&tangle->vnodes[k], &tangle->box, face);
     }
   }
 }
@@ -991,7 +982,7 @@ void remove_point(struct tangle_state *tangle, int point_idx,
                   int merge_direction);
 int add_point(struct tangle_state *tangle, int point_idx);
 void remesh(struct tangle_state *tangle, double min_dist, double max_dist) {
-  int added = 0;
+  int moved = 0;
   for (int k = 0; k < tangle->N; ++k) {
     if (tangle->status[k].status == EMPTY)
       continue;
@@ -1020,6 +1011,7 @@ void remesh(struct tangle_state *tangle, double min_dist, double max_dist) {
       else
         merge_direction = -1;
       remove_point(tangle, k, merge_direction);
+      moved++;
       change = 1;
     }
 
@@ -1027,15 +1019,15 @@ void remesh(struct tangle_state *tangle, double min_dist, double max_dist) {
     if (next >= 0 &&
         (lf >
          max_dist)) { // since we are adding between k and next, check only lf
-      added++;
+      moved++;
       add_point(tangle, k);
       change = 1;
     }
     if (change)
       update_tangents_normals(tangle);
   }
-  // we could have added points outside of the domain
-  if (added)
+  // both adding and merging points can place them outside of the domain
+  if (moved)
     enforce_boundaries(tangle);
 }
 
@@ -1198,7 +1190,10 @@ void remove_point(struct tangle_state *tangle, int point_idx,
       struct vec3d s0p = tangle->tangents[point_idx];
       struct vec3d s0pp = tangle->normals[point_idx];
 
-      struct vec3d s1 = tangle->vnodes[other];
+      // the neighbour can be across a periodic boundary, in which case
+      // averaging the raw positions lands in the middle of the domain
+      struct segment seg = seg_pwrap(&s0, &tangle->vnodes[other], &tangle->box);
+      struct vec3d s1 = seg.r2;
       struct vec3d s1p = tangle->tangents[other];
       struct vec3d s1pp = tangle->normals[other];
 

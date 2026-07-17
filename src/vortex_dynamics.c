@@ -85,8 +85,8 @@ void rk4_step2(struct tangle_state *result, const struct tangle_state *tangle,
   update_tangents_normals(&rk_state[1]);
   update_velocities(&rk_state[1], t + dt / 2, NULL);
 
-  // calculate k4
-  euler_step2(&rk_state[2], tangle, dt / 2, rk_state[1].vels);
+  // calculate k4, evaluated a full step away
+  euler_step2(&rk_state[2], tangle, dt, rk_state[1].vels);
   // enforce_boundaries(&rk_state[2]);
   update_tangents_normals(&rk_state[2]);
   update_velocities(&rk_state[2], t + dt, NULL);

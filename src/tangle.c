@@ -1199,11 +1199,16 @@ void remove_point(struct tangle_state *tangle, int point_idx,
 
       struct vec3d a, new;
 
+      // place the merged point half way along the arc, by averaging the
+      // expansion forward from s0 with the one backward from s1:
+      //   s(l/2) = (s0 + s1)/2 + (s0' - s1')*l/4 + (s0'' + s1'')*l^2/16
+      // averaging halves the coefficients of the one-sided expansion and
+      // cancels its odd error terms
       vec3_add(&a, &s0, &s1);
       vec3_mul(&new, &a, 0.5);
 
       vec3_sub(&a, &s0p, &s1p);
-      vec3_mul(&a, &a, l / 2);
+      vec3_mul(&a, &a, l / 4);
       vec3_add(&new, &new, &a);
 
       vec3_add(&a, &s0pp, &s1pp);
